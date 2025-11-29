@@ -28,6 +28,21 @@
         /* Custom scrollbar for aesthetics */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { background-color: #3B82F6; border-radius: 4px; }
+        .badge-style {
+            position: absolute; 
+            top: 8px; 
+            right: 8px; 
+            background-color: #EF4444; /* Red */
+            color: white; 
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 700; /* font-bold */
+            border-radius: 9999px; /* rounded-full */
+            height: 20px; /* h-5 */
+            width: 20px; /* w-5 */
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden flex">
@@ -82,41 +97,46 @@
     <!-- 3. Socket.io and JavaScript Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Use a placeholder/empty string for the API Key as the server handles auth
-        const apiKey = "";
-        const BASE_URL = ''; // Relative path, handled by Express server
+        // --- Client-side State Management ---
+        const apiKey = ""; 
+        const BASE_URL = ''; 
         const socket = io();
         let currentChatId = null;
+        // Key FIX: Client-side state to track unread messages
+        let unreadCounts = {}; 
+
 
         /**
          * Renders a single chat item element.
-         * @param {object} chat - Chat data object from /api/chats.
+         * @param {object} chat - Chat data object from /api/chats or socket.io update.
          * @returns {HTMLElement} The chat list item element.
          */
         function createChatListItem(chat) {
+            const chatId = chat.telegramId;
+            const count = chat.unreadCount || unreadCounts[chatId] || 0; // Use the provided count or the state count
+
             const chatElement = document.createElement('div');
-            chatElement.id = `chat-${chat.telegramId}`;
+            chatElement.id = `chat-${chatId}`;
             chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative';
-            chatElement.setAttribute('data-chat-id', chat.telegramId);
+            chatElement.setAttribute('data-chat-id', chatId);
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
             const timeString = lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // Logic to determine if a badge is needed (unread status)
-            // Since the server doesn't explicitly track 'unread', we use the simple visual marker from the screenshot
-            const unreadBadge = chat.unreadCount > 0 ? `<span class="absolute top-1 right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">${chat.unreadCount}</span>` : '';
+            // Renders the dynamic unread count badge
+            const unreadBadge = count > 0 ? `<span class="badge-style">${count}</span>` : '';
 
             chatElement.innerHTML = `
                 <div class="flex-grow min-w-0">
-                    <p class="font-semibold truncate text-sm">${chat.username || chat.telegramId}</p>
+                    <p class="font-semibold truncate text-sm">${chat.username || chatId}</p>
                     <p class="text-xs text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
-                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'No message'}</p>
+                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'No text'}</p>
                 </div>
                 ${unreadBadge}
             `;
 
             chatElement.addEventListener('click', () => {
-                selectChat(chat.telegramId, chat.username || chat.telegramId);
+                selectChat(chatId, chat.username || chatId);
             });
 
             return chatElement;
@@ -161,6 +181,7 @@
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500">Loading chats...</div>';
+            unreadCounts = {}; // Reset counts on initial load
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
@@ -173,14 +194,10 @@
                     return;
                 }
                 
-                // Add an arbitrary unread count for mock display (based on screenshot)
-                const mockChats = chats.map((c, index) => ({
-                    ...c,
-                    // Mock a simple "unread" status for the selected chat
-                    unreadCount: index === 0 ? 1 : 0 
-                }));
-
-                mockChats.forEach(chat => {
+                chats.forEach(chat => {
+                    // Initialize client unread count to 0 for all on start
+                    unreadCounts[chat.telegramId] = 0; 
+                    // Create chat item (will show 0 count)
                     chatListElement.appendChild(createChatListItem(chat));
                 });
 
@@ -200,13 +217,15 @@
             document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700">${username}</span>`;
             document.getElementById('chatInputArea').classList.remove('hidden');
             
-            // 2. Highlight active chat in the sidebar
+            // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
-                // Remove the unread badge after selection (mocking read status)
-                const badge = activeChatElement.querySelector('.bg-red-600');
+                
+                // CRITICAL FIX: Reset the unread count state and remove the visual badge
+                unreadCounts[chatId] = 0;
+                const badge = activeChatElement.querySelector('.badge-style');
                 if (badge) badge.remove();
             }
 
@@ -215,7 +234,6 @@
             historyContainer.innerHTML = '<div class="text-center text-gray-500">Loading history...</div>';
 
             try {
-                // Ensure to pass chatId in the URL
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
                 const history = await response.json();
@@ -223,11 +241,9 @@
                 // Clear and render messages
                 historyContainer.innerHTML = '';
                 history.forEach(msg => {
-                    // Prepend new messages so the column-reverse CSS works for scrolling
                     historyContainer.prepend(createMessageBubble(msg));
                 });
                 
-                // Scroll to bottom (since we use column-reverse, this is technically scrolling to the 'top' of the reversed container)
                 historyContainer.scrollTop = 0; 
 
             } catch (error) {
@@ -258,7 +274,7 @@
             const data = {
                 chatId: currentChatId,
                 text: text,
-                mediaPath: null // Extend this later for image/media uploads
+                mediaPath: null 
             };
 
             // Emit the reply to the server
@@ -294,42 +310,45 @@
         // ------------------------------------------------------------------
 
         socket.on('new_message', (data) => {
-            const chatId = data.chatId;
+            const chatId = String(data.chatId);
             const user = data.user;
             const message = data.message;
             
-            // 1. Find the chat list container
             const chatList = document.getElementById('chatList');
             
-            // 2. FIND AND REMOVE THE OLD/DUPLICATE ENTRY (THE FIX!)
+            // 1. Find and REMOVE the old entry to prevent duplicates
             const existingChatElement = document.getElementById(`chat-${chatId}`);
             if (existingChatElement) {
                 existingChatElement.remove();
             }
 
+            // 2. Update Unread Count state
+            if (currentChatId !== chatId) {
+                // If the admin is NOT viewing this chat, increment the unread counter
+                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+            } else {
+                // If the admin IS viewing this chat, count is 0
+                unreadCounts[chatId] = 0;
+            }
+            
             // 3. Create the new, updated list item
-            // Note: The server sends the `user` object with the latest details.
-            // We temporarily add an unreadCount of 1 for the new notification.
-            user.unreadCount = 1; 
+            // Pass the calculated count to the rendering function
+            user.unreadCount = unreadCounts[chatId]; 
             const newChatElement = createChatListItem(user);
             
             // 4. Insert the new entry at the top (prepended for correct chronological sort)
             chatList.prepend(newChatElement);
 
-            // 5. If the current chat is the one receiving the message, display the new message immediately
-            if (currentChatId === String(chatId)) {
+            // 5. If it's the current chat, display the new message immediately
+            if (currentChatId === chatId) {
                 const historyContainer = document.getElementById('messageHistory');
                 historyContainer.prepend(createMessageBubble(message));
                 historyContainer.scrollTop = 0; // Scroll to bottom
-                
-                // Since the admin is viewing it, clear the unread badge immediately
-                user.unreadCount = 0;
-                newChatElement.querySelector('.bg-red-600')?.remove();
             } else {
-                // Flash the new chat item (optional visual feedback)
-                newChatElement.classList.add('bg-yellow-500/30');
+                // Optional: Flash the new chat item for notification
+                newChatElement.classList.add('bg-red-500/30');
                 setTimeout(() => {
-                    newChatElement.classList.remove('bg-yellow-500/30');
+                    newChatElement.classList.remove('bg-red-500/30');
                 }, 1000);
             }
         });
