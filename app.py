@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import time # Added import for time.time()
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from telegram import Bot
@@ -81,7 +82,7 @@ def webhook_handler():
                     logging.info(f"Received command from {user_id}: {text}")
                     # Command များကို အလိုအလျောက် တုံ့ပြန်လိုလျှင် ဤနေရာတွင် ထည့်ပါ။
                     if text == '/start' and bot:
-                         bot.send_message(user_id, "မင်္ဂလာပါရှင်။ သင့်ရဲ့မေးခွန်းကို admin က မကြာခင် တုံ့ပြန်ပေးပါမယ်။")
+                         bot.send_message(user_id, "မင်္ဂလာပါရှင်။ သင့်ရဲ့မေးခွန်းကို admin က မကြာခင် တုံ့ပြန်ပေးပါမယ်။")
                     return 'ok' # Command ဖြစ်လို့ Admin Panel ကို မပို့ပါဘူး
 
                 if text:
@@ -137,7 +138,8 @@ def handle_send_reply(data):
             
             # Admin Panel အတွက် Chat History ကို update လုပ်ပါ
             if user_id in active_chats:
-                new_msg = {'sender': 'admin', 'text': reply_text, 'timestamp': int(os.time())}
+                # 'os.time()' ကို 'time.time()' ဖြင့် ပြင်ဆင်ထားသည်
+                new_msg = {'sender': 'admin', 'text': reply_text, 'timestamp': int(time.time())}
                 active_chats[user_id]['chat_history'].append(new_msg)
                 
                 # စာပြန်တာ အောင်မြင်ကြောင်း Admin Panel သို့ ပြန်ပို့ပါ
@@ -163,8 +165,10 @@ if __name__ == '__main__':
     import eventlet
     eventlet.monkey_patch()
     
-    # ပုံမှန်အားဖြင့် Port 5000 ဖြင့် run ပါမည်။ VPS ၏ Firewall တွင် ခွင့်ပြုထားရန် လိုပါသည်။
-    logging.info("Starting SocketIO server on http://0.0.0.0:4210")
-    wsgi.server(eventlet.listen(('178.62.215.102', 4210)), app)
+    # ပုံမှန်အားဖြင့် Port 4210 ဖြင့် run ပါမည်။ 0.0.0.0 ဖြင့် bind လုပ်ခြင်းသည် ပိုမိုကောင်းမွန်ပါသည်။
+    host = '0.0.0.0'
+    port = 4210
+    logging.info(f"Starting SocketIO server on http://{host}:{port}")
+    wsgi.server(eventlet.listen((host, port)), app)
 
 # မှတ်ချက်- production အတွက် HTTPS (Nginx/Reverse Proxy) ကို အသုံးပြုရန် မဖြစ်မနေ လိုအပ်ပါသည်။
