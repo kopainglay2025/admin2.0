@@ -241,11 +241,12 @@
             
             <!-- Toggle Button Group -->
             <div class="flex bg-gray-700/50 p-1 rounded-xl toggle-group">
-                <button id="signInTab" onclick="switchForm('signin')"
+                <!-- Removed inline onclick handlers -->
+                <button id="signInTab" data-form-type="signin"
                         class="flex-1 py-2 rounded-lg text-sm active-toggle">
                     Sign In (Simulated)
                 </button>
-                <button id="signUpTab" onclick="switchForm('signup')"
+                <button id="signUpTab" data-form-type="signup"
                         class="flex-1 py-2 rounded-lg text-sm text-gray-400">
                     Sign Up (Simulated)
                 </button>
@@ -255,7 +256,8 @@
             <div id="form-container" class="relative h-[250px] overflow-hidden">
                 
                 <!-- Sign In Form -->
-                <form id="signInForm" onsubmit="handleAuth(event, 'signin')" class="auth-form space-y-4 pt-4">
+                <!-- Removed inline onsubmit handler -->
+                <form id="signInForm" class="auth-form space-y-4 pt-4">
                     <div>
                         <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Username/Email)</label>
                         <!-- Pre-filled with user's specific credentials -->
@@ -279,8 +281,8 @@
                 </form>
 
                 <!-- Sign Up Form -->
-                <form id="signUpForm" onsubmit="handleAuth(event, 'signup')" 
-                      class="auth-form space-y-4 pt-4">
+                <!-- Removed inline onsubmit handler -->
+                <form id="signUpForm" class="auth-form space-y-4 pt-4">
                     <div>
                         <label for="signup-username" class="block text-sm font-medium mb-2 text-gray-300">Username</label>
                         <input type="text" id="signup-username" required
@@ -345,7 +347,8 @@
                     <span class="font-medium">Settings</span>
                 </a>
                 
-                <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-red-400 mt-auto" onclick="logout()">
+                <!-- Replaced inline onclick with programmatic listener -->
+                <a href="#" id="logoutButton" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-red-400 mt-auto">
                     <svg class="w-6 h-6 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     <span class="font-medium text-red-400">Logout</span>
                 </a>
@@ -451,12 +454,13 @@
                         </button>
                         
                         <!-- Input field -->
+                        <!-- The Enter key handler (onkeypress) remains inline as it calls the module-scoped sendReply, but we must ensure sendReply is hoisted or accessible. In a module, this is usually fine if sendReply is global, but in a type="module" script, it is not. However, since the error was on switchForm/handleAuth, and fixing those by programmatic linking is better, let's leave this one small onkeypress and see if it works, otherwise, it will also need programmatic binding. sendReply is not defined globally. I will attach it programmatically as well. -->
                         <input type="text" id="replyText" placeholder="Transmit data packet (Powered by Firestore)..."
-                               class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
-                               onkeypress="if(event.key === 'Enter') sendReply()">
+                               class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200">
                                
                         <!-- Send button -->
-                        <button id="sendButton" onclick="sendReply()"
+                        <!-- Removed inline onclick and attached listener programmatically -->
+                        <button id="sendButton" 
                                 class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
@@ -581,7 +585,13 @@
             }
         }
 
+        /**
+         * FIX: This function is now called programmatically via event listeners.
+         */
         function switchForm(type) {
+            const signInTab = document.getElementById('signInTab');
+            const signUpTab = document.getElementById('signUpTab');
+
             if (type === 'signin') {
                 signInForm.style.transform = 'translateX(0)';
                 signInForm.style.opacity = '1';
@@ -613,6 +623,7 @@
 
         /**
          * Attempts to log in using the custom Canvas token or anonymously.
+         * FIX: This function is now called programmatically via event listeners.
          */
         async function handleAuth(event, type) {
             event.preventDefault();
@@ -1052,18 +1063,47 @@
             // Hide the admin portal initially until auth confirms
             adminPortal.classList.add('hidden');
             authView.classList.remove('hidden');
+            
+            // --- FIX: Programmatically attach event listeners to replace inline handlers ---
+            
+            // 1. Auth form tab switching
+            document.getElementById('signInTab').addEventListener('click', () => switchForm('signin'));
+            document.getElementById('signUpTab').addEventListener('click', () => switchForm('signup'));
+
+            // 2. Auth form submission
+            document.getElementById('signInForm').addEventListener('submit', (event) => handleAuth(event, 'signin'));
+            document.getElementById('signUpForm').addEventListener('submit', (event) => handleAuth(event, 'signup'));
+            
+            // 3. Chat input and send button
+            const replyInput = document.getElementById('replyText');
+            replyInput.addEventListener('keypress', (event) => {
+                if(event.key === 'Enter') {
+                    event.preventDefault(); // Prevent default form submission if input was inside a form
+                    sendReply();
+                }
+            });
+            document.getElementById('sendButton').addEventListener('click', sendReply);
+            
+            // 4. Navigation and Logout button
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Check if it's the Logout button by ID
+                    if (item.id === 'logoutButton') {
+                        logout();
+                    } else if (item.getAttribute('data-section')) {
+                        showSection(item.getAttribute('data-section'));
+                    }
+                });
+            });
+            // --- END FIX ---
+
 
             initializeFirebase();
             
             // Set initial height for sign in form
             updateFormContainerHeight(signInForm);
-            
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showSection(item.getAttribute('data-section'));
-                });
-            });
         });
 
     </script>
