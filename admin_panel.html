@@ -29,58 +29,130 @@
         #chat-window::-webkit-scrollbar { width: 8px; }
         #chat-window::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         #chat-window::-webkit-scrollbar-track { background-color: #f1f5f9; }
+
+        /* Custom active state for navigation */
+        .nav-item.active {
+            background-color: #1d4ed8; /* Blue-700 */
+            color: white;
+            border-left: 4px solid #fcd34d; /* Amber-300 */
+        }
+        .nav-item:hover:not(.active) {
+            background-color: #3b82f6; /* Blue-500 */
+            color: white;
+        }
     </style>
 </head>
-<body class="bg-gray-100 h-screen flex">
+<body class="bg-gray-100 h-screen flex antialiased">
 
     <!-- Main Container: Chat Layout -->
-    <div class="flex flex-row w-full h-full shadow-lg rounded-xl overflow-hidden m-4 bg-white">
+    <div class="flex flex-row w-full h-full shadow-2xl rounded-xl overflow-hidden m-4 bg-white">
 
-        <!-- Left Panel: Chat List -->
-        <div id="chat-list" class="w-1/4 bg-gray-50 border-r border-gray-200 overflow-y-auto">
-            <div class="p-4 border-b bg-blue-600 text-white font-bold text-xl sticky top-0 z-10">
-                အသုံးပြုသူများ
+        <!-- Left Panel: Menu Navigation & Chat List -->
+        <div class="w-1/4 bg-gray-900 border-r border-gray-800 flex flex-col overflow-hidden">
+            
+            <!-- App Header -->
+            <div class="p-4 border-b border-gray-700 bg-gray-950 text-white font-extrabold text-2xl sticky top-0 z-20">
+                Admin Console
             </div>
-            <!-- Chat items will be dynamically inserted here -->
-            <div id="user-list-container">
+
+            <!-- Menu Navigation -->
+            <nav id="main-nav" class="flex flex-col py-2 border-b border-gray-700">
+                <a href="#" class="nav-item p-3 px-6 text-gray-300 transition duration-150" data-view="dashboard">
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item active p-3 px-6 text-white transition duration-150" data-view="chat">
+                    Chat
+                </a>
+                <a href="#" class="nav-item p-3 px-6 text-gray-300 transition duration-150" data-view="broadcast">
+                    Broadcast
+                </a>
+                <a href="#" class="nav-item p-3 px-6 text-gray-300 transition duration-150" data-view="settings">
+                    Settings
+                </a>
+            </nav>
+            
+            <!-- Chat List Header -->
+            <div id="chat-list-header" class="p-3 bg-gray-800 text-gray-200 font-semibold text-lg sticky top-[210px] z-10 hidden" data-for-view="chat">
+                အသုံးပြုသူ စာရင်း
+            </div>
+            
+            <!-- Chat List Container -->
+            <div id="user-list-container" class="overflow-y-auto flex-grow hidden" data-for-view="chat">
                 <!-- Placeholder for loading -->
-                <div class="p-4 text-center text-gray-500" id="loading-chats">စာရင်းများကို ရယူနေသည်...</div>
+                <div class="p-4 text-center text-gray-400" id="loading-chats">စာရင်းများကို ရယူနေသည်...</div>
             </div>
         </div>
 
-        <!-- Right Panel: Chat Window -->
-        <div class="w-3/4 flex flex-col">
-            <!-- Chat Header -->
-            <div id="chat-header" class="p-4 border-b bg-white shadow-sm sticky top-0 z-10">
-                <p id="current-chat-title" class="font-bold text-xl text-gray-800">
-                    စကားပြောရန် အသုံးပြုသူကို ရွေးချယ်ပါ
-                </p>
-                <p id="current-chat-subtitle" class="text-sm text-gray-500"></p>
+        <!-- Right Panel: Dynamic Content Area -->
+        <div id="content-area" class="w-3/4 flex flex-col">
+            
+            <!-- View: Dashboard -->
+            <div id="view-dashboard" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Dashboard</h1>
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
+                    <p class="font-bold">သတိပေးချက်:</p>
+                    <p>ဤသည်မှာ Dashboard ဧရိယာဖြစ်သည်။ Chat စနစ်၏ စာရင်းအင်းများ (ဥပမာ- စုစုပေါင်း အသုံးပြုသူ၊ တစ်ရက်တာ message အရေအတွက်) ကို ဤနေရာတွင် ပြသနိုင်ပါသည်။</p>
+                </div>
+                <!-- ... Dashboard Widgets ... -->
             </div>
 
-            <!-- Chat Messages Window -->
-            <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col">
-                <!-- Messages will be dynamically inserted here -->
-                <div class="flex justify-center items-center h-full text-gray-400 text-lg" id="no-chat-selected">
-                    ဘယ်ဘက်ရှိ အသုံးပြုသူ တစ်ဦးဦးကို နှိပ်ပြီး စတင်ပြောဆိုပါ။
+            <!-- View: Chat (Default View) -->
+            <div id="view-chat" class="view-content flex flex-col h-full">
+                <!-- Chat Header -->
+                <div id="chat-header" class="p-4 border-b bg-white shadow-sm sticky top-0 z-10">
+                    <p id="current-chat-title" class="font-bold text-xl text-gray-800">
+                        စကားပြောရန် အသုံးပြုသူကို ရွေးချယ်ပါ
+                    </p>
+                    <p id="current-chat-subtitle" class="text-sm text-gray-500"></p>
+                </div>
+
+                <!-- Chat Messages Window -->
+                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col">
+                    <!-- Messages will be dynamically inserted here -->
+                    <div class="flex justify-center items-center h-full text-gray-400 text-lg" id="no-chat-selected">
+                        ဘယ်ဘက်ရှိ အသုံးပြုသူ တစ်ဦးဦးကို နှိပ်ပြီး စတင်ပြောဆိုပါ။
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div id="message-input-area" class="p-4 border-t bg-gray-50">
+                    <form id="reply-form" class="flex" onsubmit="handleReply(event)">
+                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ..."
+                               class="flex-grow p-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-200"
+                               disabled required>
+                        <button type="submit" id="send-button"
+                                class="bg-blue-600 text-white p-3 rounded-r-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-150"
+                                disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        </button>
+                    </form>
                 </div>
             </div>
-
-            <!-- Message Input (Disabled until chat selected) -->
-            <div id="message-input-area" class="p-4 border-t bg-gray-50">
-                <form id="reply-form" class="flex" onsubmit="handleReply(event)">
-                    <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ..."
-                           class="flex-grow p-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-200"
-                           disabled required>
-                    <button type="submit" id="send-button"
-                            class="bg-blue-600 text-white p-3 rounded-r-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-150"
-                            disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                    </button>
-                </form>
+            
+            <!-- View: Broadcast -->
+            <div id="view-broadcast" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Broadcast Message</h1>
+                <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg mb-6">
+                    <p class="font-bold">အချက်အလက်:</p>
+                    <p>ဤနေရာမှ Telegram ရှိ အသုံးပြုသူအားလုံးသို့ တစ်ပြိုင်တည်း စာများ ပို့နိုင်ရန် စီစဉ်နိုင်ပါသည်။</p>
+                </div>
+                <!-- ... Broadcast Form ... -->
+                <textarea class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="ပို့လိုသော စာသားကို ရိုက်ထည့်ပါ..."></textarea>
+                <button class="mt-4 bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition duration-150">Broadcast စတင်ပါ</button>
             </div>
+
+            <!-- View: Settings -->
+            <div id="view-settings" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Settings</h1>
+                <div class="bg-gray-200 p-4 rounded-lg">
+                    <p class="font-bold">ချိန်ညှိမှုများ:</p>
+                    <p>ဤနေရာတွင် Admin Account စကားဝှက် ပြောင်းလဲခြင်း သို့မဟုတ် Bot ၏ အခြေခံ ချိန်ညှိမှုများကို ပြုလုပ်နိုင်ပါသည်။</p>
+                </div>
+                <!-- ... Settings Options ... -->
+            </div>
+
         </div>
     </div>
 
@@ -90,8 +162,12 @@
 
         let activeChats = [];
         let currentChatId = null;
+        let currentView = 'chat'; // Default view is 'chat'
 
-        const chatListContainer = document.getElementById('user-list-container');
+        const navItems = document.querySelectorAll('.nav-item');
+        const viewContents = document.querySelectorAll('.view-content');
+        const chatListHeader = document.getElementById('chat-list-header');
+        const userListContainer = document.getElementById('user-list-container');
         const chatWindow = document.getElementById('chat-window');
         const chatHeaderTitle = document.getElementById('current-chat-title');
         const chatHeaderSubtitle = document.getElementById('current-chat-subtitle');
@@ -102,6 +178,51 @@
         // Helper function to format time
         const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('my-MM', {
             hour: '2-digit', minute: '2-digit', hour12: true
+        });
+
+        // ------------------------------------
+        // Menu Navigation Function
+        // ------------------------------------
+
+        const switchView = (viewId) => {
+            currentView = viewId;
+
+            // ၁။ Navigation Item များကို အပ်ဒိတ်လုပ်ခြင်း
+            navItems.forEach(item => {
+                item.classList.remove('active', 'text-white', 'text-gray-300');
+                if (item.getAttribute('data-view') === viewId) {
+                    item.classList.add('active', 'text-white');
+                } else {
+                    item.classList.add('text-gray-300');
+                }
+            });
+
+            // ၂။ Content View များကို ပြောင်းလဲခြင်း
+            viewContents.forEach(view => {
+                if (view.id === `view-${viewId}`) {
+                    view.classList.remove('hidden');
+                } else {
+                    view.classList.add('hidden');
+                }
+            });
+
+            // ၃။ Chat View အတွက် Left Panel ကို ထိန်းချုပ်ခြင်း
+            const isChatView = viewId === 'chat';
+            chatListHeader.classList.toggle('hidden', !isChatView);
+            userListContainer.classList.toggle('hidden', !isChatView);
+
+            // Chat view ကို ပြောင်းလဲပါက စာရင်းကို refresh လုပ်ခြင်း
+            if (isChatView && activeChats.length === 0) {
+                fetchChats();
+            }
+        };
+
+        // Event listener for navigation
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchView(e.currentTarget.getAttribute('data-view'));
+            });
         });
 
         // ------------------------------------
@@ -126,13 +247,14 @@
 
         // ၂။ Chat List ကို Render လုပ်ခြင်း
         const renderChatList = () => {
-            chatListContainer.innerHTML = ''; // စာရင်းဟောင်းများကို ရှင်းထုတ်ခြင်း
+            userListContainer.innerHTML = ''; // စာရင်းဟောင်းများကို ရှင်းထုတ်ခြင်း
             const fragment = document.createDocumentFragment();
 
             activeChats.forEach(chat => {
                 const chatItem = document.createElement('div');
                 chatItem.dataset.chatId = chat.telegramId;
-                chatItem.className = `p-4 border-b border-gray-200 cursor-pointer hover:bg-blue-100 transition duration-150 ${currentChatId === chat.telegramId ? 'bg-blue-200 font-semibold' : 'bg-white'}`;
+                // Chat List item style များကို ပြန်ညှိခြင်း
+                chatItem.className = `p-4 border-b border-gray-700 text-white cursor-pointer hover:bg-gray-700 transition duration-150 ${currentChatId === chat.telegramId ? 'bg-blue-600 font-semibold' : 'bg-gray-800'}`;
 
                 // နောက်ဆုံး Message အချိန်ကို တွက်ချက်ခြင်း
                 const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
@@ -140,13 +262,13 @@
 
                 chatItem.innerHTML = `
                     <p class="text-base truncate">${chat.username}</p>
-                    <p class="text-xs text-gray-500 mt-1">${timeString}</p>
+                    <p class="text-xs text-gray-400 mt-1">${timeString}</p>
                 `;
 
                 chatItem.onclick = () => selectChat(chat.telegramId);
                 fragment.appendChild(chatItem);
             });
-            chatListContainer.appendChild(fragment);
+            userListContainer.appendChild(fragment);
         };
 
         // ၃။ Chat ကို ရွေးချယ်ပြီး History ကို တင်ခြင်း
@@ -166,8 +288,15 @@
             renderChatList();
 
             try {
+                // HTTP Basic Auth Credentials ကို fetch request တွင် ထည့်သွင်းရန်
+                // ဤနေရာတွင် Browser မှ Auth ကို မှတ်ထားပြီးဖြစ်ပါက ၎င်းကို အသုံးပြုပါမည်။
                 const response = await fetch(`${apiBaseUrl}/api/chats/${chatId}/history`);
+
+                if (response.status === 401) {
+                    throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
+                }
                 if (!response.ok) throw new Error('History ရယူမှု မအောင်မြင်ပါ');
+                
                 const history = await response.json();
 
                 chatWindow.innerHTML = ''; // loading ကို ရှင်းထုတ်ခြင်း
@@ -184,12 +313,17 @@
             document.getElementById('loading-chats').classList.remove('hidden');
             try {
                 const response = await fetch(`${apiBaseUrl}/api/chats`);
+                
+                if (response.status === 401) {
+                    throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
+                }
                 if (!response.ok) throw new Error('Chat list ရယူမှု မအောင်မြင်ပါ');
+
                 activeChats = await response.json();
                 renderChatList();
             } catch (error) {
                 console.error("Fetch chats error:", error);
-                chatListContainer.innerHTML = '<div class="p-4 text-center text-red-500">စာရင်းရယူရာတွင် အမှား။ Server ကို စစ်ဆေးပါ။</div>';
+                userListContainer.innerHTML = `<div class="p-4 text-center text-red-500">စာရင်းရယူရာတွင် အမှား။ Server ကို စစ်ဆေးပါ။ (${error.message})</div>`;
             } finally {
                 document.getElementById('loading-chats').classList.add('hidden');
             }
@@ -241,11 +375,14 @@
                 // chat အသစ် ဖြစ်ပါက ထည့်သွင်းရန်
                 activeChats.unshift(user);
             }
-            renderChatList();
+            // Chat view တွင် ရှိနေမှသာ render လုပ်ရန်
+            if (currentView === 'chat') {
+                renderChatList();
+            }
 
             // ၂။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
             if (chatId === currentChatId) {
-                // Server ကနေ ပြန်လာတဲ့ message မဟုတ်ရင် (admin reply ကို server ကနေ ပြန်ပို့တဲ့အခါ မထပ်စေရန်)
+                // Server ကနေ ပြန်လာတဲ့ admin reply message ကို (local echo မလုပ်ထားရင်) သို့မဟုတ် user message ကို ပြသခြင်း
                 if (message.sender === 'user') {
                     renderMessage(message);
                     chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -257,14 +394,23 @@
         socket.on('error', (err) => {
             console.error("Socket Error:", err);
             // ယာယီ notification ပြသခြင်း
-            alert(`အမှား- ${err.message}`);
+            // NOTE: alert() ကို မသုံးဘဲ Custom UI သုံးရန် ညွှန်ကြားချက်ရှိသောကြောင့် ယာယီ console တွင်သာ ပြသည်
+            const header = document.getElementById('chat-header');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = "bg-red-500 text-white p-2 text-center text-sm sticky top-0 z-50";
+            errorDiv.textContent = `🚫 Message ပို့ရန် အဆင်မပြေပါ။ ${err.message}`;
+            header.insertAdjacentElement('afterend', errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000); 
         });
 
         // ------------------------------------
         // Initialization
         // ------------------------------------
 
-        document.addEventListener('DOMContentLoaded', fetchChats);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Default အနေဖြင့် 'chat' view ကို စတင်ပြသပြီး chat list ကို ယူခြင်း
+            switchView('chat'); 
+        });
 
     </script>
 </body>
