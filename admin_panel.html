@@ -76,14 +76,22 @@
             border-bottom-right-radius: 4px;
         }
 
+        /* FIX: Remove max-height and rely on flex-grow for full height scrolling */
         .chat-messages {
-            max-height: calc(100vh - 120px); 
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; 
-            /* Subtle shadow to separate chat area */
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
         }
+
+        /* Search Highlight Style */
+        .highlight {
+            background-color: yellow;
+            padding: 1px 0;
+            border-radius: 2px;
+            font-weight: 700;
+        }
+
         /* Custom scrollbar */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
@@ -94,7 +102,7 @@
 </head>
 <body class="flex">
 
-    <!-- 1. Wide Menu Bar (w-64) - အလန်းဆုံး Side Menu ဒီဇိုင်း -->
+    <!-- 1. Wide Menu Bar (w-64) - Side Menu -->
     <div class="w-64 bg-white sidebar flex flex-col flex-shrink-0 border-r border-gray-200">
         <!-- Logo/Title -->
         <div class="p-6 text-2xl font-extrabold text-blue-600 border-b border-gray-100 flex items-center h-20 shadow-sm">
@@ -145,18 +153,23 @@
             Conversations
         </div>
 
+        <!-- NEW: Chat List Search Input -->
+        <div class="p-2 border-b border-gray-100">
+            <input type="text" id="chatListSearch" placeholder="User ရှာရန်..." onkeyup="filterChats()"
+                   class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm shadow-inner transition duration-200">
+        </div>
+
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
             <div class="text-center p-4 text-gray-500 text-sm">Loading chats...</div>
         </div>
     </div>
 
-    <!-- 3. Main Content Area (flex-grow) - ညာဘက်အကျဆုံး အကြောင်းအရာပြကွက် -->
-    <!-- Main content area uses soft white background card floating on gradient body -->
+    <!-- 3. Main Content Area (flex-grow) -->
     <div class="flex-grow flex flex-col p-8">
         
-        <!-- Main Content Wrapper Card -->
-        <div class="bg-white rounded-2xl shadow-xl flex-grow flex flex-col overflow-hidden p-6">
+        <!-- Main Content Wrapper Card - ADDED h-full to fix chat layout height -->
+        <div class="bg-white rounded-2xl shadow-xl flex-grow flex flex-col overflow-hidden p-6 h-full">
 
             <!-- === SECTION: Dashboard === -->
             <div id="section-dashboard" class="main-section flex-grow">
@@ -183,20 +196,21 @@
                 </div>
             </div>
 
-            <!-- === SECTION: Chat (Existing Chat Logic) === -->
-            <div id="section-chat" class="main-section flex-grow flex-col hidden h-full">
-                <!-- Chat Header -->
-                <header id="chatHeader" class="p-4 border-b border-gray-100 bg-white flex items-center justify-between z-10 h-20 text-gray-700 shadow-sm">
+            <!-- === SECTION: Chat (Layout FIXED with h-full) === -->
+            <!-- Ensure h-full is applied here to enable proper flex growth of children -->
+            <div id="section-chat" class="main-section flex-grow flex-col hidden h-full"> 
+                <!-- Chat Header (flex-shrink-0 ensures fixed height) -->
+                <header id="chatHeader" class="p-4 border-b border-gray-100 bg-white flex items-center justify-between z-10 h-20 text-gray-700 shadow-sm flex-shrink-0">
                     <span class="text-xl font-semibold">Chat တစ်ခု ရွေးချယ်ပါ</span>
                 </header>
 
-                <!-- Message History area (using the smooth scroll/reverse flow) -->
+                <!-- Message History area (flex-grow fills available space and handles scroll) -->
                 <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50/50">
                     <div class="text-center text-gray-500">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
                 </div>
 
-                <!-- Message Input area (Clean floating look) -->
-                <div id="chatInputArea" class="p-4 border-t border-gray-100 bg-white hidden">
+                <!-- Message Input area (flex-shrink-0 ensures it stays at the bottom) -->
+                <div id="chatInputArea" class="p-4 border-t border-gray-100 bg-white flex-shrink-0 hidden">
                     <div class="flex space-x-3">
                         <!-- Input field with smooth focus effect -->
                         <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
@@ -264,25 +278,23 @@
         const socket = io();
         let currentChatId = null;
         let unreadCounts = {}; 
+        let allChatElements = []; // Store all chat elements for client-side filtering
 
-        // --- Navigation Functions ---
+        // --- Navigation Functions (unchanged) ---
         
         /**
          * Switches the displayed content area based on the selected section.
          */
         function showSection(sectionId) {
-            // Hide all content sections and remove 'active-nav' from all menu items
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active-nav', 'text-white');
                 el.classList.add('text-gray-700');
             });
 
-            // Show the selected content section
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
-                // Ensure chat section handles its internal flex display
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
                 } else {
@@ -290,19 +302,16 @@
                 }
             }
 
-            // Set the corresponding navigation item as active
             const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
             if (activeNavItem) {
                 activeNavItem.classList.add('active-nav', 'text-white');
                 activeNavItem.classList.remove('text-gray-700', 'hover:text-blue-600'); 
             }
 
-            // Toggle visibility of the Chat List Panel
             const chatListPanel = document.getElementById('chatListPanel');
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
                 chatListPanel.classList.add('flex-col');
-                // If switching to chat, ensure the chat list is loaded
                 if (document.getElementById('chatList').children.length === 0 || 
                     document.getElementById('chatList').innerHTML.includes('Loading chats')) {
                     fetchChats();
@@ -310,12 +319,12 @@
             } else {
                 chatListPanel.classList.add('hidden');
                 chatListPanel.classList.remove('flex-col');
-                currentChatId = null; // Clear active chat when leaving the chat section
+                currentChatId = null; 
             }
         }
 
 
-        // --- Chat Specific Functions (UI updated for new theme) ---
+        // --- Chat Specific Functions ---
 
         /**
          * Renders a single chat item element.
@@ -328,6 +337,7 @@
             chatElement.id = `chat-${chatId}`;
             chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative text-gray-800';
             chatElement.setAttribute('data-chat-id', chatId);
+            chatElement.setAttribute('data-username', chat.username || chatId); // Added for search
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
             const timeString = lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -351,36 +361,35 @@
         }
 
         /**
-         * Renders a single message bubble (Cooler Bubble Design).
+         * Renders a single message bubble.
          */
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
             
-            // Apply new custom bubble classes from <style> block
             const bubbleClass = isUser 
                 ? 'user-bubble text-gray-800' 
                 : 'admin-bubble text-white'; 
 
             const messageElement = document.createElement('div');
             messageElement.className = `flex ${alignment}`;
+            messageElement.setAttribute('data-raw-text', msg.text || ''); // Store raw text for search
             
             const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             let mediaContent = '';
             if (msg.mediaPath) {
-                // Assuming mediaPath is file_id for user, or base64 for admin
                 const imageUrl = isUser ? `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}` : msg.mediaPath;
                 mediaContent = `<img src="${imageUrl}" class="w-48 h-auto rounded-lg mb-2 shadow-md cursor-pointer" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/200x150/f0f0f0/666666?text=Image+Error'" alt="Chat Image"/>`;
             }
 
-            // Time color changes based on bubble color
             const timeColor = isUser ? 'text-gray-500' : 'text-white opacity-90';
+            const messageText = msg.text || ''; // Use raw text initially
 
             messageElement.innerHTML = `
                 <div class="max-w-xs md:max-w-md p-3 rounded-t-xl shadow-md ${bubbleClass}">
                     ${mediaContent}
-                    <p class="${msg.text ? 'block' : 'hidden'}">${msg.text || ''}</p>
+                    <p class="message-text ${msg.text ? 'block' : 'hidden'}">${messageText}</p>
                     <span class="block text-[10px] opacity-75 mt-1 text-right ${timeColor}">
                         ${timeString}
                     </span>
@@ -390,12 +399,67 @@
         }
 
         /**
-         * Fetches and displays the initial chat list. (Logic remains the same)
+         * Filters the chat list based on the search input.
+         */
+        function filterChats() {
+            const query = document.getElementById('chatListSearch').value.toLowerCase().trim();
+            
+            allChatElements.forEach(el => {
+                const username = el.getAttribute('data-username').toLowerCase();
+                const chatId = el.getAttribute('data-chat-id');
+                
+                if (username.includes(query) || chatId.includes(query)) {
+                    el.style.display = 'flex'; // Show
+                } else {
+                    el.style.display = 'none'; // Hide
+                }
+            });
+        }
+        
+        /**
+         * Highlights messages within the current chat history that match the search input.
+         */
+        function searchMessages() {
+            const query = document.getElementById('messageSearchInput').value.trim();
+            const messageBubbles = document.querySelectorAll('#messageHistory > div');
+            
+            // Clear previous highlights
+            messageBubbles.forEach(bubble => {
+                const textElement = bubble.querySelector('.message-text');
+                if (!textElement) return;
+
+                const rawText = bubble.getAttribute('data-raw-text') || '';
+                
+                // Remove existing highlight tags
+                textElement.innerHTML = rawText; 
+            });
+
+            if (!query) return;
+
+            // Apply new highlights
+            const regex = new RegExp('(' + query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'gi');
+            
+            messageBubbles.forEach(bubble => {
+                const textElement = bubble.querySelector('.message-text');
+                if (!textElement) return;
+
+                const rawText = bubble.getAttribute('data-raw-text') || '';
+                
+                // Replace matching parts with a highlighted span
+                const highlightedText = rawText.replace(regex, '<span class="highlight">$1</span>');
+                textElement.innerHTML = highlightedText;
+            });
+        }
+
+
+        /**
+         * Fetches and displays the initial chat list.
          */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>';
             unreadCounts = {}; 
+            allChatElements = []; // Reset stored elements
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
@@ -410,7 +474,9 @@
                 
                 chats.forEach(chat => {
                     unreadCounts[chat.telegramId] = 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
+                    const chatElement = createChatListItem(chat);
+                    allChatElements.push(chatElement); // Store for filtering
+                    chatListElement.appendChild(chatElement);
                 });
 
             } catch (error) {
@@ -420,13 +486,21 @@
         }
 
         /**
-         * Fetches and displays the message history for a selected chat. (Logic remains the same)
+         * Fetches and displays the message history for a selected chat.
          */
         async function selectChat(chatId, username) {
             currentChatId = chatId;
             
-            // 1. Update UI state (Header and Input)
-            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700">${username}</span>`;
+            // 1. Update UI state (Header and Input) with message search box
+            document.getElementById('chatHeader').innerHTML = `
+                <div class="flex items-center w-full">
+                    <span class="text-xl font-semibold text-gray-700 mr-4 flex-shrink-0">${username}</span>
+                    <div class="flex-grow max-w-lg ml-auto">
+                        <input type="text" id="messageSearchInput" placeholder="မက်ဆေ့ချ် ရှာရန်..." onkeyup="searchMessages()"
+                            class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 text-sm transition duration-200 shadow-inner">
+                    </div>
+                </div>
+            `;
             document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
@@ -435,7 +509,6 @@
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
                 
-                // Reset the unread count state and remove the visual badge
                 unreadCounts[chatId] = 0;
                 const badge = activeChatElement.querySelector('.absolute');
                 if (badge) badge.remove();
@@ -527,6 +600,8 @@
             const existingChatElement = document.getElementById(`chat-${chatId}`);
             if (existingChatElement) {
                 existingChatElement.remove();
+                // Also remove from our array
+                allChatElements = allChatElements.filter(el => el.getAttribute('data-chat-id') !== chatId);
             }
 
             // 2. Update Unread Count state
@@ -542,6 +617,7 @@
             
             // 4. Insert the new entry at the top (prepended for correct chronological sort)
             chatList.prepend(newChatElement);
+            allChatElements.unshift(newChatElement); // Add to the start of the array
 
             // 5. If it's the current chat, display the new message immediately
             if (currentChatId === chatId) {
