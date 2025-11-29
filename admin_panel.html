@@ -347,6 +347,9 @@
         
         // Emoji Picker Elements
         const emojiPickerContainer = document.getElementById('emoji-picker-container');
+        
+        // **FIX 1:** Map to store temporary locally echoed message elements
+        const localEchoMap = new Map(); // Key: tempId, Value: messageEl
 
 
         // Helper function to format time
@@ -553,11 +556,33 @@
 
         // ၁။ Chat Message ကို Render လုပ်ခြင်း
         const renderMessage = (message, prepend = false) => {
+            
+            // **FIX:** စာများကို Official Message ID (သို့) Temporary ID ဖြင့် ပြန်မပြစေရန် စစ်ဆေးခြင်း
+            if (message.id) {
+                const existingEl = document.querySelector(`[data-message-id="${message.id}"]`);
+                if (existingEl) {
+                    return; // Message already rendered by its official ID
+                }
+            }
+
             const isUser = message.sender === 'user';
             const imageSrc = getImageSource(message); // Unified image source determination
 
             const messageEl = document.createElement('div');
             messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
+            
+            // Official Message ID သို့မဟုတ် Temporary ID ကို ထည့်သွင်းခြင်း
+            if (message.id) {
+                messageEl.dataset.messageId = message.id;
+            } else if (message.tempId) { // For local echo
+                messageEl.dataset.tempId = message.tempId;
+            }
+            
+            // Local echo message အတွက် ယာယီ opacity ကို လျှော့ထားခြင်း
+            if (message.tempId && !isUser) {
+                 messageEl.classList.add('opacity-70', 'transition-opacity');
+            }
+
 
             const bubble = document.createElement('div');
             bubble.className = `p-3 shadow-md text-sm ${isUser ? 'user-message' : 'admin-message'}`;
@@ -606,6 +631,8 @@
                 // မက်ဆေ့ချ်အသစ် သို့မဟုတ် စတင်တင်သည့်အခါ အောက်မှ ထည့်ခြင်း
                 chatWindow.appendChild(messageEl);
             }
+            
+            return messageEl;
         };
 
         // **ပြင်ဆင်ထားသော Function:** Chat Entry ကို စာရင်းအပေါ်ဆုံးသို့ ရွှေ့ပြီး List ကို ပြန်ဆွဲခြင်း (De-duplication Logic ပါဝင်သည်)
@@ -891,7 +918,10 @@
             if (!text && !selectedFileBase64 || !currentChatId) {
                 return;
             }
-
+            
+            // **FIX 1: Unique Temporary ID ကို ထုတ်လုပ်ခြင်း**
+            const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+            
             // UI ကို ချက်ချင်း ပိတ်ပြီး Loading ပြရန်
             sendButton.disabled = true;
             replyText.disabled = true;
@@ -901,33 +931,54 @@
             const messagePayload = {
                 chatId: currentChatId,
                 text: text,
-                mediaPath: selectedFileBase64 // server က mediaPath ကို မျှော်လင့်ထားသည် (Base64)
+                mediaPath: selectedFileBase64,
+                tempId: tempId // Temporary ID ကို Server သို့ ပို့ခြင်း
             };
-
-            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
-            socket.emit('admin_reply', messagePayload, (response) => {
-                // Post-send cleanup
-                sendButton.disabled = false;
-                replyText.disabled = false;
-                attachButton.disabled = false;
-                emojiButton.disabled = false;
-
-                if (response && !response.success) {
-                    // Send failed, revert local echo (optional, or rely on socket.on('error'))
-                    console.error("Admin Reply failed:", response.error);
-                }
-            });
 
             // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
             const tempMessage = {
                 chatId: currentChatId,
                 sender: 'admin',
                 text: text,
-                imageUrl: selectedFileBase64, // local echo အတွက် imageUrl ကို သုံးသည်။
-                timestamp: new Date().toISOString()
+                imageUrl: selectedFileBase64, 
+                timestamp: new Date().toISOString(),
+                tempId: tempId // Local echo message အတွက် temporary ID ထည့်ခြင်း
             };
-            renderMessage(tempMessage);
+            
+            const messageEl = renderMessage(tempMessage); // <-- CALL 1 (The only call to renderMessage for admin outgoing)
+            localEchoMap.set(tempId, messageEl); // Local echo element ကို သိမ်းထားခြင်း
+            
             chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
+            // Callback တွင် ရှင်းလင်းမှုများ ပြုလုပ်ခြင်း
+            socket.emit('admin_reply', messagePayload, (response) => {
+                // Post-send cleanup
+                sendButton.disabled = false;
+                replyText.disabled = false;
+                attachButton.disabled = false;
+                emojiButton.disabled = false;
+                
+                // Server မှ အတည်ပြုပြီးပါက local echo ကို opacity ပြန်တက်ခြင်း
+                const echoedEl = localEchoMap.get(tempId);
+                if (echoedEl) {
+                    echoedEl.classList.remove('opacity-70'); // Opacity ပြန်တက်ခြင်း
+                    localEchoMap.delete(tempId); // Map မှ ဖယ်ရှားခြင်း
+                    
+                    // Server က official ID နဲ့ timestamp ကို ပြန်မပေးရင်တောင် local echo က ပြီးသွားပြီ
+                }
+
+                if (response && !response.success) {
+                    // Send failed, show error on the echoed message
+                    console.error("Admin Reply failed:", response.error);
+                    // ယာယီစာကို ၅စက္ကန့်ကြာ အနီရောင်ပြရန်
+                    if (echoedEl) {
+                        echoedEl.classList.add('border-2', 'border-red-500');
+                        setTimeout(() => echoedEl.classList.remove('border-2', 'border-red-500'), 5000);
+                    }
+                }
+            });
+
 
             // **LOGIC: Admin ပြန်ပို့ပြီးပါက Chat List ကို အပေါ်သို့ ရွှေ့ရန်**
             const userToUpdate = activeChats.find(c => c.telegramId === currentChatId);
@@ -936,7 +987,6 @@
                 userToUpdate.lastMessageTime = tempMessage.timestamp; 
                 
                 // စာရင်းထဲမှ အပေါ်သို့ ရွှေ့ပြီး list ကို render ပြန်လုပ်ပါ (De-duplication logic ပါဝင်သည်)
-                // note: 'admin-outgoing' ကို messageSender အဖြစ်သုံးပြီး count မတိုးစေရန်
                 moveChatEntryToTop(currentChatId, userToUpdate, 'admin-outgoing'); 
             }
 
@@ -954,19 +1004,23 @@
             const { chatId, message, user } = data;
             
             // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
-            // User data ကို အပ်ဒိတ်လုပ်ပြီး list အပေါ်ဆုံးသို့ ရွှေ့ကာ render ပြန်လုပ်သည်
-            // Note: message.sender က 'user' ဖြစ်ပါက unread count တိုးမည်
             moveChatEntryToTop(chatId, user, message.sender); 
             
             // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
             if (chatId === currentChatId) {
-                // Admin ရဲ့ ကိုယ်ပိုင် message ဆိုရင် local echo လုပ်ပြီးသားဖြစ်လို့ ထပ်မပြရအောင် စစ်ဆေးခြင်း
+                
+                // **FIX 2: Server မှ ပြန်လာသော Admin Message ကို လုံးဝ ပိတ်ဆို့ခြင်း**
+                // Admin ကိုယ်တိုင်ပို့သော message သည် Local Echo လုပ်ပြီးသားဖြစ်သောကြောင့် Server မှ ပြန်လာလျှင် ထပ်မပြရ။
+                if (message.sender === 'admin') {
+                    // console.log("Skipping admin self-echo message from server broadcast.");
+                    return; 
+                }
+                
+                // User Message (အသုံးပြုသူမှ ပို့သောစာ) ဖြစ်မှသာ ပြသမည်
                 if (message.sender === 'user') {
                     renderMessage(message);
                     chatWindow.scrollTop = chatWindow.scrollHeight;
                 }
-                // Admin ၏ message ကို server မှ ပြန်ပို့လာရင် (ဥပမာ- file_id ရယူပြီးနောက်)
-                // Chat List ကတော့ အပေါ်ဆုံး ရောက်သွားပြီးသား ဖြစ်သည်
             }
         });
 
