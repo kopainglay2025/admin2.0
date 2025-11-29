@@ -18,7 +18,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8599597818:AAGiAJT
 
 // ၂။ Firebase Admin SDK Service Account JSON (တစ်ကြောင်းတည်းဖြင့် JSON String အဖြစ် ထည့်သွင်းပါ)
 // (အကယ်၍ process.env တွင် မသတ်မှတ်ထားပါက၊ အောက်ပါ Hardcoded Key ကို အသုံးပြုပါမည်)
-const FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || {
+const FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '[{
   "type": "service_account",
   "project_id": "mkschat-5e0b6",
   "private_key_id": "0196dab42c8336d2c567aa6805a88a524a85d32f",
@@ -30,7 +30,7 @@ const FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40mkschat-5e0b6.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
-};
+}]';
 
 // ၃။ Admin Login အချက်အလက်များ
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
