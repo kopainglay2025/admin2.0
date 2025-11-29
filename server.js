@@ -8,8 +8,12 @@ const path = require('path');
 
 // --- စိတ်ကြိုက်ပြင်ဆင်ရန်လိုအပ်သော အချက်အလက်များ ---
 const TELEGRAM_BOT_TOKEN = '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k'; // သင့် Telegram Bot Token ထည့်ပါ။
-const MONGODB_URI = 'mongodb+srv://painglay123:painglay123@cluster0.b3rucy3.mongodb.net/?appName=Cluster0'; // သင့် MongoDB URI ထည့်ပါ။
+const MONGODB_URI = 'mongodb+srv://painglay123:painglay123@cluster0.b3rucy3.mongodb.net/?appName=Cluster0/telegram_admin_chat'; // သင့် MongoDB URI ထည့်ပါ။
 const PORT = process.env.PORT || 3000;
+
+// Admin Login အချက်အလက်များ (လုံခြုံရေးအတွက် Environment Variable ဖြင့် ထားသင့်သည်)
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'Paing@123';
 // ---------------------------------------------------
 
 // Express App နှင့် HTTP Server ဖန်တီးခြင်း
@@ -42,11 +46,46 @@ const MessageSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 
+// --- HTTP Basic Authentication Middleware ---
+const basicAuthMiddleware = (req, res, next) => {
+    // Basic Auth header ကို စစ်ဆေးခြင်း
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        // Auth header မပါရင် Login window ပေါ်လာစေရန် တောင်းဆိုခြင်း
+        res.setHeader('WWW-Authenticate', 'Basic realm="Admin Panel"');
+        return res.status(401).send('ခွင့်ပြုချက်မရှိပါ (Unauthorized)');
+    }
+
+    // "Basic" နောက်က credentials များကို ဖယ်ရှားခြင်း
+    const [scheme, encoded] = authHeader.split(' ');
+
+    if (scheme !== 'Basic' || !encoded) {
+        return res.status(400).send('တောင်းဆိုမှုပုံစံ မမှန်ကန်ပါ (Bad Request)');
+    }
+
+    // Base64 မှ စာသားအဖြစ် ပြောင်းလဲခြင်း (e.g., "admin:Paing@123")
+    const decoded = Buffer.from(encoded, 'base64').toString();
+    const [username, password] = decoded.split(':');
+
+    // Username နှင့် Password စစ်ဆေးခြင်း
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        return next(); // အောင်မြင်ပါက ဆက်လက်ဆောင်ရွက်ရန်
+    }
+
+    // မအောင်မြင်ပါက Login window ပြန်ပေါ်လာစေရန် တောင်းဆိုခြင်း
+    res.setHeader('WWW-Authenticate', 'Basic realm="Admin Panel"');
+    return res.status(401).send('ခွင့်ပြုချက်မရှိပါ (Invalid Credentials)');
+};
+// ------------------------------------------
+
 // Middleware
 app.use(express.json());
-app.use(express.static('public')); // Admin panel ကို host လုပ်ရန်
 
-// Telegram Bot Message ကို လက်ခံခြင်း
+// Public folder ကို အသုံးပြုရန် (Admin Panel သာမက Static Assets များကိုပါ ထိန်းချုပ်ရန်)
+app.use(express.static('public')); 
+
+// Telegram Bot Message ကို လက်ခံခြင်း (No Auth Needed)
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -89,10 +128,10 @@ bot.on('message', async (msg) => {
     }
 });
 
-// Admin Panel API Endpoints များ
+// Admin Panel API Endpoints များ (Auth Required)
 
 // ၁။ အသုံးပြုသူစာရင်း ရယူခြင်း
-app.get('/api/chats', async (req, res) => {
+app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
     try {
         const users = await User.find().sort({ lastMessageTime: -1 });
         res.json(users);
@@ -102,7 +141,7 @@ app.get('/api/chats', async (req, res) => {
 });
 
 // ၂။ Chat History ရယူခြင်း
-app.get('/api/chats/:chatId/history', async (req, res) => {
+app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
     try {
         const chatId = req.params.chatId;
         const messages = await Message.find({ chatId: chatId }).sort({ timestamp: 1 });
@@ -112,11 +151,11 @@ app.get('/api/chats/:chatId/history', async (req, res) => {
     }
 });
 
-// Socket.io Real-time ချိတ်ဆက်မှု
+// Socket.io Real-time ချိတ်ဆက်မှု (Socket.io သည် Authentication အတွက် client-side token သို့မဟုတ် cookie ကို အသုံးပြုရန် လိုအပ်သော်လည်း၊ ဤနေရာတွင် Server-side API များကိုသာ Auth ဖြင့် ကာကွယ်ထားသည်)
 io.on('connection', (socket) => {
     console.log('Admin Panel မှ ချိတ်ဆက်မှု အသစ်');
 
-    // ၃။ Admin မှ Message ပြန်ပို့ခြင်း
+    // ၃။ Admin မှ Message ပြန်ပို့ခြင်း (ဤ socket event သည် client-side တွင် Admin Panel ဖွင့်ထားမှသာ ဖြစ်ပေါ်သောကြောင့်၊ API endpoint များလောက် လုံခြုံရေး စိုးရိမ်စရာမရှိသော်လည်း၊ ပိုမိုလုံခြုံစေလိုပါက JWT စနစ် ထပ်ထည့်ရပါမည်)
     socket.on('admin_reply', async (data) => {
         const { chatId, text } = data;
 
@@ -158,8 +197,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// Admin Panel UI အတွက် ပင်မစာမျက်နှာ
-app.get('/admin', (req, res) => {
+// Admin Panel UI အတွက် ပင်မစာမျက်နှာ (Auth Required)
+app.get('/admin', basicAuthMiddleware, (req, res) => {
     // ဤ admin_panel.html ဖိုင်ကို 'public' folder ထဲတွင် သိမ်းဆည်းထားရပါမည်။
     res.sendFile(path.join(__dirname, 'admin_panel.html'));
 });
