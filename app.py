@@ -2,13 +2,9 @@ import os
 import json
 import logging
 import time
-from threading import Thread # Bot ကို thread သီးသန့် run ရန်
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
-
-# Long Polling အတွက် လိုအပ်သော imports များ
-from telegram import Bot, Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes, CommandHandler
+from telegram import Bot
 from telegram.error import TelegramError
 
 # Logging ကို စတင်သတ်မှတ်ခြင်း
@@ -19,7 +15,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k')
 # Admin Panel ကို ဝင်ရောက်ရန် Password ကို ဤနေရာတွင် ထည့်ပါ။
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin130718')
-# Long Polling စနစ်သို့ ပြောင်းလိုက်ပြီဖြစ်၍ WEBHOOK_URL သည် မလိုအပ်တော့ပါ။
+# Webhook URL (သင့် Domain ၏ HTTPS URL/webhook ကို ဤနေရာတွင် ထည့်ရပါမည်)
+# mkschannel.org Domain ကို အသုံးပြုရန် သတ်မှတ်ထားသည်
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'https://mkschannel.org/webhook') 
 # -----------------------------------
 
 app = Flask(__name__)
@@ -32,67 +30,30 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # Key: user_id (int), Value: {'username': str, 'chat_history': list}
 active_chats = {}
 
-# --- Telegram Bot Long Polling Handlers ---
+# Telegram Bot Setup (Webhook သတ်မှတ်ခြင်း)
+try:
+    bot = Bot(token=BOT_TOKEN)
+    logging.info(f"Telegram Bot ID: {bot.get_me().id}")
+    
+    # Webhook ကို သတ်မှတ်ခြင်း (HTTPS လိုအပ်သည်ကို သတိပြုပါ)
+    if not WEBHOOK_URL.lower().startswith('https://'):
+        logging.error("--- Configuration Error ---")
+        logging.error("WEBHOOK_URL MUST be an HTTPS URL (e.g., https://mkschannel.org/webhook).")
+        logging.error("Please update the WEBHOOK_URL variable and configure Nginx/SSL on your VPS.")
+        logging.error("---------------------------")
 
-async def handle_telegram_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Telegram message received handler for long polling."""
-    # Message ရှိမှသာ ဆက်လုပ်ပါ
-    if update.message and update.message.text:
-        message = update.message
-        user_id = message.chat.id
-        text = message.text
+    # Webhook URL ကို Telegram API သို့ ပေးပို့ခြင်း
+    if bot.set_webhook(WEBHOOK_URL):
+        logging.info(f"Webhook set successfully to: {WEBHOOK_URL}")
+    else:
+        logging.error(f"Webhook setup failed for URL: {WEBHOOK_URL}. Check network and HTTPS.")
 
-        # Command handling (e.g., /start)
-        if text.startswith('/'):
-            logging.info(f"Received command from {user_id}: {text}")
-            if text == '/start':
-                await message.reply_text("မင်္ဂလာပါရှင်။ သင့်ရဲ့မေးခွန်းကို admin က မကြာခင် တုံ့ပြန်ပေးပါမယ်။")
-            return # Command ဖြစ်လို့ Admin Panel ကို မပို့ပါဘူး
-
-        # Regular message handling
-        user_info = message.chat
-        username = user_info.username or user_info.first_name or str(user_id)
-        
-        logging.info(f"New message from {username} ({user_id}): {text}")
-
-        # Flask/SocketIO context ကိုသုံးပြီး active_chats ကို update လုပ်ကာ emit လုပ်ပါ
-        with app.app_context():
-            if user_id not in active_chats:
-                active_chats[user_id] = {
-                    'username': username,
-                    'chat_history': []
-                }
-            
-            # message.date သည် datetime object ဖြစ်သောကြောင့် timestamp() ကို ခေါ်ရမည်
-            new_msg = {'sender': 'user', 'text': text, 'timestamp': message.date.timestamp()}
-            active_chats[user_id]['chat_history'].append(new_msg)
-
-            # Admin Panel သို့ Real-time ဖြင့် ပို့ပါ
-            socketio.emit('new_message', {
-                'user_id': user_id,
-                'username': username,
-                'message': new_msg
-            })
-
-# Telegram Bot Polling Setup
-def start_telegram_bot_polling():
-    """Runs the Telegram bot in long polling mode."""
-    try:
-        # Application builder ကို အသုံးပြုပြီး Polling စတင်ပါ
-        application = Application.builder().token(BOT_TOKEN).build()
-        
-        # Handlers များ ထည့်သွင်းခြင်း
-        application.add_handler(CommandHandler("start", handle_telegram_message))
-        # စာသား message များကို လက်ခံပြီး Command မဟုတ်သည်များကို စစ်ထုတ်ခြင်း
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_telegram_message))
-
-        # Start Polling
-        logging.info("Starting Telegram Bot Long Polling...")
-        # poll_interval=1.0 ဆိုသည်မှာ စက္ကန့်တိုင်း Telegram API ကို စစ်ဆေးနေခြင်းဖြစ်သည်
-        application.run_polling(poll_interval=1.0, timeout=10)
-    except Exception as e:
-        logging.error(f"Error starting Telegram Long Polling: {e}")
-
+except TelegramError as e:
+    logging.error(f"Telegram API Error during initialization (set_webhook): {e.message}")
+    bot = None
+except Exception as e:
+    logging.error(f"General Error initializing Telegram Bot: {e}")
+    bot = None
 
 # --- Flask Routes ---
 
@@ -114,7 +75,57 @@ def get_chats():
     """လက်ရှိ active ဖြစ်နေသော chats များကို ပြန်ပေးသည်။"""
     return jsonify(active_chats), 200
 
-# /webhook route ကို ဖယ်ရှားထားပါသည်။
+@app.route('/webhook', methods=['POST'])
+def webhook_handler():
+    """Telegram ကနေ စာအသစ်ဝင်လာတာကို လက်ခံသည်။"""
+    if request.method == "POST":
+        try:
+            update = json.loads(request.data)
+            # Message ရှိမှ ဆက်လုပ်ပါ
+            if 'message' in update:
+                message = update['message']
+                user_id = message['chat']['id']
+                text = message.get('text')
+                
+                # Command (e.g., /start) များကို စစ်ဆေးပါ
+                if text and text.startswith('/'):
+                    logging.info(f"Received command from {user_id}: {text}")
+                    # Command များကို အလိုအလျောက် တုံ့ပြန်လိုလျှင် ဤနေရာတွင် ထည့်ပါ။
+                    if text == '/start' and Bot(token=BOT_TOKEN):
+                         # reply_text ကို တိုက်ရိုက်ပြန်ပို့ရန်
+                         try:
+                             Bot(token=BOT_TOKEN).send_message(user_id, "မင်္ဂလာပါရှင်။ သင့်ရဲ့မေးခွန်းကို admin က မကြာခင် တုံ့ပြန်ပေးပါမယ်။")
+                         except Exception as e:
+                             logging.error(f"Failed to send /start reply: {e}")
+                    return 'ok' # Command ဖြစ်လို့ Admin Panel ကို မပို့ပါဘူး
+
+                if text:
+                    user_info = message['chat']
+                    username = user_info.get('username') or user_info.get('first_name') or str(user_id)
+                    
+                    logging.info(f"New message from {username} ({user_id}): {text}")
+
+                    # Chat History ကို update လုပ်ပါ
+                    if user_id not in active_chats:
+                        active_chats[user_id] = {
+                            'username': username,
+                            'chat_history': []
+                        }
+                    
+                    new_msg = {'sender': 'user', 'text': text, 'timestamp': message['date']}
+                    active_chats[user_id]['chat_history'].append(new_msg)
+
+                    # Admin Panel သို့ Real-time ဖြင့် ပို့ပါ
+                    socketio.emit('new_message', {
+                        'user_id': user_id,
+                        'username': username,
+                        'message': new_msg
+                    })
+
+        except Exception as e:
+            logging.error(f"Error processing webhook: {e}")
+
+    return 'ok'
 
 # --- SocketIO Events ---
 
@@ -136,7 +147,6 @@ def handle_send_reply(data):
 
     try:
         # Bot instance ကို reply ပို့ရန်အတွက် အသုံးပြုခြင်း
-        # Send message သည် synchronous ဖြစ်သောကြောင့် Flask thread တွင် သုံးနိုင်သည်
         bot = Bot(token=BOT_TOKEN) 
         
         # Telegram user ဆီ စာပြန်ပို့ပါ
@@ -164,19 +174,16 @@ def handle_send_reply(data):
 
 
 if __name__ == '__main__':
-    # 1. Long Polling ကို Thread အသစ်မှာ စတင် run ပါ
-    bot_thread = Thread(target=start_telegram_bot_polling)
-    bot_thread.start()
-    
-    # 2. Flask/SocketIO Server ကို eventlet ဖြင့် run ပါ
+    # Flask/SocketIO Server ကို eventlet ဖြင့် run ပါ
     from eventlet import wsgi
     import eventlet
     eventlet.monkey_patch()
     
     # 0.0.0.0 ဖြင့် bind လုပ်ပြီး Port 4210 ဖြင့် run ပါ
+    # External Nginx/Reverse Proxy က ဤ HTTP Port (4210) သို့ HTTPS traffic များကို လမ်းကြောင်းပြောင်းပေးပါမည်။
     host = '0.0.0.0'
     port = 4210
     logging.info(f"Starting SocketIO server on http://{host}:{port}")
     wsgi.server(eventlet.listen((host, port)), app)
 
-# မှတ်ချက်- Webhook ကို အသုံးမပြုတော့ပါ၊ Long Polling ဖြင့် IP ပေါ်တွင် အလုပ်လုပ်နိုင်ပါပြီ။
+# မှတ်ချက်- Telegram Webhook အတွက် HTTPS ကို Nginx ဖြင့် သတ်မှတ်ပေးရန် လိုအပ်ပါသည်။
