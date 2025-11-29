@@ -1,79 +1,67 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Admin Portal - Neo Aero</title>
+    <title>Telegram Admin Portal</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Define a modern dark background and font */
+        /* Apply smooth transition for color scheme change to all elements */
+        html.dark {
+            color-scheme: dark;
+        }
+        /* Ensure body and its children transition smoothly */
         body { 
             font-family: 'Inter', sans-serif;
-            background-color: #0A0A10; /* Deep Dark Background */
-            color: #E2E8F0; /* Light text color */
-            transition: all 0.3s ease;
+            /* Transition applied to background and color of the body */
+            transition: background-color 0.3s, color 0.3s;
         }
         
-        /* ----------------------------------------------------
-           Aero/Glass Effect Base Styles for Panels/Cards
-           ---------------------------------------------------- */
-        .aero-panel {
-            background-color: rgba(255, 255, 255, 0.05); /* Slightly transparent white */
-            backdrop-filter: blur(10px); /* Frosted glass effect */
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            border-radius: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        /* ----------------------------------------------------
-           Chat List Specific Styles
-           ---------------------------------------------------- */
+        /* Style for the active chat and the chat list */
         .chat-item {
             cursor: pointer;
-            border-radius: 0.75rem;
-            transition: background-color 0.15s ease, transform 0.1s ease;
+            transition: background-color 0.15s ease, color 0.15s ease; /* Added color transition */
         }
         
+        /* Dark mode colors for chat list items hover */
+        .dark .chat-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
         .chat-item:hover {
-            background-color: rgba(74, 222, 128, 0.1); /* Hover with emerald accent */
+            background-color: rgba(0, 0, 0, 0.05); /* Lighter hover for light background */
         }
         
-        /* Active chat uses the primary accent color for strong visibility */
+        /* Fixed accent color for active chat */
         .chat-item.active {
-            background-color: #059669; /* Deep Emerald Green */
+            background-color: #10B981; /* Green accent color */
             color: white !important; 
-            transform: scale(1.02);
-            box-shadow: 0 0 15px rgba(5, 150, 105, 0.4);
         }
         .chat-item.active p {
             color: white !important; 
             opacity: 0.9;
         }
 
-        /* FIX: Removed fixed height. Flex-grow will now manage height between header and input. */
         .chat-messages {
+            max-height: calc(100vh - 120px); 
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; /* Newest messages at the bottom */
+            flex-direction: column-reverse; 
         }
-        
-        /* Custom scrollbar matching the dark theme */
+        /* Custom scrollbar for aesthetics (responsive for dark/light mode) */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #10B981; /* Accent Color */
+            background-color: #3B82F6; 
             border-radius: 4px;
         }
-        .chat-messages::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
+        .dark .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #60A5FA;
         }
 
         .badge-style {
             position: absolute; 
-            top: 10px; 
-            right: 12px; 
+            top: 8px; 
+            right: 8px; 
             background-color: #EF4444; 
             color: white; 
             font-size: 0.75rem; 
@@ -87,114 +75,118 @@
         }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex">
+<!-- Body element uses full responsive classes for background and text color -->
+<body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex transition-colors duration-300">
 
     <!-- 1. Narrow Menu Bar (w-20) - ဘယ်ဘက်ဆုံးရှိ Menu များ -->
-    <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0 border-r border-gray-700">
+    <!-- Menu bar background is dark blue/slate, which looks good in both modes -->
+    <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0 border-r border-gray-700 dark:border-gray-700 transition-colors duration-300">
         <!-- Logo/Title Placeholder (Icon) -->
-        <div class="p-4 text-xl font-extrabold border-b border-gray-700 flex items-center justify-center h-20 text-emerald-400">
-            AP
+        <div class="p-4 text-xl font-bold border-b border-gray-700 flex items-center justify-center h-20">
+            <span title="Admin Portal">AP</span>
         </div>
 
         <!-- Navigation Menu (Icon-only) -->
         <nav id="mainNav" class="p-2 space-y-4 flex-grow">
+            <!-- All navigation items use hover/active states that are visible on the dark background -->
             <!-- Dashboard -->
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center active-nav bg-gray-700/50 transition-colors duration-150" data-section="dashboard" title="ဒက်ရှ်ဘုတ်">
-                <svg class="w-6 h-6 mx-auto text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <a href="#" class="nav-item block p-3 rounded-lg hover:bg-gray-700 text-center active-nav bg-gray-700/50 transition-colors duration-150" data-section="dashboard" title="ဒက်ရှ်ဘုတ်">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             </a>
             <!-- Chat -->
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="chat" title="ချတ်">
+            <a href="#" class="nav-item block p-3 rounded-lg hover:bg-gray-700 text-center transition-colors duration-150" data-section="chat" title="ချတ်">
                 <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
             </a>
             <!-- Broadcast -->
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="broadcast" title="ထုတ်လွှင့်မှု">
+            <a href="#" class="nav-item block p-3 rounded-lg hover:bg-gray-700 text-center transition-colors duration-150" data-section="broadcast" title="ထုတ်လွှင့်မှု">
                 <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
             </a>
             <!-- Settings -->
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="settings" title="ဆက်တင်များ">
+            <a href="#" class="nav-item block p-3 rounded-lg hover:bg-gray-700 text-center transition-colors duration-150" data-section="settings" title="ဆက်တင်များ">
                 <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </a>
         </nav>
         
-        <!-- Empty space at the bottom -->
-        <div class="p-4 border-t border-gray-700"></div>
+        <!-- Dark Mode Toggle Button (အောက်ဆုံး) -->
+        <div class="p-4 border-t border-gray-700">
+            <button id="darkModeToggle" onclick="toggleDarkMode()" 
+                    class="p-2 rounded-full hover:bg-gray-700 transition duration-150 w-full flex justify-center">
+                <!-- Icon will be set by JS (Moon or Sun) -->
+                <svg id="themeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
     </div>
 
-    <!-- 2. Chat List Panel (w-64) - Glass Panel -->
-    <div id="chatListPanel" class="w-64 aero-panel flex-col flex-shrink-0 hidden rounded-none sm:rounded-l-xl">
+    <!-- 2. Chat List Panel (w-64) - Menu ဘေးက Chat စာရင်း -->
+    <!-- Fully responsive to dark mode -->
+    <div id="chatListPanel" class="w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex-col flex-shrink-0 transition-colors duration-300 hidden">
         <!-- Chat List Header -->
-        <div class="p-4 text-lg font-semibold border-b border-gray-700 text-white h-20 flex items-center bg-transparent">
-            စကားပြောဆိုမှုများ
+        <div class="p-4 text-lg font-semibold border-b dark:border-gray-700 text-gray-800 dark:text-white h-20 flex items-center transition-colors duration-300">
+            Conversations
         </div>
-
-        <!-- NEW SEARCH INPUT FOR CHAT LIST (User Search) -->
-        <div class="p-4 border-b border-gray-700">
-            <div class="relative">
-                <input type="text" id="chatListSearchInput" placeholder="User ရှာရန် (စာလုံးတူ)..."
-                       class="w-full pl-10 border rounded-xl p-2 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 shadow-inner"
-                       oninput="filterChatList()">
-                <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-        </div>
-        <!-- END NEW SEARCH INPUT -->
 
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
-            <!-- Placeholder uses lighter gray text for dark contrast -->
-            <div class="text-center p-4 text-gray-400 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>
+            <!-- Placeholder uses responsive text color -->
+            <div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">Loading chats...</div>
         </div>
     </div>
 
-    <!-- 3. Main Content Area (flex-grow) - Main Glass Panel -->
-    <div class="flex-grow flex flex-col aero-panel m-4 rounded-xl">
+    <!-- 3. Main Content Area (flex-grow) - ညာဘက်အကျဆုံး အကြောင်းအရာပြကွက် -->
+    <div class="flex-grow flex flex-col bg-white dark:bg-gray-900 transition-colors duration-300">
         
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
-            <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ဒက်ရှ်ဘုတ် (Admin Hub)</h1>
-            <p class="text-gray-400 mb-8">
+            <!-- Header text color responsive -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ဒက်ရှ်ဘုတ် (Dashboard)</h1>
+            <!-- Paragraph text color responsive -->
+            <p class="text-gray-600 dark:text-gray-400 transition-colors duration-300">
                 ဤနေရာတွင် အဓိက စာရင်းဇယားများ၊ အသုံးပြုသူ ကိန်းဂဏန်းများ နှင့် စွမ်းဆောင်ရည် အချက်အလက်များကို ပြသပါမည်။
             </p>
             <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Card 1 (Accent Card) -->
-                <div class="aero-panel bg-emerald-900/40 p-6 rounded-xl shadow-2xl border-emerald-400/30 text-emerald-200">
-                    <div class="text-5xl font-extrabold text-white">1,245</div>
-                    <div class="text-sm mt-1 text-emerald-400 font-semibold">စုစုပေါင်း အသုံးပြုသူများ</div>
+                <!-- Card 1 (Background/Text colors fully responsive) -->
+                <div class="bg-blue-100 dark:bg-blue-900 p-6 rounded-xl shadow-lg text-blue-800 dark:text-blue-200 transition-colors duration-300">
+                    <div class="text-4xl font-extrabold">1,245</div>
+                    <div class="text-sm mt-1">စုစုပေါင်း အသုံးပြုသူများ</div>
                 </div>
-                <!-- Card 2 -->
-                <div class="aero-panel bg-gray-800/60 p-6 rounded-xl shadow-xl border-gray-700/50 text-white">
-                    <div class="text-5xl font-extrabold">25</div>
-                    <div class="text-sm mt-1 text-gray-400 font-semibold">လက်ရှိ အွန်လိုင်း</div>
+                <!-- Card 2 (Background/Text colors fully responsive) -->
+                <div class="bg-green-100 dark:bg-green-900 p-6 rounded-xl shadow-lg text-green-800 dark:text-green-200 transition-colors duration-300">
+                    <div class="text-4xl font-extrabold">25</div>
+                    <div class="text-sm mt-1">လက်ရှိ အွန်လိုင်း</div>
                 </div>
-                <!-- Card 3 -->
-                <div class="aero-panel bg-red-900/40 p-6 rounded-xl shadow-xl border-red-500/30 text-red-200">
-                    <div class="text-5xl font-extrabold text-white">156</div>
-                    <div class="text-sm mt-1 text-red-400 font-semibold">ဖြေကြားရန် လိုအပ်သော ချတ်များ</div>
+                <!-- Card 3 (Background/Text colors fully responsive) -->
+                <div class="bg-yellow-100 dark:bg-yellow-900 p-6 rounded-xl shadow-lg text-yellow-800 dark:text-yellow-200 transition-colors duration-300">
+                    <div class="text-4xl font-extrabold">156</div>
+                    <div class="text-sm mt-1">ဖြေကြားရန် လိုအပ်သော ချတ်များ</div>
                 </div>
             </div>
         </div>
 
-        <!-- === SECTION: Chat === -->
+        <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat Header (Now includes the Message Search Input dynamically) -->
-            <header id="chatHeader" class="p-4 border-b border-gray-700 shadow-md bg-transparent z-10">
-                <span class="text-xl font-semibold text-gray-200">Chat တစ်ခု ရွေးချယ်ပါ</span>
+            <!-- Chat Header -->
+            <header id="chatHeader" class="p-4 border-b shadow-sm bg-white dark:bg-gray-800 flex items-center justify-between z-10 transition-colors duration-300 h-20 dark:border-gray-700">
+                <span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">Chat တစ်ခု ရွေးချယ်ပါ</span>
             </header>
 
-            <!-- Message History area (flex-grow ensures it takes up all remaining space) -->
-            <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-transparent">
-                <div class="text-center text-gray-500">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
+            <!-- Message History -->
+            <!-- Background color responsive -->
+            <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+                <!-- Placeholder uses responsive text color -->
+                <div class="text-center text-gray-500 dark:text-gray-400">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
             </div>
 
-            <!-- Message Input area (Fixed at the bottom by flex layout) -->
-            <div id="chatInputArea" class="p-4 border-t border-gray-700 bg-transparent hidden">
+            <!-- Message Input -->
+            <div id="chatInputArea" class="p-4 border-t bg-white dark:bg-gray-800 transition-colors duration-300 dark:border-gray-700 hidden">
                 <div class="flex space-x-3">
-                    <!-- Input field uses the modern dark input styling -->
+                    <!-- Input field background, border, and text fully responsive -->
                     <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
-                           class="flex-grow border border-gray-700 rounded-xl p-3 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 transition duration-150 shadow-inner"
+                           class="flex-grow border border-gray-300 dark:border-gray-600 rounded-lg p-3 dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                            onkeypress="if(event.key === 'Enter') sendReply()">
-                    <!-- Send button uses the accent color -->
                     <button id="sendButton" onclick="sendReply()"
-                            class="bg-emerald-600 text-white p-3 rounded-xl font-semibold hover:bg-emerald-500 transition duration-150 flex items-center justify-center shadow-lg shadow-emerald-600/30">
+                            class="bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center justify-center shadow-md">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
@@ -203,16 +195,17 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ထုတ်လွှင့်မှု (Broadcast)</h1>
-            <!-- Broadcast card uses aero panel styling -->
-            <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
-                <p class="mb-4 text-gray-400">
+            <!-- Header text color responsive -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ထုတ်လွှင့်မှု (Broadcast)</h1>
+            <!-- Broadcast card fully responsive -->
+            <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
+                <!-- Paragraph text color responsive -->
+                <p class="mb-4 text-gray-600 dark:text-gray-400 transition-colors duration-300">
                     အသုံးပြုသူများအားလုံး သို့မဟုတ် သတ်မှတ်ထားသော အုပ်စုများသို့ မက်ဆေ့ချ်များ တစ်ပြိုင်နက် ပေးပို့ရန် ဤနေရာကို အသုံးပြုပါ။
                 </p>
-                <!-- Textarea uses the modern dark input styling -->
-                <textarea class="w-full p-3 border rounded-xl border-gray-700 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 transition duration-150 shadow-inner" rows="5" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
-                <!-- Button colors remain accent red for caution -->
-                <button class="mt-3 bg-red-600 text-white p-3 rounded-xl font-semibold hover:bg-red-500 transition duration-150 shadow-lg shadow-red-600/30">
+                <!-- Textarea background, border, and text fully responsive -->
+                <textarea class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150" rows="5" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
+                <button class="mt-3 bg-red-600 text-white p-3 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
                     ထုတ်လွှင့်ပါ
                 </button>
             </div>
@@ -220,24 +213,25 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ဆက်တင်များ (Configuration)</h1>
+            <!-- Header text color responsive -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ဆက်တင်များ (Settings)</h1>
             <div class="space-y-6">
-                <!-- Setting Card 1 uses aero panel styling -->
-                <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
-                    <h3 class="text-xl font-semibold mb-2 text-gray-200">API Key Management</h3>
-                    <p class="text-sm text-gray-400 mb-4">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
-                    <!-- Input field uses the modern dark input styling -->
-                    <input type="text" value="************************" readonly class="w-full p-3 border rounded-xl bg-gray-800/50 text-gray-100 border-gray-700 transition-colors duration-300">
+                <!-- Setting Card 1 fully responsive -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100 transition-colors duration-300">API Key Management</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 transition-colors duration-300">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
+                    <!-- Input field background and text responsive -->
+                    <input type="text" value="************************" readonly class="w-full p-3 border rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors duration-300">
                 </div>
-                <!-- Setting Card 2 uses aero panel styling -->
-                <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
-                    <h3 class="text-xl font-semibold mb-2 text-gray-200">Bot Status</h3>
+                <!-- Setting Card 2 fully responsive -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100 transition-colors duration-300">Bot Status</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-400">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <span class="text-gray-600 dark:text-gray-400 transition-colors duration-300">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
-                            <!-- Toggle switch accent color -->
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-400/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            <!-- Toggle switch color responsive -->
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
                 </div>
@@ -255,14 +249,47 @@
         const socket = io();
         let currentChatId = null;
         let unreadCounts = {}; 
-        
-        // Global state for filtering
-        let allChatsData = [];
-        let currentMessageHistory = [];
+        const htmlElement = document.documentElement;
 
+        // --- Dark Mode Functions ---
+        function toggleDarkMode() {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+        }
 
-        // --- Navigation Functions (Functionality unchanged) ---
-        
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('themeIcon');
+            if (!themeIcon) return;
+
+            if (htmlElement.classList.contains('dark')) {
+                // Sun icon (Light mode available)
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+            } else {
+                // Moon icon (Dark mode available)
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>';
+            }
+        }
+
+        function loadDarkModePreference() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            // Load theme from localStorage or system preference
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                htmlElement.classList.add('dark');
+            } else if (savedTheme === 'light') {
+                htmlElement.classList.remove('dark');
+            }
+            updateThemeIcon();
+        }
+
+        // --- Navigation Functions ---
         /**
          * Switches the displayed content area based on the selected section.
          * Toggles the visibility of the Chat List Panel accordingly.
@@ -271,10 +298,6 @@
             // Hide all content sections and remove 'active-nav' from all menu items
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-gray-700/50', 'active-nav'));
-            
-            // Remove accent color from all icons
-            document.querySelectorAll('.nav-item svg').forEach(svg => svg.classList.remove('text-emerald-400'));
-
 
             // Show the selected content section
             const targetSection = document.getElementById(`section-${sectionId}`);
@@ -292,32 +315,25 @@
             const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
             if (activeNavItem) {
                 activeNavItem.classList.add('bg-gray-700/50', 'active-nav');
-                // Highlight the icon with the accent color
-                const icon = activeNavItem.querySelector('svg');
-                if(icon) {
-                    icon.classList.add('text-emerald-400');
-                }
             }
 
             // Toggle visibility of the Chat List Panel
             const chatListPanel = document.getElementById('chatListPanel');
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
-                chatListPanel.classList.add('flex'); // Ensure flex is applied for layout
                 // If switching to chat, ensure the chat list is loaded
                 if (document.getElementById('chatList').children.length === 0 || 
-                    document.getElementById('chatList').innerHTML.includes('ဆွဲယူနေပါသည်')) {
+                    document.getElementById('chatList').innerHTML.includes('Loading chats')) {
                     fetchChats();
                 }
             } else {
                 chatListPanel.classList.add('hidden');
-                chatListPanel.classList.remove('flex');
                 currentChatId = null; // Clear active chat when leaving the chat section
             }
         }
 
 
-        // --- Chat Specific Functions (Updated styles) ---
+        // --- Chat Specific Functions (Unchanged core logic) ---
 
         /**
          * Renders a single chat item element.
@@ -328,8 +344,8 @@
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            // Styles for the dark list item
-            chatElement.className = 'chat-item flex items-center p-3 my-1 relative text-gray-200';
+            // Added text colors for light/dark mode and transition
+            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative text-gray-800 dark:text-gray-200 transition-colors duration-300';
             chatElement.setAttribute('data-chat-id', chatId);
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
@@ -340,8 +356,9 @@
             chatElement.innerHTML = `
                 <div class="flex-grow min-w-0">
                     <p class="font-semibold truncate text-sm">${chat.username || chatId}</p>
-                    <p class="text-xs text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
-                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
+                    <!-- Secondary text responsive to dark mode -->
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -359,11 +376,8 @@
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
-            
-            // Modern Dark Bubble Styles
-            const bubbleClass = isUser 
-                ? 'bg-gray-700 text-gray-100 rounded-br-none' // User bubble (Dark Gray)
-                : 'bg-emerald-600 text-white rounded-bl-none'; // Admin reply (Accent Green)
+            // User message bubble is responsive gray/dark gray, Admin reply is fixed blue
+            const bubbleClass = isUser ? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 transition-colors duration-300' : 'bg-blue-600 text-white';
 
             const messageElement = document.createElement('div');
             messageElement.className = `flex ${alignment}`;
@@ -374,17 +388,14 @@
             if (msg.mediaPath) {
                 // Assuming mediaPath is file_id for user, or base64 for admin
                 const imageUrl = isUser ? `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}` : msg.mediaPath;
-                mediaContent = `<img src="${imageUrl}" class="w-48 h-auto rounded-lg mb-2 cursor-pointer border border-gray-600 shadow-lg" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/200x150/1F2937/9CA3AF?text=Image+Error'" alt="Chat Image"/>`;
+                mediaContent = `<img src="${imageUrl}" class="w-48 h-auto rounded-lg mb-2 cursor-pointer" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/200x150/f0f0f0/666666?text=Image+Error'" alt="Chat Image"/>`;
             }
 
-            // Time color adjusted for contrast
-            const timeColor = isUser ? 'text-gray-400' : 'text-white opacity-75';
-
             messageElement.innerHTML = `
-                <div class="max-w-xs md:max-w-md p-3 rounded-2xl shadow-lg ${bubbleClass}">
+                <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}">
                     ${mediaContent}
                     <p class="${msg.text ? 'block' : 'hidden'}">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-75 mt-1 text-right ${timeColor}">
+                    <span class="block text-[10px] opacity-75 mt-1 text-right">
                         ${timeString}
                     </span>
                 </div>
@@ -392,137 +403,37 @@
             return messageElement;
         }
 
-        // --- Chat List Search Logic (Exact Match) ---
-
-        /**
-         * Renders the chat list from a provided array of chat objects.
-         */
-        function renderChatList(chatsToRender) {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = ''; // Clear existing
-            if (chatsToRender.length === 0) {
-                chatListElement.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
-                return;
-            }
-            
-            chatsToRender.forEach(chat => {
-                unreadCounts[chat.telegramId] = 0; 
-                chatListElement.appendChild(createChatListItem(chat));
-            });
-
-            // Re-highlight the current chat if it is still visible after filtering
-            if (currentChatId) {
-                const activeChatElement = document.getElementById(`chat-${currentChatId}`);
-                if (activeChatElement) {
-                    activeChatElement.classList.add('active');
-                }
-            }
-        }
-        
-        /**
-         * Filters the chat list based on the search input (exact word match).
-         */
-        function filterChatList() {
-            const searchInput = document.getElementById('chatListSearchInput');
-            const searchTerm = searchInput.value.trim();
-
-            if (!searchTerm) {
-                renderChatList(allChatsData); // Show all if search is empty
-                return;
-            }
-
-            try {
-                // Regex for exact word match (\b ensures word boundary)
-                const regex = new RegExp(`\\b${searchTerm}\\b`, 'i'); 
-                
-                const filteredChats = allChatsData.filter(chat => {
-                    const username = chat.username || String(chat.telegramId);
-                    return regex.test(username);
-                });
-
-                renderChatList(filteredChats);
-            } catch (e) {
-                console.error("Invalid regex in chat list search:", e);
-                // Fallback to showing all if regex creation fails
-                renderChatList(allChatsData);
-            }
-        }
-
-
         /**
          * Fetches and displays the initial chat list.
          */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>';
-            unreadCounts = {}; 
+            // Responsive placeholder text
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Chats များကို ဆွဲယူနေပါသည်...</div>';
+            unreadCounts = {}; // Reset counts on initial load
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
                 if (!response.ok) throw new Error('Authentication or Server error');
                 const chats = await response.json();
 
-                allChatsData = chats; // Store all data globally
-                renderChatList(allChatsData); // Initial rendering
+                chatListElement.innerHTML = '';
+                if (chats.length === 0) {
+                    // Responsive placeholder text
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
+                    return;
+                }
+                
+                chats.forEach(chat => {
+                    unreadCounts[chat.telegramId] = 0; 
+                    chatListElement.appendChild(createChatListItem(chat));
+                });
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
                 chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Chats များ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။ Error: ${error.message}</div>`;
             }
         }
-        
-        // --- Message History Search Logic (Exact Match) ---
-
-        /**
-         * Renders the message history from a provided array of message objects.
-         */
-        function renderMessageHistory(messagesToRender) {
-            const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = ''; // Clear existing
-
-            if (messagesToRender.length === 0) {
-                historyContainer.innerHTML = '<div class="text-center text-gray-400">မှတ်တမ်းမရှိသေးပါ</div>';
-                return;
-            }
-
-            // Render in reverse order (prepend) for the column-reverse flex layout
-            messagesToRender.forEach(msg => {
-                historyContainer.prepend(createMessageBubble(msg));
-            });
-            
-            // Scroll to the visual bottom (top of the column-reverse container)
-            historyContainer.scrollTop = 0; 
-        }
-
-        /**
-         * Filters the message history based on the search input (exact word match).
-         */
-        function filterMessageHistory() {
-            const searchInput = document.getElementById('messageSearchInput');
-            const searchTerm = searchInput.value.trim();
-
-            if (!searchTerm) {
-                renderMessageHistory(currentMessageHistory); // Show all if search is empty
-                return;
-            }
-
-            try {
-                // Regex for exact word match (\b ensures word boundary)
-                const regex = new RegExp(`\\b${searchTerm}\\b`, 'i'); 
-                
-                const filteredMessages = currentMessageHistory.filter(msg => {
-                    // Only filter the text content if it exists
-                    return msg.text && regex.test(msg.text);
-                });
-
-                renderMessageHistory(filteredMessages);
-            } catch (e) {
-                console.error("Invalid regex in message history search:", e);
-                // Fallback to showing all
-                renderMessageHistory(currentMessageHistory);
-            }
-        }
-
 
         /**
          * Fetches and displays the message history for a selected chat.
@@ -530,18 +441,8 @@
         async function selectChat(chatId, username) {
             currentChatId = chatId;
             
-            // 1. Update UI state (Header and Input) - Now includes the message search input
-            document.getElementById('chatHeader').innerHTML = `
-                <div class="flex flex-col w-full py-1">
-                    <span class="text-xl font-semibold text-gray-200 mb-2">${username}</span>
-                    <div class="relative">
-                        <input type="text" id="messageSearchInput" placeholder="မှတ်တမ်း ရှာရန် (စာလုံးတူ)..."
-                            class="w-full pl-10 border rounded-xl p-2 bg-gray-900 text-gray-100 placeholder-gray-500 text-sm focus:ring-emerald-400 focus:border-emerald-400 shadow-inner"
-                            oninput="filterMessageHistory()">
-                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                </div>
-            `;
+            // 1. Update UI state (Header and Input)
+            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">${username}</span>`;
             document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
@@ -558,19 +459,21 @@
 
             // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-400">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
-            
-            // Clear message search when selecting a new chat
-            document.getElementById('messageSearchInput').value = '';
-
+            // Responsive placeholder text
+            historyContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
                 const history = await response.json();
 
-                currentMessageHistory = history; // Store all messages globally
-                renderMessageHistory(currentMessageHistory); // Initial render
+                // Clear and render messages
+                historyContainer.innerHTML = '';
+                history.forEach(msg => {
+                    historyContainer.prepend(createMessageBubble(msg));
+                });
+                
+                historyContainer.scrollTop = 0; 
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
@@ -616,10 +519,9 @@
                         mediaPath: null,
                         timestamp: new Date().toISOString()
                     };
-                    
-                    // Add to global history state and re-render/append
-                    currentMessageHistory.unshift(tempMsg); // Add new message to the start of the array
-                    renderMessageHistory(currentMessageHistory); // Re-render the list
+                    const historyContainer = document.getElementById('messageHistory');
+                    historyContainer.prepend(createMessageBubble(tempMsg));
+                    historyContainer.scrollTop = 0;
                 } else {
                     console.error("Failed to send message:", response.error);
                 }
@@ -643,17 +545,6 @@
             if (existingChatElement) {
                 existingChatElement.remove();
             }
-            
-            // Update the global allChatsData state
-            const existingIndex = allChatsData.findIndex(chat => String(chat.telegramId) === chatId);
-            if (existingIndex > -1) {
-                // Update existing chat metadata
-                allChatsData[existingIndex] = { ...allChatsData[existingIndex], ...user };
-            } else {
-                // Add new chat if it doesn't exist
-                allChatsData.unshift({ ...user, telegramId: chatId });
-            }
-
 
             // 2. Update Unread Count state
             if (currentChatId !== chatId) {
@@ -662,29 +553,24 @@
                 unreadCounts[chatId] = 0;
             }
             
-            // 3. Re-render the filtered or full list to reflect changes
-            filterChatList(); // Use the existing filter function to handle re-rendering
+            // 3. Create the new, updated list item
+            user.unreadCount = unreadCounts[chatId]; 
+            const newChatElement = createChatListItem(user);
+            
+            // 4. Insert the new entry at the top (prepended for correct chronological sort)
+            chatList.prepend(newChatElement);
 
-            // 4. If it's the current chat, display the new message immediately
+            // 5. If it's the current chat, display the new message immediately
             if (currentChatId === chatId) {
-                // Add to the message history state
-                currentMessageHistory.unshift(message);
-                
-                // If there is an active search filter, don't show the new message unless it matches.
-                // Otherwise, show the new message by calling renderMessageHistory on the current state.
-                const searchInput = document.getElementById('messageSearchInput');
-                if (!searchInput || searchInput.value.trim() === '') {
-                     renderMessageHistory(currentMessageHistory); 
-                }
+                const historyContainer = document.getElementById('messageHistory');
+                historyContainer.prepend(createMessageBubble(message));
+                historyContainer.scrollTop = 0; // Scroll to bottom
             } else {
                 // Optional: Flash the new chat item for notification
-                const newChatElement = document.getElementById(`chat-${chatId}`);
-                if (newChatElement) {
-                    newChatElement.classList.add('bg-red-500/30');
-                    setTimeout(() => {
-                        newChatElement.classList.remove('bg-red-500/30');
-                    }, 1000);
-                }
+                newChatElement.classList.add('bg-red-500/30');
+                setTimeout(() => {
+                    newChatElement.classList.remove('bg-red-500/30');
+                }, 1000);
             }
         });
 
@@ -693,6 +579,7 @@
         // Initialization
         // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
+            loadDarkModePreference();
             
             // Attach navigation handlers
             document.querySelectorAll('.nav-item').forEach(item => {
