@@ -310,17 +310,6 @@
              sessionStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
         };
 
-        // **[NEW HELPER]** Chat များကို နောက်ဆုံး message အချိန်ဖြင့် စီခြင်း (အသစ်ဆုံး အပေါ်ဆုံး)
-        const sortChats = (chats) => {
-            return chats.sort((a, b) => {
-                // lastMessageTime မရှိရင် createdAt ကို သုံးပါ။
-                const timeA = new Date(a.lastMessageTime || a.createdAt).getTime();
-                const timeB = new Date(b.lastMessageTime || b.createdAt).getTime();
-                return timeB - timeA; // Descending order (newest first)
-            });
-        };
-
-
         // ------------------------------------
         // Menu Navigation Function
         // ------------------------------------
@@ -468,7 +457,6 @@
             userListContainer.innerHTML = ''; 
             const fragment = document.createDocumentFragment();
 
-            // activeChats သည် စောစောက စီထားသော စာရင်းအတိုင်း ရှိနေသည်
             activeChats.forEach(chat => {
                 const chatId = chat.telegramId;
                 const isActive = currentChatId === chatId;
@@ -479,7 +467,7 @@
 
                 chatItem.className = `chat-list-item p-4 border-b border-slate-700 text-white cursor-pointer transition duration-150 ${isActive ? 'active' : ''}`;
 
-                const lastMsgTime = new Date(chat.lastMessageTime || chat.createdAt);
+                const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
                 const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
 
                 chatItem.innerHTML = `
@@ -620,7 +608,6 @@
                 if (!response.ok) throw new Error('Chat list ရယူမှု မအောင်မြင်ပါ');
 
                 activeChats = await response.json();
-                activeChats = sortChats(activeChats); // <-- NEW: စတင် load လုပ်သည်နှင့် စီခြင်း
                 renderChatList();
             } catch (error) {
                 console.error("Fetch chats error:", error);
@@ -672,7 +659,7 @@
         // ------------------------------------
 
         // Admin မှ Message ပြန်ပို့ခြင်း
-        const handleReply = async (event) => {
+        const handleReply = (event) => {
             event.preventDefault();
             const text = replyText.value.trim();
 
@@ -690,101 +677,100 @@
                 text: text,
                 imageUrl: selectedFileBase64 
             };
-            
-            try {
-                const response = await fetch(`${apiBaseUrl}/api/chats/${currentChatId}/reply`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(messagePayload)
-                });
 
-                if (response.status === 401) throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
-                if (!response.ok) throw new Error('စာပြန်ပို့မှု မအောင်မြင်ပါ');
-
-                // ၃။ UI တွင် မက်ဆေ့ချ် အသစ် ပြသခြင်း (Simulated Admin Message)
-                const sentMessage = {
-                    sender: 'admin',
-                    text: text,
-                    imageUrl: selectedFileBase64,
-                    timestamp: new Date().toISOString()
-                };
-                renderMessage(sentMessage);
-                
-                // ၄။ Chat list အပေါ်သို့ ပြောင်းရွှေ့ခြင်း (Move to top logic)
-                const updatedTime = sentMessage.timestamp; 
-                const chatIndex = activeChats.findIndex(c => c.telegramId === currentChatId);
-                
-                if (chatIndex !== -1) {
-                    activeChats[chatIndex].lastMessageTime = updatedTime;
-                    
-                    // Re-sort the whole list to bring the replied chat to the top
-                    activeChats = sortChats(activeChats); 
-                    renderChatList();
-                }
-
-                // ၅။ Input ရှင်းလင်းခြင်းနှင့် Scroll လုပ်ခြင်း
-                clearFileSelection();
-                replyText.value = '';
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-
-            } catch (error) {
-                console.error("Reply error:", error);
-                alert(`စာပြန်ပို့ရာတွင် အမှားဖြစ်ပွားသည်: ${error.message}`); // Custom modal ဖြင့် အစားထိုးနိုင်သည်
-            } finally {
+            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
+            socket.emit('admin_reply', messagePayload, () => {
+                // Post-send cleanup
                 sendButton.disabled = false;
                 replyText.disabled = false;
                 attachButton.disabled = false;
-            }
-        };
-
-        // ၆။ WebSocket မှ မက်ဆေ့ချ်အသစ် ရောက်လာခြင်း
-        socket.on('new_message', (message) => {
-            const chatId = message.telegramId; 
-            
-            // ၁။ ဖွင့်ထားသော Chat ဖြစ်ပါက Message ကို ချက်ချင်း ထည့်သွင်းပြသခြင်း
-            if (chatId === currentChatId) {
-                renderMessage(message);
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-            } else {
-                // ၂။ မဖွင့်ထားသော Chat ဖြစ်ပါက Unread Count တိုးခြင်း
-                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                saveUnreadCounts(); 
-            }
-
-            // ၃။ Chat List ကို အပေါ်သို့ ရွှေ့ခြင်း (Unread ဖြစ်စေ၊ Reply ဖြစ်စေ အမြဲတမ်း အပေါ်ဆုံး)
-            const chatIndex = activeChats.findIndex(c => c.telegramId === chatId);
-            if (chatIndex !== -1) {
-                // lastMessageTime ကို အပ်ဒိတ်လုပ်ပြီး အပေါ်သို့ရွှေ့ရန်
-                activeChats[chatIndex].lastMessageTime = message.timestamp;
-                activeChats = sortChats(activeChats);
-                renderChatList();
-            } else {
-                // Chat List တွင် မရှိသေးပါက (အသုံးပြုသူအသစ် ဖြစ်နိုင်သည်) Chat List အသစ်ပြန်ယူရန်
-                fetchChats();
-            }
-        });
-
-
-        // ၇။ App စတင်ချိန်
-        document.addEventListener('DOMContentLoaded', () => {
-            switchView('chat'); // စတင်သည်နှင့် Chat View ကို ပြသရန်
-            
-            // `reply-text` တွင် Enter နှိပ်ပါက စာပို့ရန်
-            replyText.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    document.getElementById('reply-form').dispatchEvent(new Event('submit', { cancelable: true }));
-                }
             });
+
+            // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
+            const tempMessage = {
+                chatId: currentChatId,
+                sender: 'admin',
+                text: text,
+                imageUrl: selectedFileBase64,
+                timestamp: new Date().toISOString()
+            };
+            renderMessage(tempMessage);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Input များကို ရှင်းလင်းခြင်း
+            replyText.value = '';
+            clearFileSelection();
+        };
+
+        // ------------------------------------
+        // Socket.io Real-time Handling
+        // ------------------------------------
+        
+        // Telegram Bot မှ message အသစ် ရောက်လာသောအခါ
+        socket.on('new_message', (data) => {
+            const { chatId, message, user } = data;
+            
+            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
+            const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
+            
+            if (existingIndex > -1) {
+                // ရှိပြီးသား user ဖြစ်ပါက စာရင်းအရှေ့ဆုံးသို့ ရွှေ့ခြင်း
+                const updatedUser = activeChats.splice(existingIndex, 1)[0];
+                updatedUser.lastMessageTime = new Date();
+                activeChats.unshift(updatedUser); // အရှေ့ဆုံးသို့ ထည့်ခြင်း
+            } else {
+                // user အသစ်ဖြစ်ပါက စာရင်းအရှေ့ဆုံးသို့ ထည့်ခြင်း
+                activeChats.unshift(user);
+            }
+            
+            // ၂။ မဖတ်ရသေးသော စာရေတွက်စနစ် (Unread Counts) ကို အပ်ဒိတ်လုပ်ခြင်း
+            // User message ဖြစ်ပြီး လက်ရှိ chat မဟုတ်ပါက count တိုးခြင်း
+            if (message.sender === 'user' && chatId !== currentChatId) {
+                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
+            } else if (chatId === currentChatId) {
+                // လက်ရှိ chat ဖြစ်ပါက count ကို 0 ပြန်ထားခြင်း (safety)
+                unreadCounts[chatId] = 0;
+            }
+
+
+            if (currentView === 'chat') {
+                renderChatList(); // Chat list ၏ အစဉ်လိုက်နှင့် badge များကို ပြန်လည်ပြသခြင်း
+            }
+
+            // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
+            if (chatId === currentChatId) {
+                if (message.sender === 'user' || message.sender === 'admin') {
+                    renderMessage(message);
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            }
         });
 
-        // Test implementation of alert fallback since window.alert is discouraged
-        window.alert = (message) => {
-            // In a real application, replace this with a beautiful modal/toast notification.
-            console.warn("ALERT/ERROR: " + message);
-        };
-        
-        // This is a placeholder for the fetch function, assuming the backend handles the sorting implicitly, but we enforce it client-side as requested.
+        // Server မှ အမှားအယွင်းများ (ဥပမာ: Telegram ပို့မရခြင်း)
+        socket.on('error', (err) => {
+            console.error("Socket Error:", err);
+            // Custom notification ပြသခြင်း
+            const header = document.getElementById('chat-header');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = "bg-red-500 text-white p-2 text-center text-sm sticky top-0 z-50";
+            errorDiv.textContent = `🚫 Message ပို့ရန် အဆင်မပြေပါ။ ${err.message}`;
+            header.insertAdjacentElement('afterend', errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000); 
+            
+            // Input များကို ပြန်ဖွင့်ပေးရန်
+            sendButton.disabled = false;
+            replyText.disabled = false;
+            attachButton.disabled = false;
+        });
+
+        // ------------------------------------
+        // Initialization
+        // ------------------------------------
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchView('chat'); 
+        });
 
     </script>
 </body>
