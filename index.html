@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Admin Messenger - Real-time Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .message-bubble {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #ffffff;
+            color: #1c1e21;
+            border-bottom-left-radius: 2px;
+            margin-right: auto;
+        }
+        .admin-message {
+            background-color: #007bff; /* Telegram Blue */
+            color: white;
+            border-bottom-right-radius: 2px;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-4">
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h2>
+            <input type="password" id="admin-password" placeholder="Password ထည့်ပါ" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            <button onclick="loginAdmin()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                ဝင်ရောက်မည်
+            </button>
+            <p id="login-error" class="text-red-500 text-sm mt-3 text-center hidden"></p>
+        </div>
+    </div>
+    
+    <!-- Main Chat Interface -->
+    <div id="main-app" class="hidden h-full w-full max-w-6xl bg-white rounded-xl shadow-2xl flex overflow-hidden">
+        
+        <!-- Chat List (Left Panel) -->
+        <div class="w-full md:w-1/3 border-r border-gray-200 bg-gray-50 flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-800">Active Chats (<span id="chat-count">0</span>)</h1>
+            </div>
+            <div id="chat-list" class="flex-grow overflow-y-auto">
+                <!-- Chat items will be injected here -->
+                <div class="p-4 text-center text-gray-500 italic">... User များ စာပို့ရန် စောင့်ဆိုင်းနေပါသည် ...</div>
+            </div>
+        </div>
+        
+        <!-- Messenger View (Right Panel) -->
+        <div class="w-full md:w-2/3 flex flex-col">
+            <!-- Chat Header -->
+            <div id="chat-header" class="p-4 border-b border-gray-200 bg-white">
+                <h2 class="text-xl font-semibold text-gray-700">စကားပြောရန် Chat ကို ရွေးချယ်ပါ</h2>
+            </div>
+            
+            <!-- Messages Display -->
+            <div id="messages-container" class="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-100">
+                <div id="placeholder-message" class="text-center text-gray-500 mt-20">
+                    လက်ဝဲဘက်ရှိ user တစ်ဦးကို ရွေးချယ်ပြီး စကားပြောစတင်နိုင်ပါပြီ။
+                </div>
+                <!-- Messages will be injected here -->
+            </div>
+            
+            <!-- Message Input -->
+            <div id="input-area" class="p-4 border-t border-gray-200 bg-white hidden">
+                <div class="flex space-x-3">
+                    <input type="text" id="message-input" placeholder="စာရိုက်ပါ..." class="flex-grow p-3 border border-gray-300 rounded-full focus:ring-blue-500 focus:border-blue-500">
+                    <button onclick="sendMessage()" class="bg-blue-600 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center hover:bg-blue-700 transition duration-150 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.548 60.548 0 0 0 18.44-5.323.75.75 0 0 0 0-1.355 60.547 60.547 0 0 0-18.44-5.323Z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        const API_URL = window.location.origin;
+        let socket;
+        let activeChats = {}; // Stores all chat data
+        let currentChatId = null;
+        let isAuthenticated = false;
+
+        // Utility function to format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // --- Authentication Logic ---
+        async function loginAdmin() {
+            const password = document.getElementById('admin-password').value;
+            const errorElement = document.getElementById('login-error');
+            errorElement.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    isAuthenticated = true;
+                    document.getElementById('login-modal').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    initializeApp();
+                } else {
+                    errorElement.textContent = result.message || 'Login Failed';
+                    errorElement.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorElement.textContent = 'Network error. Server is unreachable.';
+                errorElement.classList.remove('hidden');
+            }
+        }
+
+        // --- Chat UI Rendering ---
+
+        function renderChatList() {
+            const chatListElement = document.getElementById('chat-list');
+            chatListElement.innerHTML = '';
+            document.getElementById('chat-count').textContent = Object.keys(activeChats).length;
+
+            const chatIds = Object.keys(activeChats).sort((a, b) => {
+                // Sort by last message timestamp (newest first)
+                const chatA = activeChats[a].chat_history;
+                const chatB = activeChats[b].chat_history;
+                const timeA = chatA.length > 0 ? chatA[chatA.length - 1].timestamp : 0;
+                const timeB = chatB.length > 0 ? chatB[chatB.length - 1].timestamp : 0;
+                return timeB - timeA;
+            });
+            
+            if (chatIds.length === 0) {
+                 chatListElement.innerHTML = '<div class="p-4 text-center text-gray-500 italic">... User များ စာပို့ရန် စောင့်ဆိုင်းနေပါသည် ...</div>';
+                 return;
+            }
+
+            chatIds.forEach(id => {
+                const chat = activeChats[id];
+                const lastMsg = chat.chat_history[chat.chat_history.length - 1];
+                const isActive = (id == currentChatId) ? 'bg-blue-100 border-l-4 border-blue-600' : 'hover:bg-gray-100';
+
+                const listItem = `
+                    <div id="chat-${id}" onclick="selectChat(${id})" 
+                         class="p-3 flex items-center cursor-pointer transition duration-150 ${isActive}">
+                        <div class="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full text-white flex items-center justify-center font-bold mr-3">
+                            ${chat.username[0].toUpperCase()}
+                        </div>
+                        <div class="flex-grow overflow-hidden">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-gray-800 truncate">${chat.username}</span>
+                                <span class="text-xs text-gray-500">${lastMsg ? formatTime(lastMsg.timestamp) : ''}</span>
+                            </div>
+                            <p class="text-sm text-gray-600 truncate">${lastMsg ? lastMsg.text : 'စကားဝိုင်းအသစ်'}</p>
+                        </div>
+                    </div>
+                `;
+                chatListElement.insertAdjacentHTML('beforeend', listItem);
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            document.getElementById('placeholder-message').classList.add('hidden');
+
+            if (!currentChatId || !activeChats[currentChatId]) {
+                document.getElementById('chat-header').querySelector('h2').textContent = 'စကားပြောရန် Chat ကို ရွေးချယ်ပါ';
+                document.getElementById('input-area').classList.add('hidden');
+                document.getElementById('placeholder-message').classList.remove('hidden');
+                return;
+            }
+            
+            const chat = activeChats[currentChatId];
+            document.getElementById('chat-header').querySelector('h2').textContent = `Chatting with: ${chat.username}`;
+            document.getElementById('input-area').classList.remove('hidden');
+
+
+            chat.chat_history.forEach(msg => {
+                const isUser = msg.sender === 'user';
+                const senderName = isUser ? chat.username : 'Admin';
+                const alignment = isUser ? 'justify-start' : 'justify-end';
+                const bubbleClass = isUser ? 'user-message' : 'admin-message';
+
+                const msgHtml = `
+                    <div class="flex ${alignment}">
+                        <div class="message-bubble ${bubbleClass}">
+                            <div class="font-bold text-xs mb-1 ${isUser ? 'text-blue-600' : 'text-white'}">${senderName}</div>
+                            ${msg.text}
+                            <div class="text-right text-xs mt-1 ${isUser ? 'text-gray-400' : 'text-white text-opacity-75'}">${formatTime(msg.timestamp)}</div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', msgHtml);
+            });
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function selectChat(userId) {
+            currentChatId = userId;
+            renderChatList();
+            renderMessages();
+            document.getElementById('message-input').focus();
+        }
+
+        // --- SocketIO & Messaging ---
+
+        function initializeSocket() {
+            socket = io(API_URL);
+
+            socket.on('connect', () => {
+                console.log('Socket.IO Connected');
+            });
+
+            socket.on('new_message', (data) => {
+                const { user_id, username, message } = data;
+                
+                // Active Chats ထဲတွင် စာအသစ်ကို ထည့်သွင်းပါ။
+                if (!activeChats[user_id]) {
+                    activeChats[user_id] = { username: username, chat_history: [] };
+                }
+                activeChats[user_id].chat_history.push(message);
+                
+                // Chat List ကို Update လုပ်ပါ။
+                renderChatList();
+                
+                // လက်ရှိဖွင့်ထားသော Chat ဖြစ်လျှင် Messages ကို Update လုပ်ပါ။
+                if (user_id == currentChatId) {
+                    renderMessages();
+                }
+            });
+
+            socket.on('reply_sent', (data) => {
+                const { user_id, message } = data;
+                // Chat History ကို update လုပ်ပြီးသားဖြစ်သောကြောင့် UI ကို Refresh လုပ်ရန်သာ လိုသည်။
+                if (user_id == currentChatId) {
+                    renderMessages();
+                }
+                renderChatList();
+                document.getElementById('message-input').value = ''; // Input ကို ရှင်းလင်းပါ
+            });
+            
+            socket.on('reply_error', (data) => {
+                console.error('Error sending message:', data.error);
+                // User ကို Error Message ပြပါ
+                alert(`စာပြန်ပို့ရန် အမှားအယွင်းရှိပါသည်: ${data.error}`);
+            });
+        }
+
+        function sendMessage() {
+            const inputElement = document.getElementById('message-input');
+            const text = inputElement.value.trim();
+
+            if (!text || !currentChatId) {
+                return;
+            }
+
+            // SocketIO မှတဆင့် Server သို့ စာပို့ပါ။
+            socket.emit('send_reply', {
+                user_id: currentChatId,
+                text: text
+            });
+        }
+        
+        // Enter key နှိပ်ရင် စာပို့ရန်
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && currentChatId && !document.getElementById('login-modal').classList.contains('hidden')) {
+                sendMessage();
+            }
+        });
+
+        // --- Initialization ---
+
+        async function fetchInitialChats() {
+            try {
+                const response = await fetch(`${API_URL}/get_chats`);
+                if (response.ok) {
+                    activeChats = await response.json();
+                    renderChatList();
+                    // ပထမဆုံး chat ကို အလိုအလျောက် ရွေးချယ်နိုင်သည်
+                    const firstChatId = Object.keys(activeChats)[0];
+                    if (firstChatId) {
+                        selectChat(parseInt(firstChatId));
+                    }
+                } else {
+                    console.error('Failed to fetch initial chats');
+                }
+            } catch (error) {
+                console.error('Error fetching initial chats:', error);
+            }
+        }
+
+        function initializeApp() {
+            initializeSocket();
+            fetchInitialChats();
+        }
+
+        // Start by showing the login modal
+        // loginAdmin() ကို user က ခေါ်မှသာ app စတင်ပါမည်။
+        
+    </script>
+</body>
+</html>
