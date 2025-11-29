@@ -165,6 +165,6 @@ if __name__ == '__main__':
     
     # ပုံမှန်အားဖြင့် Port 5000 ဖြင့် run ပါမည်။ VPS ၏ Firewall တွင် ခွင့်ပြုထားရန် လိုပါသည်။
     logging.info("Starting SocketIO server on http://0.0.0.0:4210")
-    wsgi.server(eventlet.listen(('0.0.0.0', 4210)), app)
+    wsgi.server(eventlet.listen(('178.62.215.102', 4210)), app)
 
 # မှတ်ချက်- production အတွက် HTTPS (Nginx/Reverse Proxy) ကို အသုံးပြုရန် မဖြစ်မနေ လိုအပ်ပါသည်။
