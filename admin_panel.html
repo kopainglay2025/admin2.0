@@ -652,8 +652,7 @@
 
                 chatItem.className = `chat-list-item p-4 border-b border-slate-700 text-white cursor-pointer transition duration-150 ${isActive ? 'active' : ''}`;
 
-                // Sorting သည် lastMessageTime ဖြင့် Server မှ လုပ်ထားပြီးသား ဖြစ်သော်လည်း 
-                // display အတွက် lastMessageTime ကို သုံးခြင်း
+                // lastMessageTime ကို display အတွက် သုံးခြင်း
                 const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
                 const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
 
@@ -692,6 +691,11 @@
 
             // UI အခြေအနေကို ပြောင်းလဲခြင်း
             const user = activeChats.find(c => c.telegramId === chatId);
+            if (!user) {
+                chatHeaderTitle.textContent = "အသုံးပြုသူ ရှာမတွေ့ပါ";
+                chatHeaderSubtitle.textContent = "";
+                return;
+            }
             chatHeaderTitle.textContent = user.username;
             chatHeaderSubtitle.textContent = `Telegram ID: ${chatId}`;
             noChatSelected.classList.add('hidden');
@@ -804,6 +808,22 @@
                 if (!response.ok) throw new Error('Chat list ရယူမှု မအောင်မြင်ပါ');
 
                 activeChats = await response.json();
+                
+                // **NEW LOGIC: telegramId ကို အခြေခံပြီး ထပ်နေသော Chat များကို စစ်ထုတ်ခြင်း (De-duplication)**
+                const uniqueChatMap = new Map();
+                activeChats.forEach(chat => {
+                    // ၎င်း user ၏ မက်ဆေ့ခ်ျ အချိန်အသစ်ဆုံးကို ယူခြင်း
+                    if (!uniqueChatMap.has(chat.telegramId) || new Date(chat.lastMessageTime) > new Date(uniqueChatMap.get(chat.telegramId).lastMessageTime)) {
+                        uniqueChatMap.set(chat.telegramId, chat);
+                    }
+                });
+
+                // Map မှ unique list ပြန်ရယူခြင်း
+                activeChats = Array.from(uniqueChatMap.values());
+
+                // List ကို lastMessageTime ဖြင့် စီခြင်း (Server က မစီပေးလျှင်သော်လည်းကောင်း)
+                activeChats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
                 renderChatList();
             } catch (error) {
                 console.error("Fetch chats error:", error);
@@ -903,7 +923,7 @@
             renderMessage(tempMessage);
             chatWindow.scrollTop = chatWindow.scrollHeight;
 
-            // **NEW LOGIC: Admin ပြန်ပို့ပြီးပါက Chat List ကို အပေါ်သို့ ရွှေ့ရန်**
+            // **LOGIC: Admin ပြန်ပို့ပြီးပါက Chat List ကို အပေါ်သို့ ရွှေ့ရန်**
             const userToUpdate = activeChats.find(c => c.telegramId === currentChatId);
             if (userToUpdate) {
                 // lastMessageTime ကို လက်ရှိအချိန်ဖြင့် update လုပ်ပါ။
