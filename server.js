@@ -7,6 +7,11 @@ const path = require('path');
 const admin = require('firebase-admin');
 const { FieldValue } = require('firebase-admin/firestore'); // Firestore Operations အတွက်
 
+// --- .env file မှ variables များကို load လုပ်ရန် (Local Development အတွက်) ---
+// Production environment များ (Cloud, Heroku, etc.) တွင် ဤ library သည် အလုပ်မလုပ်ပါ။
+// ၎င်းတို့သည် environment variables များကို ကိုယ်တိုင် သတ်မှတ်ပြီးသား ဖြစ်သောကြောင့်ဖြစ်သည်။
+require('dotenv').config(); 
+
 // =========================================================
 // --- စိတ်ကြိုက်ပြင်ဆင်ရန်လိုအပ်သော အချက်အလက်များ (Environment Variables ဖြင့် အသုံးပြုရန်) ---
 
