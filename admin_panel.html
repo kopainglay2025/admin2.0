@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Messenger Panel</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
+        body { font-family: 'Padauk', sans-serif; }
+        /* Messenger Style */
+        .user-message {
+            background-color: #e2e8f0; /* Gray-200 */
+            border-radius: 1.25rem 1.25rem 1.25rem 0.5rem;
+            color: #1a202c; /* Gray-900 */
+            max-width: 80%;
+            align-self: flex-start;
+        }
+        .admin-message {
+            background-color: #3b82f6; /* Blue-500 */
+            border-radius: 1.25rem 1.25rem 0.5rem 1.25rem;
+            color: white;
+            max-width: 80%;
+            align-self: flex-end;
+        }
+        /* Custom scrollbar for chat window */
+        #chat-window::-webkit-scrollbar { width: 8px; }
+        #chat-window::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        #chat-window::-webkit-scrollbar-track { background-color: #f1f5f9; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex">
+
+    <!-- Main Container: Chat Layout -->
+    <div class="flex flex-row w-full h-full shadow-lg rounded-xl overflow-hidden m-4 bg-white">
+
+        <!-- Left Panel: Chat List -->
+        <div id="chat-list" class="w-1/4 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+            <div class="p-4 border-b bg-blue-600 text-white font-bold text-xl sticky top-0 z-10">
+                အသုံးပြုသူများ
+            </div>
+            <!-- Chat items will be dynamically inserted here -->
+            <div id="user-list-container">
+                <!-- Placeholder for loading -->
+                <div class="p-4 text-center text-gray-500" id="loading-chats">စာရင်းများကို ရယူနေသည်...</div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Chat Window -->
+        <div class="w-3/4 flex flex-col">
+            <!-- Chat Header -->
+            <div id="chat-header" class="p-4 border-b bg-white shadow-sm sticky top-0 z-10">
+                <p id="current-chat-title" class="font-bold text-xl text-gray-800">
+                    စကားပြောရန် အသုံးပြုသူကို ရွေးချယ်ပါ
+                </p>
+                <p id="current-chat-subtitle" class="text-sm text-gray-500"></p>
+            </div>
+
+            <!-- Chat Messages Window -->
+            <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col">
+                <!-- Messages will be dynamically inserted here -->
+                <div class="flex justify-center items-center h-full text-gray-400 text-lg" id="no-chat-selected">
+                    ဘယ်ဘက်ရှိ အသုံးပြုသူ တစ်ဦးဦးကို နှိပ်ပြီး စတင်ပြောဆိုပါ။
+                </div>
+            </div>
+
+            <!-- Message Input (Disabled until chat selected) -->
+            <div id="message-input-area" class="p-4 border-t bg-gray-50">
+                <form id="reply-form" class="flex" onsubmit="handleReply(event)">
+                    <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ..."
+                           class="flex-grow p-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-200"
+                           disabled required>
+                    <button type="submit" id="send-button"
+                            class="bg-blue-600 text-white p-3 rounded-r-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-150"
+                            disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const apiBaseUrl = window.location.origin;
+
+        let activeChats = [];
+        let currentChatId = null;
+
+        const chatListContainer = document.getElementById('user-list-container');
+        const chatWindow = document.getElementById('chat-window');
+        const chatHeaderTitle = document.getElementById('current-chat-title');
+        const chatHeaderSubtitle = document.getElementById('current-chat-subtitle');
+        const replyText = document.getElementById('reply-text');
+        const sendButton = document.getElementById('send-button');
+        const noChatSelected = document.getElementById('no-chat-selected');
+
+        // Helper function to format time
+        const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('my-MM', {
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+
+        // ------------------------------------
+        // UI Rendering Functions
+        // ------------------------------------
+
+        // ၁။ Chat Message ကို Render လုပ်ခြင်း
+        const renderMessage = (message) => {
+            const isUser = message.sender === 'user';
+            const messageEl = document.createElement('div');
+            messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `p-3 shadow-md text-sm ${isUser ? 'user-message' : 'admin-message'}`;
+            bubble.innerHTML = `
+                <p class="whitespace-pre-wrap">${message.text}</p>
+                <span class="block text-xs mt-1 opacity-75 text-right">${formatTime(message.timestamp)}</span>
+            `;
+            messageEl.appendChild(bubble);
+            chatWindow.appendChild(messageEl);
+        };
+
+        // ၂။ Chat List ကို Render လုပ်ခြင်း
+        const renderChatList = () => {
+            chatListContainer.innerHTML = ''; // စာရင်းဟောင်းများကို ရှင်းထုတ်ခြင်း
+            const fragment = document.createDocumentFragment();
+
+            activeChats.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.dataset.chatId = chat.telegramId;
+                chatItem.className = `p-4 border-b border-gray-200 cursor-pointer hover:bg-blue-100 transition duration-150 ${currentChatId === chat.telegramId ? 'bg-blue-200 font-semibold' : 'bg-white'}`;
+
+                // နောက်ဆုံး Message အချိန်ကို တွက်ချက်ခြင်း
+                const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
+                const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+
+                chatItem.innerHTML = `
+                    <p class="text-base truncate">${chat.username}</p>
+                    <p class="text-xs text-gray-500 mt-1">${timeString}</p>
+                `;
+
+                chatItem.onclick = () => selectChat(chat.telegramId);
+                fragment.appendChild(chatItem);
+            });
+            chatListContainer.appendChild(fragment);
+        };
+
+        // ၃။ Chat ကို ရွေးချယ်ပြီး History ကို တင်ခြင်း
+        const selectChat = async (chatId) => {
+            currentChatId = chatId;
+            
+            // UI အခြေအနေကို ပြောင်းလဲခြင်း
+            const user = activeChats.find(c => c.telegramId === chatId);
+            chatHeaderTitle.textContent = user.username;
+            chatHeaderSubtitle.textContent = `Telegram ID: ${chatId}`;
+            noChatSelected.classList.add('hidden');
+            replyText.disabled = false;
+            sendButton.disabled = false;
+            chatWindow.innerHTML = '<div class="text-center text-gray-500">History ကို ရယူနေသည်...</div>';
+            
+            // Active chat ကို မီးမောင်းထိုးပြရန် chat list ကို ပြန်လည် render လုပ်ခြင်း
+            renderChatList();
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/chats/${chatId}/history`);
+                if (!response.ok) throw new Error('History ရယူမှု မအောင်မြင်ပါ');
+                const history = await response.json();
+
+                chatWindow.innerHTML = ''; // loading ကို ရှင်းထုတ်ခြင်း
+                history.forEach(renderMessage);
+                chatWindow.scrollTop = chatWindow.scrollHeight; // အောက်ဆုံးသို့ ရွှေ့ခြင်း
+            } catch (error) {
+                chatWindow.innerHTML = `<div class="text-center text-red-500">Chat history ကို ရယူရာတွင် အမှားဖြစ်ပွားသည်: ${error.message}</div>`;
+                console.error("Fetch history error:", error);
+            }
+        };
+
+        // ၄။ အသုံးပြုသူ စာရင်းကို API မှ ရယူခြင်း
+        const fetchChats = async () => {
+            document.getElementById('loading-chats').classList.remove('hidden');
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/chats`);
+                if (!response.ok) throw new Error('Chat list ရယူမှု မအောင်မြင်ပါ');
+                activeChats = await response.json();
+                renderChatList();
+            } catch (error) {
+                console.error("Fetch chats error:", error);
+                chatListContainer.innerHTML = '<div class="p-4 text-center text-red-500">စာရင်းရယူရာတွင် အမှား။ Server ကို စစ်ဆေးပါ။</div>';
+            } finally {
+                document.getElementById('loading-chats').classList.add('hidden');
+            }
+        };
+
+        // ------------------------------------
+        // Event Handlers
+        // ------------------------------------
+
+        // Admin မှ Message ပြန်ပို့ခြင်း
+        const handleReply = (event) => {
+            event.preventDefault();
+            const text = replyText.value.trim();
+
+            if (!text || !currentChatId) return;
+
+            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
+            socket.emit('admin_reply', { chatId: currentChatId, text });
+
+            // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
+            const tempMessage = {
+                chatId: currentChatId,
+                sender: 'admin',
+                text: text,
+                timestamp: new Date().toISOString()
+            };
+            renderMessage(tempMessage);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            replyText.value = '';
+        };
+
+        // ------------------------------------
+        // Socket.io Real-time Handling
+        // ------------------------------------
+        
+        // Telegram Bot မှ message အသစ် ရောက်လာသောအခါ
+        socket.on('new_message', (data) => {
+            const { chatId, message, user } = data;
+            
+            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း
+            const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
+            if (existingIndex > -1) {
+                // ရှိပြီးသား chat ကို အပေါ်ဆုံးသို့ ရွှေ့ရန်
+                const updatedUser = activeChats.splice(existingIndex, 1)[0];
+                updatedUser.lastMessageTime = new Date();
+                activeChats.unshift(updatedUser);
+            } else {
+                // chat အသစ် ဖြစ်ပါက ထည့်သွင်းရန်
+                activeChats.unshift(user);
+            }
+            renderChatList();
+
+            // ၂။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
+            if (chatId === currentChatId) {
+                // Server ကနေ ပြန်လာတဲ့ message မဟုတ်ရင် (admin reply ကို server ကနေ ပြန်ပို့တဲ့အခါ မထပ်စေရန်)
+                if (message.sender === 'user') {
+                    renderMessage(message);
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            }
+        });
+
+        // Server မှ အမှားအယွင်းများ (ဥပမာ: Telegram ပို့မရခြင်း)
+        socket.on('error', (err) => {
+            console.error("Socket Error:", err);
+            // ယာယီ notification ပြသခြင်း
+            alert(`အမှား- ${err.message}`);
+        });
+
+        // ------------------------------------
+        // Initialization
+        // ------------------------------------
+
+        document.addEventListener('DOMContentLoaded', fetchChats);
+
+    </script>
+</body>
+</html>
