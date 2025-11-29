@@ -418,21 +418,52 @@
             let contentHTML = '';
             
             // ဓာတ်ပုံပါရှိလျှင် ပြသခြင်း + Modal ဖွင့်နိုင်ရန် `onclick` ထည့်သွင်းခြင်း
-            if (message.imageUrl) {
-                // Base64 data (admin outgoing) သို့မဟုတ် URL (user incoming)
-                contentHTML += `
-                    <img src="${message.imageUrl}" 
-                         class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                         alt="Image attachment" loading="lazy"
-                         onclick="openImageModal(event, '${message.imageUrl}')">
-                `;
+            if (message.mediaPath && !message.text) {
+                // Note: mediaPath can be a Telegram file ID or a Base64 string.
+                // For client-side rendering of admin reply (local echo or real-time update), we use message.imageUrl (Base64).
+                // For user messages (real-time or history fetch), we use message.mediaPath (Telegram ID).
+                // Since this function is used for both, we need a unified property or logic.
+                // Assuming message.imageUrl exists only for client-side local echo (Base64) or the full Base64 from admin_reply.
+                const imageSrc = message.imageUrl || message.mediaPath; 
+                if (imageSrc) {
+                   contentHTML += `
+                        <img src="${imageSrc}" 
+                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
+                             alt="Image attachment" loading="lazy"
+                             onclick="openImageModal(event, '${imageSrc}')">
+                    `;
+                }
+            } else if (message.mediaPath && message.text) {
+                 // For user messages (Telegram ID) with caption
+                 const imageSrc = message.mediaPath;
+                 contentHTML += `
+                        <img src="${imageSrc}" 
+                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
+                             alt="Image attachment" loading="lazy"
+                             onclick="openImageModal(event, '${imageSrc}')">
+                 `;
             }
+             // For Admin reply (Base64) with caption (mediaPath will contain Base64)
+             else if (message.imageUrl) {
+                 const imageSrc = message.imageUrl;
+                 contentHTML += `
+                        <img src="${imageSrc}" 
+                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
+                             alt="Image attachment" loading="lazy"
+                             onclick="openImageModal(event, '${imageSrc}')">
+                 `;
+             }
+            
+            
 
             // စာသားပါရှိလျှင် ပြသခြင်း
             if (message.text && message.text.trim().length > 0) {
                  contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
-            } else if (!message.imageUrl) {
-                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း
+            } else if (!message.mediaPath && !message.imageUrl) {
+                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း (This path should rarely happen with current logic)
+                 contentHTML += `<p class="italic opacity-80">${isUser ? 'စာသားမပါသော မက်ဆေ့ခ်ျ' : 'Admin မှ စာသားမပါဘဲ ပို့ထားသည်'}</p>`;
+            } else if ((message.mediaPath || message.imageUrl) && !message.text) {
+                 // ဓာတ်ပုံသာ ပါရှိလျှင် placeholder ထည့်ခြင်း
                  contentHTML += `<p class="italic opacity-80">${isUser ? 'ပုံတစ်ပုံ ပို့ထားသည်' : 'Admin မှ ဓာတ်ပုံပို့ထားသည်'}</p>`;
             }
 
@@ -445,7 +476,13 @@
 
             if (prepend) {
                 // Load More အတွက် အပေါ်မှ ထည့်ခြင်း
-                chatWindow.insertBefore(messageEl, chatWindow.firstChild.nextSibling); // Load More ခလုတ်အောက်တွင် ထည့်ရန်
+                // Load More ခလုတ်အောက်တွင် ထည့်ရန်
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (loadMoreBtn) {
+                     chatWindow.insertBefore(messageEl, loadMoreBtn.nextSibling); 
+                } else {
+                     chatWindow.insertBefore(messageEl, chatWindow.firstChild);
+                }
             } else {
                 // မက်ဆေ့ချ်အသစ် သို့မဟုတ် စတင်တင်သည့်အခါ အောက်မှ ထည့်ခြင်း
                 chatWindow.appendChild(messageEl);
@@ -467,6 +504,8 @@
 
                 chatItem.className = `chat-list-item p-4 border-b border-slate-700 text-white cursor-pointer transition duration-150 ${isActive ? 'active' : ''}`;
 
+                // Sorting သည် lastMessageTime ဖြင့် Server မှ လုပ်ထားပြီးသား ဖြစ်သော်လည်း 
+                // display အတွက် lastMessageTime ကို သုံးခြင်း
                 const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
                 const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
 
@@ -675,7 +714,7 @@
             const messagePayload = {
                 chatId: currentChatId,
                 text: text,
-                imageUrl: selectedFileBase64 
+                mediaPath: selectedFileBase64 // server က mediaPath ကို မျှော်လင့်ထားသည်
             };
 
             // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
@@ -691,7 +730,7 @@
                 chatId: currentChatId,
                 sender: 'admin',
                 text: text,
-                imageUrl: selectedFileBase64,
+                imageUrl: selectedFileBase64, // local echo အတွက် imageUrl ကို သုံးသည်။
                 timestamp: new Date().toISOString()
             };
             renderMessage(tempMessage);
@@ -713,15 +752,14 @@
             // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
             const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
             
+            // --- FIX: Server မှပို့လိုက်သော အချိန်အသစ်ပါသည့် User object ကိုသာ အသုံးပြုခြင်း ---
             if (existingIndex > -1) {
-                // ရှိပြီးသား user ဖြစ်ပါက စာရင်းအရှေ့ဆုံးသို့ ရွှေ့ခြင်း
-                const updatedUser = activeChats.splice(existingIndex, 1)[0];
-                updatedUser.lastMessageTime = new Date();
-                activeChats.unshift(updatedUser); // အရှေ့ဆုံးသို့ ထည့်ခြင်း
-            } else {
-                // user အသစ်ဖြစ်ပါက စာရင်းအရှေ့ဆုံးသို့ ထည့်ခြင်း
-                activeChats.unshift(user);
+                // ရှိပြီးသား user ဖြစ်ပါက စာရင်းအဟောင်းကို ဖယ်ရှားခြင်း
+                activeChats.splice(existingIndex, 1); 
             }
+            // အပ်ဒိတ်လုပ်ထားသော user (server မှ ပို့ပေးသည်) ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းခြင်း
+            activeChats.unshift(user);
+            // ---------------------------------------------------------------------------------
             
             // ၂။ မဖတ်ရသေးသော စာရေတွက်စနစ် (Unread Counts) ကို အပ်ဒိတ်လုပ်ခြင်း
             // User message ဖြစ်ပြီး လက်ရှိ chat မဟုတ်ပါက count တိုးခြင်း
