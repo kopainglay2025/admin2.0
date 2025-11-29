@@ -1,594 +1,710 @@
 <!DOCTYPE html>
 <html lang="my">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Telegram Admin Portal - Neo Aero (Full)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Admin Portal - Neo Aero</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Define a modern dark background and font */
         body { 
             font-family: 'Inter', sans-serif;
-            background-color: #0A0A10;
-            color: #E2E8F0;
+            background-color: #0A0A10; /* Deep Dark Background */
+            color: #E2E8F0; /* Light text color */
             transition: all 0.3s ease;
         }
+        
+        /* ----------------------------------------------------
+           Aero/Glass Effect Base Styles for Panels/Cards
+           ---------------------------------------------------- */
         .aero-panel {
-            background-color: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.05); /* Slightly transparent white */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
             border-radius: 1rem;
             transition: all 0.3s ease;
         }
+
+        /* ----------------------------------------------------
+           Chat List Specific Styles
+           ---------------------------------------------------- */
         .chat-item {
             cursor: pointer;
             border-radius: 0.75rem;
             transition: background-color 0.15s ease, transform 0.1s ease;
         }
-        .chat-item:hover { background-color: rgba(74,222,128,0.06); }
-        .chat-item.active {
-            background-color: #059669;
-            color: white !important;
-            transform: scale(1.02);
-            box-shadow: 0 0 15px rgba(5,150,105,0.25);
+        
+        .chat-item:hover {
+            background-color: rgba(74, 222, 128, 0.1); /* Hover with emerald accent */
         }
-        .chat-item.active p { color: white !important; opacity: 0.95; }
+        
+        /* Active chat uses the primary accent color for strong visibility */
+        .chat-item.active {
+            background-color: #059669; /* Deep Emerald Green */
+            color: white !important; 
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(5, 150, 105, 0.4);
+        }
+        .chat-item.active p {
+            color: white !important; 
+            opacity: 0.9;
+        }
+
+        /* FIX: Removed fixed height. Flex-grow will now manage height between header and input. */
         .chat-messages {
-            max-height: calc(100vh - 120px);
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse;
-            padding-right: 8px;
+            flex-direction: column-reverse; /* Newest messages at the bottom */
         }
+        
+        /* Custom scrollbar matching the dark theme */
         .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { background-color: #10B981; border-radius: 4px; }
-        .chat-messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+        .chat-messages::-webkit-scrollbar-thumb { 
+            background-color: #10B981; /* Accent Color */
+            border-radius: 4px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
         .badge-style {
-            position: absolute;
-            top: 10px;
-            right: 12px;
-            background-color: #EF4444;
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 700;
-            border-radius: 9999px;
-            height: 20px;
-            width: 20px;
-            display: flex;
-            align-items: center;
+            position: absolute; 
+            top: 10px; 
+            right: 12px; 
+            background-color: #EF4444; 
+            color: white; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            border-radius: 9999px; 
+            height: 20px; 
+            width: 20px; 
+            display: flex; 
+            align-items: center; 
             justify-content: center;
         }
-        .msg-highlight { background: rgba(250,215,66,0.15); padding: 0 2px; border-radius: 3px; }
-        .text-muted { color: #9CA3AF; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex">
 
-    <!-- LEFT NAV -->
+    <!-- 1. Narrow Menu Bar (w-20) - ဘယ်ဘက်ဆုံးရှိ Menu များ -->
     <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0 border-r border-gray-700">
-        <div class="p-4 text-xl font-extrabold border-b border-gray-700 flex items-center justify-center h-20 text-emerald-400">AP</div>
+        <!-- Logo/Title Placeholder (Icon) -->
+        <div class="p-4 text-xl font-extrabold border-b border-gray-700 flex items-center justify-center h-20 text-emerald-400">
+            AP
+        </div>
+
+        <!-- Navigation Menu (Icon-only) -->
         <nav id="mainNav" class="p-2 space-y-4 flex-grow">
-            <a href="#" class="nav-item block p-3 rounded-xl bg-gray-700/50 text-center" data-section="dashboard" title="Dashboard">
-                <svg class="w-6 h-6 mx-auto text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <!-- Dashboard -->
+            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center active-nav bg-gray-700/50 transition-colors duration-150" data-section="dashboard" title="ဒက်ရှ်ဘုတ်">
+                <svg class="w-6 h-6 mx-auto text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             </a>
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center" data-section="chat" title="Chat">
-                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            <!-- Chat -->
+            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="chat" title="ချတ်">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
             </a>
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center" data-section="broadcast" title="Broadcast">
-                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+            <!-- Broadcast -->
+            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="broadcast" title="ထုတ်လွှင့်မှု">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
             </a>
-            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center" data-section="settings" title="Settings">
-                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path></svg>
+            <!-- Settings -->
+            <a href="#" class="nav-item block p-3 rounded-xl hover:bg-gray-700 text-center transition-colors duration-150" data-section="settings" title="ဆက်တင်များ">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </a>
         </nav>
+        
+        <!-- Empty space at the bottom -->
+        <div class="p-4 border-t border-gray-700"></div>
     </div>
 
-    <!-- CHAT LIST -->
-    <div id="chatListPanel" class="w-64 aero-panel flex-col flex-shrink-0 hidden sm:flex">
-        <div class="p-4 text-lg font-semibold border-b border-gray-700 text-white h-20 flex items-center justify-between">
-            <div>စကားပြောဆိုမှုများ</div>
-            <!-- search input for chat list -->
-            <input id="chatSearch" type="search" placeholder="Search user (exact word)" title="Exact word match"
-                   class="w-36 p-1 rounded-md text-sm bg-gray-900 border border-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none" />
+    <!-- 2. Chat List Panel (w-64) - Glass Panel -->
+    <div id="chatListPanel" class="w-64 aero-panel flex-col flex-shrink-0 hidden rounded-none sm:rounded-l-xl">
+        <!-- Chat List Header -->
+        <div class="p-4 text-lg font-semibold border-b border-gray-700 text-white h-20 flex items-center bg-transparent">
+            စကားပြောဆိုမှုများ
         </div>
+
+        <!-- NEW SEARCH INPUT FOR CHAT LIST (User Search) -->
+        <div class="p-4 border-b border-gray-700">
+            <div class="relative">
+                <input type="text" id="chatListSearchInput" placeholder="User ရှာရန် (စာလုံးတူ)..."
+                       class="w-full pl-10 border rounded-xl p-2 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 shadow-inner"
+                       oninput="filterChatList()">
+                <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+        </div>
+        <!-- END NEW SEARCH INPUT -->
+
+        <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
+            <!-- Placeholder uses lighter gray text for dark contrast -->
             <div class="text-center p-4 text-gray-400 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
+    <!-- 3. Main Content Area (flex-grow) - Main Glass Panel -->
     <div class="flex-grow flex flex-col aero-panel m-4 rounded-xl">
-        <!-- Dashboard section -->
+        
+        <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
             <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ဒက်ရှ်ဘုတ် (Admin Hub)</h1>
-            <p class="text-gray-400 mb-8">ဤနေရာတွင် အဓိက စာရင်းဇယားများ၊ အသုံးပြုသူ ကိန်းဂဏန်းများ နှင့် စွမ်းဆောင်ရည် အချက်အလက်များကို ပြသပါမည်။</p>
+            <p class="text-gray-400 mb-8">
+                ဤနေရာတွင် အဓိက စာရင်းဇယားများ၊ အသုံးပြုသူ ကိန်းဂဏန်းများ နှင့် စွမ်းဆောင်ရည် အချက်အလက်များကို ပြသပါမည်။
+            </p>
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 (Accent Card) -->
+                <div class="aero-panel bg-emerald-900/40 p-6 rounded-xl shadow-2xl border-emerald-400/30 text-emerald-200">
+                    <div class="text-5xl font-extrabold text-white">1,245</div>
+                    <div class="text-sm mt-1 text-emerald-400 font-semibold">စုစုပေါင်း အသုံးပြုသူများ</div>
+                </div>
+                <!-- Card 2 -->
+                <div class="aero-panel bg-gray-800/60 p-6 rounded-xl shadow-xl border-gray-700/50 text-white">
+                    <div class="text-5xl font-extrabold">25</div>
+                    <div class="text-sm mt-1 text-gray-400 font-semibold">လက်ရှိ အွန်လိုင်း</div>
+                </div>
+                <!-- Card 3 -->
+                <div class="aero-panel bg-red-900/40 p-6 rounded-xl shadow-xl border-red-500/30 text-red-200">
+                    <div class="text-5xl font-extrabold text-white">156</div>
+                    <div class="text-sm mt-1 text-red-400 font-semibold">ဖြေကြားရန် လိုအပ်သော ချတ်များ</div>
+                </div>
+            </div>
         </div>
 
-        <!-- Chat section -->
+        <!-- === SECTION: Chat === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <header id="chatHeader" class="p-4 border-b border-gray-700 shadow-md bg-transparent flex items-center justify-between z-10 h-20">
-                <div class="flex items-center space-x-3">
-                    <span id="chatHeaderTitle" class="text-xl font-semibold text-gray-200">Chat တစ်ခု ရွေးချယ်ပါ</span>
-                    <span id="onlineIndicator" class="text-sm text-muted hidden">• online</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <!-- message search -->
-                    <input id="messageSearch" placeholder="Search messages (exact word)" title="Exact word match"
-                           class="p-2 rounded-md bg-gray-900 border border-gray-700 text-gray-200 placeholder-gray-500 text-sm focus:outline-none" />
-                    <button id="clearMsgSearch" class="p-2 rounded-md bg-gray-800 border border-gray-700 text-sm text-gray-200">Clear</button>
-                </div>
+            <!-- Chat Header (Now includes the Message Search Input dynamically) -->
+            <header id="chatHeader" class="p-4 border-b border-gray-700 shadow-md bg-transparent z-10">
+                <span class="text-xl font-semibold text-gray-200">Chat တစ်ခု ရွေးချယ်ပါ</span>
             </header>
 
-            <!-- Messages -->
+            <!-- Message History area (flex-grow ensures it takes up all remaining space) -->
             <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-transparent">
                 <div class="text-center text-gray-500">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
             </div>
 
-            <!-- Input -->
+            <!-- Message Input area (Fixed at the bottom by flex layout) -->
             <div id="chatInputArea" class="p-4 border-t border-gray-700 bg-transparent hidden">
                 <div class="flex space-x-3">
-                    <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..." 
+                    <!-- Input field uses the modern dark input styling -->
+                    <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
                            class="flex-grow border border-gray-700 rounded-xl p-3 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 transition duration-150 shadow-inner"
                            onkeypress="if(event.key === 'Enter') sendReply()">
+                    <!-- Send button uses the accent color -->
                     <button id="sendButton" onclick="sendReply()"
                             class="bg-emerald-600 text-white p-3 rounded-xl font-semibold hover:bg-emerald-500 transition duration-150 flex items-center justify-center shadow-lg shadow-emerald-600/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Broadcast -->
+        <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
             <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ထုတ်လွှင့်မှု (Broadcast)</h1>
+            <!-- Broadcast card uses aero panel styling -->
             <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
-                <textarea id="broadcastText" rows="5" class="w-full p-3 border rounded-xl border-gray-700 bg-gray-900 text-gray-100 placeholder-gray-500"></textarea>
-                <button id="broadcastBtn" class="mt-3 bg-red-600 text-white p-3 rounded-xl">ထုတ်လွှင့်ပါ</button>
+                <p class="mb-4 text-gray-400">
+                    အသုံးပြုသူများအားလုံး သို့မဟုတ် သတ်မှတ်ထားသော အုပ်စုများသို့ မက်ဆေ့ချ်များ တစ်ပြိုင်နက် ပေးပို့ရန် ဤနေရာကို အသုံးပြုပါ။
+                </p>
+                <!-- Textarea uses the modern dark input styling -->
+                <textarea class="w-full p-3 border rounded-xl border-gray-700 bg-gray-900 text-gray-100 placeholder-gray-500 focus:ring-emerald-400 focus:border-emerald-400 transition duration-150 shadow-inner" rows="5" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
+                <!-- Button colors remain accent red for caution -->
+                <button class="mt-3 bg-red-600 text-white p-3 rounded-xl font-semibold hover:bg-red-500 transition duration-150 shadow-lg shadow-red-600/30">
+                    ထုတ်လွှင့်ပါ
+                </button>
             </div>
         </div>
 
-        <!-- Settings -->
+        <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
             <h1 class="text-3xl font-extrabold mb-6 text-emerald-400">ဆက်တင်များ (Configuration)</h1>
             <div class="space-y-6">
+                <!-- Setting Card 1 uses aero panel styling -->
                 <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
                     <h3 class="text-xl font-semibold mb-2 text-gray-200">API Key Management</h3>
-                    <input type="text" id="apiKeyInput" placeholder="API Key" class="w-full p-3 border rounded-xl bg-gray-800/50 text-gray-100 border-gray-700" />
+                    <p class="text-sm text-gray-400 mb-4">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
+                    <!-- Input field uses the modern dark input styling -->
+                    <input type="text" value="************************" readonly class="w-full p-3 border rounded-xl bg-gray-800/50 text-gray-100 border-gray-700 transition-colors duration-300">
+                </div>
+                <!-- Setting Card 2 uses aero panel styling -->
+                <div class="aero-panel p-6 rounded-xl shadow-lg border-gray-700">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-200">Bot Status</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer" checked>
+                            <!-- Toggle switch accent color -->
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-400/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
-    <!-- socket.io client -->
+    <!-- 4. Socket.io and JavaScript Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // CONFIG (set these to match your backend)
-        let BASE_URL = ''; // e.g. https://yourserver.com
-        let apiKey = '';
-
-        // Runtime state
-        const socket = (typeof io === 'function') ? io() : { on: ()=>{}, emit: ()=>{} }; // fallback if socket.io not available
+        // --- Client-side State Management ---
+        const apiKey = ""; 
+        const BASE_URL = ''; 
+        const socket = io();
         let currentChatId = null;
-        let unreadCounts = {};
-        let localChatsCache = {}; // store fetched chats keyed by id
-        let currentHistory = []; // messages currently loaded for selected chat
+        let unreadCounts = {}; 
+        
+        // Global state for filtering
+        let allChatsData = [];
+        let currentMessageHistory = [];
 
-        // Helpers: exact-word matching (case-insensitive)
-        function exactWordMatch(text, query) {
-            if (!query) return true;
-            if (!text) return false;
-            // normalize: lower, remove punctuation near words for safer matching
-            const q = query.trim().toLowerCase();
-            if (!q) return false;
-            // Create regex for whole word (\b) with Unicode word boundaries
-            const re = new RegExp('\\b' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'iu');
-            return re.test(text);
+
+        // --- Navigation Functions (Functionality unchanged) ---
+        
+        /**
+         * Switches the displayed content area based on the selected section.
+         * Toggles the visibility of the Chat List Panel accordingly.
+         */
+        function showSection(sectionId) {
+            // Hide all content sections and remove 'active-nav' from all menu items
+            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-gray-700/50', 'active-nav'));
+            
+            // Remove accent color from all icons
+            document.querySelectorAll('.nav-item svg').forEach(svg => svg.classList.remove('text-emerald-400'));
+
+
+            // Show the selected content section
+            const targetSection = document.getElementById(`section-${sectionId}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                // Ensure chat section handles its internal flex display
+                if (sectionId === 'chat') {
+                     targetSection.classList.add('flex-col');
+                } else {
+                     targetSection.classList.remove('flex-col');
+                }
+            }
+
+            // Set the corresponding navigation item as active
+            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('bg-gray-700/50', 'active-nav');
+                // Highlight the icon with the accent color
+                const icon = activeNavItem.querySelector('svg');
+                if(icon) {
+                    icon.classList.add('text-emerald-400');
+                }
+            }
+
+            // Toggle visibility of the Chat List Panel
+            const chatListPanel = document.getElementById('chatListPanel');
+            if (sectionId === 'chat') {
+                chatListPanel.classList.remove('hidden');
+                chatListPanel.classList.add('flex'); // Ensure flex is applied for layout
+                // If switching to chat, ensure the chat list is loaded
+                if (document.getElementById('chatList').children.length === 0 || 
+                    document.getElementById('chatList').innerHTML.includes('ဆွဲယူနေပါသည်')) {
+                    fetchChats();
+                }
+            } else {
+                chatListPanel.classList.add('hidden');
+                chatListPanel.classList.remove('flex');
+                currentChatId = null; // Clear active chat when leaving the chat section
+            }
         }
 
-        function highlightExactWords(text, query) {
-            if (!query || !text) return text || '';
-            const q = query.trim();
-            if (!q) return text;
-            // safe-escape for regex
-            const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const re = new RegExp('\\b(' + escaped + ')\\b', 'gi');
-            return (text || '').replace(re, '<span class="msg-highlight">$1</span>');
-        }
 
-        // Create chat list item
+        // --- Chat Specific Functions (Updated styles) ---
+
+        /**
+         * Renders a single chat item element.
+         */
         function createChatListItem(chat) {
-            const chatId = String(chat.telegramId || chat.id || chat.chatId || chat.userId);
-            const count = chat.unreadCount ?? unreadCounts[chatId] ?? 0;
-            const el = document.createElement('div');
-            el.id = `chat-${chatId}`;
-            el.className = 'chat-item flex items-center p-3 my-1 relative text-gray-200';
-            el.setAttribute('data-chat-id', chatId);
-            el.setAttribute('data-username', (chat.username || chat.name || ''));
+            const chatId = chat.telegramId;
+            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
 
-            const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp || Date.now());
+            const chatElement = document.createElement('div');
+            chatElement.id = `chat-${chatId}`;
+            // Styles for the dark list item
+            chatElement.className = 'chat-item flex items-center p-3 my-1 relative text-gray-200';
+            chatElement.setAttribute('data-chat-id', chatId);
+
+            const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
             const timeString = lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             const unreadBadge = count > 0 ? `<span class="badge-style">${count}</span>` : '';
 
-            el.innerHTML = `
+            chatElement.innerHTML = `
                 <div class="flex-grow min-w-0">
-                    <p class="font-semibold truncate text-sm">${chat.username || chat.name || chatId}</p>
+                    <p class="font-semibold truncate text-sm">${chat.username || chatId}</p>
                     <p class="text-xs text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
-                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'စာသားမည်သူမရှိသေးပါ'}</p>
+                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
                 </div>
                 ${unreadBadge}
             `;
 
-            el.addEventListener('click', () => {
-                selectChat(chatId, chat.username || chat.name || chatId);
+            chatElement.addEventListener('click', () => {
+                selectChat(chatId, chat.username || chatId);
             });
 
-            return el;
+            return chatElement;
         }
 
-        // Create message bubble
-        function createMessageBubble(msg, messageSearchQuery = '') {
-            const isUser = msg.sender === 'user' || msg.from === 'user' || msg.role === 'user';
+        /**
+         * Renders a single message bubble.
+         */
+        function createMessageBubble(msg) {
+            const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'bg-gray-700 text-gray-100 rounded-br-none' : 'bg-emerald-600 text-white rounded-bl-none';
-            const timeString = new Date(msg.timestamp || msg.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Modern Dark Bubble Styles
+            const bubbleClass = isUser 
+                ? 'bg-gray-700 text-gray-100 rounded-br-none' // User bubble (Dark Gray)
+                : 'bg-emerald-600 text-white rounded-bl-none'; // Admin reply (Accent Green)
+
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${alignment}`;
+            
+            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             let mediaContent = '';
             if (msg.mediaPath) {
-                // if backend serves media at endpoint
-                const imageUrl = (msg.mediaPath.startsWith('http') ? msg.mediaPath : `${BASE_URL}/api/get-media?file_id=${encodeURIComponent(msg.mediaPath)}`);
+                // Assuming mediaPath is file_id for user, or base64 for admin
+                const imageUrl = isUser ? `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}` : msg.mediaPath;
                 mediaContent = `<img src="${imageUrl}" class="w-48 h-auto rounded-lg mb-2 cursor-pointer border border-gray-600 shadow-lg" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/200x150/1F2937/9CA3AF?text=Image+Error'" alt="Chat Image"/>`;
             }
 
-            // message text highlighting if messageSearchQuery provided
-            const textHtml = messageSearchQuery ? highlightExactWords(msg.text || msg.message || '', messageSearchQuery) : (msg.text || msg.message || '');
-
+            // Time color adjusted for contrast
             const timeColor = isUser ? 'text-gray-400' : 'text-white opacity-75';
 
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex ${alignment}`;
-            wrapper.style.marginBottom = '6px';
-            wrapper.innerHTML = `
+            messageElement.innerHTML = `
                 <div class="max-w-xs md:max-w-md p-3 rounded-2xl shadow-lg ${bubbleClass}">
                     ${mediaContent}
-                    <p class="${(textHtml ? '' : 'hidden')}">${textHtml}</p>
-                    <span class="block text-[10px] opacity-75 mt-1 text-right ${timeColor}">${timeString}</span>
+                    <p class="${msg.text ? 'block' : 'hidden'}">${msg.text || ''}</p>
+                    <span class="block text-[10px] opacity-75 mt-1 text-right ${timeColor}">
+                        ${timeString}
+                    </span>
                 </div>
             `;
-            return wrapper;
+            return messageElement;
         }
 
-        // Fetch chat list from server
+        // --- Chat List Search Logic (Exact Match) ---
+
+        /**
+         * Renders the chat list from a provided array of chat objects.
+         */
+        function renderChatList(chatsToRender) {
+            const chatListElement = document.getElementById('chatList');
+            chatListElement.innerHTML = ''; // Clear existing
+            if (chatsToRender.length === 0) {
+                chatListElement.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
+                return;
+            }
+            
+            chatsToRender.forEach(chat => {
+                unreadCounts[chat.telegramId] = 0; 
+                chatListElement.appendChild(createChatListItem(chat));
+            });
+
+            // Re-highlight the current chat if it is still visible after filtering
+            if (currentChatId) {
+                const activeChatElement = document.getElementById(`chat-${currentChatId}`);
+                if (activeChatElement) {
+                    activeChatElement.classList.add('active');
+                }
+            }
+        }
+        
+        /**
+         * Filters the chat list based on the search input (exact word match).
+         */
+        function filterChatList() {
+            const searchInput = document.getElementById('chatListSearchInput');
+            const searchTerm = searchInput.value.trim();
+
+            if (!searchTerm) {
+                renderChatList(allChatsData); // Show all if search is empty
+                return;
+            }
+
+            try {
+                // Regex for exact word match (\b ensures word boundary)
+                const regex = new RegExp(`\\b${searchTerm}\\b`, 'i'); 
+                
+                const filteredChats = allChatsData.filter(chat => {
+                    const username = chat.username || String(chat.telegramId);
+                    return regex.test(username);
+                });
+
+                renderChatList(filteredChats);
+            } catch (e) {
+                console.error("Invalid regex in chat list search:", e);
+                // Fallback to showing all if regex creation fails
+                renderChatList(allChatsData);
+            }
+        }
+
+
+        /**
+         * Fetches and displays the initial chat list.
+         */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>';
-            unreadCounts = {};
-            localChatsCache = {};
+            unreadCounts = {}; 
 
             try {
-                const resp = await fetch(`${BASE_URL}/api/chats?key=${encodeURIComponent(apiKey)}`);
-                if (!resp.ok) throw new Error(`Server error ${resp.status}`);
-                const chats = await resp.json();
+                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
+                if (!response.ok) throw new Error('Authentication or Server error');
+                const chats = await response.json();
 
-                chatListElement.innerHTML = '';
-                if (!Array.isArray(chats) || chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-400 text-sm">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
-                    return;
-                }
+                allChatsData = chats; // Store all data globally
+                renderChatList(allChatsData); // Initial rendering
 
-                // assume chats is array of { telegramId, username, lastMessageText, lastMessageTime }
-                chats.forEach(chat => {
-                    const id = String(chat.telegramId || chat.id || chat.chatId || chat.userId);
-                    localChatsCache[id] = chat;
-                    unreadCounts[id] = chat.unreadCount || 0;
-                    chatListElement.appendChild(createChatListItem(chat));
+            } catch (error) {
+                console.error("Error fetching chat list:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Chats များ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // --- Message History Search Logic (Exact Match) ---
+
+        /**
+         * Renders the message history from a provided array of message objects.
+         */
+        function renderMessageHistory(messagesToRender) {
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = ''; // Clear existing
+
+            if (messagesToRender.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center text-gray-400">မှတ်တမ်းမရှိသေးပါ</div>';
+                return;
+            }
+
+            // Render in reverse order (prepend) for the column-reverse flex layout
+            messagesToRender.forEach(msg => {
+                historyContainer.prepend(createMessageBubble(msg));
+            });
+            
+            // Scroll to the visual bottom (top of the column-reverse container)
+            historyContainer.scrollTop = 0; 
+        }
+
+        /**
+         * Filters the message history based on the search input (exact word match).
+         */
+        function filterMessageHistory() {
+            const searchInput = document.getElementById('messageSearchInput');
+            const searchTerm = searchInput.value.trim();
+
+            if (!searchTerm) {
+                renderMessageHistory(currentMessageHistory); // Show all if search is empty
+                return;
+            }
+
+            try {
+                // Regex for exact word match (\b ensures word boundary)
+                const regex = new RegExp(`\\b${searchTerm}\\b`, 'i'); 
+                
+                const filteredMessages = currentMessageHistory.filter(msg => {
+                    // Only filter the text content if it exists
+                    return msg.text && regex.test(msg.text);
                 });
 
-            } catch (err) {
-                console.error("Error fetching chats:", err);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Chats ဆွဲယူရာတွင် အမှား: ${err.message}</div>`;
+                renderMessageHistory(filteredMessages);
+            } catch (e) {
+                console.error("Invalid regex in message history search:", e);
+                // Fallback to showing all
+                renderMessageHistory(currentMessageHistory);
             }
         }
 
-        // Select chat, load history
-        async function selectChat(chatId, username) {
-            currentChatId = String(chatId);
-            document.getElementById('chatHeaderTitle').innerText = username || chatId;
-            document.getElementById('chatInputArea').classList.remove('hidden');
 
-            // UI highlight in list
+        /**
+         * Fetches and displays the message history for a selected chat.
+         */
+        async function selectChat(chatId, username) {
+            currentChatId = chatId;
+            
+            // 1. Update UI state (Header and Input) - Now includes the message search input
+            document.getElementById('chatHeader').innerHTML = `
+                <div class="flex flex-col w-full py-1">
+                    <span class="text-xl font-semibold text-gray-200 mb-2">${username}</span>
+                    <div class="relative">
+                        <input type="text" id="messageSearchInput" placeholder="မှတ်တမ်း ရှာရန် (စာလုံးတူ)..."
+                            class="w-full pl-10 border rounded-xl p-2 bg-gray-900 text-gray-100 placeholder-gray-500 text-sm focus:ring-emerald-400 focus:border-emerald-400 shadow-inner"
+                            oninput="filterMessageHistory()">
+                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chatInputArea').classList.remove('hidden');
+            
+            // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-            const activeEl = document.getElementById(`chat-${chatId}`);
-            if (activeEl) {
-                activeEl.classList.add('active');
-                // clear badge
+            const activeChatElement = document.getElementById(`chat-${chatId}`);
+            if (activeChatElement) {
+                activeChatElement.classList.add('active');
+                
+                // Reset the unread count state and remove the visual badge
                 unreadCounts[chatId] = 0;
-                const badge = activeEl.querySelector('.badge-style');
+                const badge = activeChatElement.querySelector('.badge-style');
                 if (badge) badge.remove();
             }
 
-            // show loading
+            // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
             historyContainer.innerHTML = '<div class="text-center text-gray-400">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
+            
+            // Clear message search when selecting a new chat
+            document.getElementById('messageSearchInput').value = '';
+
 
             try {
-                const resp = await fetch(`${BASE_URL}/api/chats/${encodeURIComponent(chatId)}/history?key=${encodeURIComponent(apiKey)}`);
-                if (!resp.ok) throw new Error('Failed to load history');
-                const history = await resp.json(); // expect array of messages newest last or first? we'll handle both
+                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
+                if (!response.ok) throw new Error('Failed to load history');
+                const history = await response.json();
 
-                // normalize: ensure newest are last so we can prepend for reverse display
-                currentHistory = Array.isArray(history) ? history.slice() : [];
-                // render messages (we use prepend so display is newest at top because .chat-messages is column-reverse)
-                historyContainer.innerHTML = '';
-                // If server returns newest-first, reverse if needed. We'll detect by timestamps roughly:
-                if (currentHistory.length >= 2) {
-                    const a = new Date(currentHistory[0].timestamp || currentHistory[0].time || currentHistory[0].date || 0).getTime();
-                    const b = new Date(currentHistory[currentHistory.length-1].timestamp || currentHistory[currentHistory.length-1].time || currentHistory[currentHistory.length-1].date || 0).getTime();
-                    if (a > b) currentHistory.reverse();
-                }
+                currentMessageHistory = history; // Store all messages globally
+                renderMessageHistory(currentMessageHistory); // Initial render
 
-                currentHistory.forEach(msg => {
-                    // prepend so it appears at top due to column-reverse
-                    historyContainer.prepend(createMessageBubble(msg));
-                });
-                // scroll to top (which is newest because column-reverse)
-                historyContainer.scrollTop = 0;
-
-            } catch (err) {
-                console.error(`Error fetching history for ${chatId}:`, err);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှား: ${err.message}</div>`;
+            } catch (error) {
+                console.error(`Error fetching chat history for ${chatId}:`, error);
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
             }
         }
 
-        // Send reply (via socket)
+        /**
+         * Sends admin reply to the server via Socket.io.
+         */
         function sendReply() {
             if (!currentChatId) return;
+
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
-            if (!text) return;
+
+            if (!text) {
+                console.warn("Cannot send empty message.");
+                return;
+            }
 
             const sendButton = document.getElementById('sendButton');
-            // show spinner
             sendButton.disabled = true;
-            const prevHtml = sendButton.innerHTML;
             sendButton.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>';
 
             const data = {
                 chatId: currentChatId,
                 text: text,
-                mediaPath: null
+                mediaPath: null 
             };
 
-            // emit and get ack
-            try {
-                socket.emit('admin_reply', data, (response) => {
-                    sendButton.disabled = false;
-                    sendButton.innerHTML = prevHtml;
-                    if (response && response.success) {
-                        replyInput.value = '';
-                        const tempMsg = {
-                            chatId: currentChatId,
-                            sender: 'admin',
-                            text: text,
-                            mediaPath: null,
-                            timestamp: new Date().toISOString()
-                        };
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(tempMsg));
-                        // insert into local history copy
-                        currentHistory.push(tempMsg);
-                        historyContainer.scrollTop = 0;
-                    } else {
-                        console.error("Failed to send message:", response && response.error);
-                        alert("Failed to send message: " + (response && response.error ? response.error : 'unknown'));
-                    }
-                });
-            } catch (err) {
-                console.error("Socket emit failed:", err);
+            socket.emit('admin_reply', data, (response) => {
                 sendButton.disabled = false;
-                sendButton.innerHTML = prevHtml;
-            }
+                sendButton.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+                
+                if (response.success) {
+                    replyInput.value = '';
+                    
+                    const tempMsg = {
+                        chatId: currentChatId,
+                        sender: 'admin',
+                        text: text,
+                        mediaPath: null,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Add to global history state and re-render/append
+                    currentMessageHistory.unshift(tempMsg); // Add new message to the start of the array
+                    renderMessageHistory(currentMessageHistory); // Re-render the list
+                } else {
+                    console.error("Failed to send message:", response.error);
+                }
+            });
         }
 
-        // Real-time new message handler
+
+        // ------------------------------------------------------------------
+        // CORE FIX: Handling Real-time Updates (Socket.io)
+        // ------------------------------------------------------------------
+
         socket.on('new_message', (data) => {
-            // Expect data: { chatId, user: {...}, message: {...} }
-            try {
-                const chatId = String(data.chatId || data.chat_id || data.user?.id);
-                const user = data.user || { username: data.username || 'Unknown' };
-                const message = data.message || data;
+            const chatId = String(data.chatId);
+            const user = data.user;
+            const message = data.message;
+            
+            const chatList = document.getElementById('chatList');
+            
+            // 1. Find and REMOVE the old entry to prevent duplicates
+            const existingChatElement = document.getElementById(`chat-${chatId}`);
+            if (existingChatElement) {
+                existingChatElement.remove();
+            }
+            
+            // Update the global allChatsData state
+            const existingIndex = allChatsData.findIndex(chat => String(chat.telegramId) === chatId);
+            if (existingIndex > -1) {
+                // Update existing chat metadata
+                allChatsData[existingIndex] = { ...allChatsData[existingIndex], ...user };
+            } else {
+                // Add new chat if it doesn't exist
+                allChatsData.unshift({ ...user, telegramId: chatId });
+            }
 
-                // remove any existing chat list entry to re-insert up top
-                const existing = document.getElementById(`chat-${chatId}`);
-                if (existing) existing.remove();
 
-                // update unreadCounts
-                if (currentChatId !== chatId) {
-                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                } else {
-                    unreadCounts[chatId] = 0;
+            // 2. Update Unread Count state
+            if (currentChatId !== chatId) {
+                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+            } else {
+                unreadCounts[chatId] = 0;
+            }
+            
+            // 3. Re-render the filtered or full list to reflect changes
+            filterChatList(); // Use the existing filter function to handle re-rendering
+
+            // 4. If it's the current chat, display the new message immediately
+            if (currentChatId === chatId) {
+                // Add to the message history state
+                currentMessageHistory.unshift(message);
+                
+                // If there is an active search filter, don't show the new message unless it matches.
+                // Otherwise, show the new message by calling renderMessageHistory on the current state.
+                const searchInput = document.getElementById('messageSearchInput');
+                if (!searchInput || searchInput.value.trim() === '') {
+                     renderMessageHistory(currentMessageHistory); 
                 }
-
-                // build minimal chat obj for list
-                const chatItemObj = {
-                    telegramId: chatId,
-                    username: user.username || user.name || `User ${chatId}`,
-                    lastMessageText: message.text || message.message || '',
-                    lastMessageTime: message.timestamp || message.time || Date.now(),
-                    unreadCount: unreadCounts[chatId]
-                };
-                localChatsCache[chatId] = chatItemObj;
-
-                // prepend to chat list
-                const chatList = document.getElementById('chatList');
-                const newChatEl = createChatListItem(chatItemObj);
-                chatList.prepend(newChatEl);
-
-                // if currently viewing this chat, append message
-                if (currentChatId === chatId) {
-                    const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(message));
-                    currentHistory.push(message);
-                    historyContainer.scrollTop = 0;
-                } else {
-                    // flash highlight
-                    newChatEl.classList.add('bg-red-500/20');
-                    setTimeout(() => newChatEl.classList.remove('bg-red-500/20'), 900);
+            } else {
+                // Optional: Flash the new chat item for notification
+                const newChatElement = document.getElementById(`chat-${chatId}`);
+                if (newChatElement) {
+                    newChatElement.classList.add('bg-red-500/30');
+                    setTimeout(() => {
+                        newChatElement.classList.remove('bg-red-500/30');
+                    }, 1000);
                 }
-            } catch (err) {
-                console.error("Error handling new_message:", err);
             }
         });
 
-        // Chat list search (exact word)
-        function searchChatList(query) {
-            const q = (query || '').trim();
-            const listContainer = document.getElementById('chatList');
-            const items = Array.from(listContainer.children);
-            if (!q) {
-                // show all
-                items.forEach(it => it.style.display = '');
-                return;
-            }
-            items.forEach(it => {
-                const username = (it.getAttribute('data-username') || '').toLowerCase();
-                // exact-word match on username
-                const match = exactWordMatch(username, q.toLowerCase());
-                it.style.display = match ? '' : 'none';
-            });
-        }
 
-        // Message search (exact word) inside currentHistory
-        function searchMessages(query) {
-            const q = (query || '').trim();
-            const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '';
-
-            if (!currentHistory || currentHistory.length === 0) {
-                historyContainer.innerHTML = '<div class="text-center text-gray-400">မှတ်တမ်းမရှိသေးပါ။</div>';
-                return;
-            }
-
-            // filter messages by exact-word match against text field
-            const filtered = q ? currentHistory.filter(m => exactWordMatch((m.text||m.message||''), q)) : currentHistory.slice();
-
-            if (filtered.length === 0) {
-                historyContainer.innerHTML = '<div class="text-center text-gray-400">ရှာမတွေ့ပါ။</div>';
-                return;
-            }
-
-            // ensure chronological order: oldest first so when prepending to column-reverse, newest shown top
-            let toRender = filtered.slice();
-            if (toRender.length >= 2) {
-                const a = new Date(toRender[0].timestamp || toRender[0].time || 0).getTime();
-                const b = new Date(toRender[toRender.length-1].timestamp || toRender[toRender.length-1].time || 0).getTime();
-                if (a > b) toRender.reverse();
-            }
-
-            toRender.forEach(msg => {
-                historyContainer.prepend(createMessageBubble(msg, q));
-            });
-            historyContainer.scrollTop = 0;
-        }
-
+        // ------------------------------------------------------------------
         // Initialization
+        // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            // navigation wiring
+            
+            // Attach navigation handlers
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const sec = item.getAttribute('data-section');
-                    showSection(sec);
+                    showSection(item.getAttribute('data-section'));
                 });
             });
 
-            // default
+            // Default to Dashboard on load
             showSection('dashboard');
-
-            // load initial chats lazily when chat section opened (handled in showSection)
-            // wire up search inputs
-            const chatSearch = document.getElementById('chatSearch');
-            if (chatSearch) {
-                chatSearch.addEventListener('input', (e) => searchChatList(e.target.value));
-            }
-
-            const messageSearch = document.getElementById('messageSearch');
-            const clearMsgSearch = document.getElementById('clearMsgSearch');
-            if (messageSearch) {
-                messageSearch.addEventListener('input', (e) => searchMessages(e.target.value));
-            }
-            if (clearMsgSearch) {
-                clearMsgSearch.addEventListener('click', () => {
-                    document.getElementById('messageSearch').value = '';
-                    searchMessages('');
-                });
-            }
-
-            // API key input binding for convenience
-            const apiKeyInput = document.getElementById('apiKeyInput');
-            if (apiKeyInput) {
-                apiKeyInput.addEventListener('change', (e) => { apiKey = e.target.value.trim(); });
-            }
-
-            // broadcast action (example)
-            const broadcastBtn = document.getElementById('broadcastBtn');
-            if (broadcastBtn) {
-                broadcastBtn.addEventListener('click', async () => {
-                    const text = document.getElementById('broadcastText').value.trim();
-                    if (!text) return alert('Enter broadcast message');
-                    try {
-                        const r = await fetch(`${BASE_URL}/api/broadcast?key=${encodeURIComponent(apiKey)}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ text })
-                        });
-                        if (!r.ok) throw new Error('Broadcast failed');
-                        alert('Broadcast sent');
-                        document.getElementById('broadcastText').value = '';
-                    } catch (err) {
-                        alert('Broadcast error: ' + err.message);
-                    }
-                });
-            }
         });
-
-        // show/hide sections logic
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-gray-700/50', 'active-nav'));
-
-            const target = document.getElementById(`section-${sectionId}`);
-            if (target) {
-                target.classList.remove('hidden');
-                if (sectionId === 'chat') target.classList.add('flex-col'); else target.classList.remove('flex-col');
-            }
-
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('bg-gray-700/50', 'active-nav');
-                const icon = activeNavItem.querySelector('svg');
-                if (icon) {
-                    document.querySelectorAll('.nav-item svg').forEach(svg => svg.classList.remove('text-emerald-400'));
-                    icon.classList.add('text-emerald-400');
-                }
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                // load chats if empty
-                if (!document.getElementById('chatList').children.length || document.getElementById('chatList').innerHTML.includes('ဆွဲယူနေပါသည်')) {
-                    fetchChats();
-                }
-            } else {
-                chatListPanel.classList.add('hidden');
-                currentChatId = null;
-            }
-        }
-
-        // Expose sendReply to global so Enter key handler can call it
-        window.sendReply = sendReply;
 
     </script>
 </body>
