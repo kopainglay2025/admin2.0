@@ -49,8 +49,8 @@
 
         /* Message History container */
         .chat-messages {
-            /* Adjust height to accommodate the new search bar (h-16) and header (h-20) */
-            max-height: calc(100vh - 176px); 
+            /* Adjust height to accommodate the new search bar (h-16) and header (h-20) and input area (min-h-24) */
+            max-height: calc(100vh - 176px - 100px); 
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; 
@@ -116,6 +116,20 @@
         .chat-item.active .avatar-placeholder {
             background-color: white;
             color: #10B981; /* Emerald-500 */
+        }
+        /* File/Image Preview container */
+        #filePreview {
+            max-height: 150px;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            background-color: #F3F4F6;
+            border: 1px solid #E5E7EB;
+        }
+        .dark #filePreview {
+            background-color: #374151;
+            border: 1px solid #4B5563;
         }
     </style>
 </head>
@@ -246,12 +260,39 @@
             </div>
 
             <!-- Message Input - Floating effect -->
-            <div id="chatInputArea" class="p-4 bg-white dark:bg-gray-800 transition-colors duration-400 shadow-2xl hidden">
-                <div class="flex space-x-4">
+            <div id="chatInputArea" class="p-4 bg-white dark:bg-gray-800 transition-colors duration-400 shadow-2xl hidden min-h-[100px]">
+                
+                <!-- File/Image Preview Area -->
+                <div id="filePreview" class="hidden">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span id="fileIcon" class="text-xl text-indigo-500"></span>
+                            <span id="fileName" class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate max-w-xs"></span>
+                            <span id="fileSize" class="text-xs text-gray-500 dark:text-gray-400"></span>
+                        </div>
+                        <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-700 p-1 rounded-full transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="fileInput" class="hidden" 
+                           onchange="handleFileSelect(event)" 
+                           accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                           
+                    <!-- Attach Button -->
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="text-gray-500 hover:text-indigo-600 p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                    </button>
+                    
                     <!-- Input field with better focus style -->
-                    <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
+                    <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ... (Emoji 💬, ပုံ 🖼️, ဖိုင် 📎 များ ပို့နိုင်သည်)"
                            class="flex-grow border border-gray-300 dark:border-gray-600 rounded-xl p-4 dark:bg-gray-700 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 text-base"
                            onkeypress="if(event.key === 'Enter') sendReply()">
+                           
                     <!-- Send button with vibrant color and shadow -->
                     <button id="sendButton" onclick="sendReply()"
                             class="bg-indigo-600 text-white p-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-200 flex items-center justify-center shadow-lg transform hover:scale-[1.05]">
@@ -311,13 +352,39 @@
         // --- Client-side State Management ---
         const apiKey = ""; 
         const BASE_URL = ''; 
-        // Use a more robust check for io() initialization in case socket.io.js isn't fully loaded immediately
         let socket;
         
         let currentChatId = null;
         let unreadCounts = {}; 
         let allChats = []; // Store all chat data for searching
         const htmlElement = document.documentElement;
+
+        // --- File State Variables ---
+        let selectedFile = null;
+        let mediaPath = null;
+        let mediaType = null;
+        let filename = null;
+
+        // --- Utility Functions ---
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.includes('pdf')) return '📄';
+            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+            return '📎';
+        }
+
 
         // --- Dark Mode Functions ---
         function toggleDarkMode() {
@@ -357,57 +424,45 @@
         }
 
         // --- Navigation Functions ---
-        /**
-         * Switches the displayed content area based on the selected section.
-         */
         function showSection(sectionId) {
-            // Hide all content sections and remove 'active-nav' from all menu items
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-indigo-700', 'active-nav', 'shadow-lg'));
 
-            // Show the selected content section
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
-                // Ensure chat section handles its internal flex display
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
-                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); // Hide search by default until chat is selected
+                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
                 } else {
                      targetSection.classList.remove('flex-col');
                 }
             }
 
-            // Set the corresponding navigation item as active
             const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
             if (activeNavItem) {
                 activeNavItem.classList.add('bg-indigo-700', 'active-nav', 'shadow-lg');
             }
 
-            // Toggle visibility of the Chat List Panel
             const chatListPanel = document.getElementById('chatListPanel');
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
-                // If switching to chat, ensure the chat list is loaded
                 if (allChats.length === 0) {
                     fetchChats();
                 } else {
-                    // If chats are already loaded, ensure the current filter is applied
                     filterChatList(document.getElementById('chatListSearch').value);
                 }
             } else {
                 chatListPanel.classList.add('hidden');
-                currentChatId = null; // Clear active chat when leaving the chat section
-                document.getElementById('chatHistorySearch').value = ''; // Clear chat history search
+                currentChatId = null; 
+                document.getElementById('chatHistorySearch').value = ''; 
+                clearFileSelection(); // Clear file selection when leaving chat
             }
         }
 
 
         // --- Chat Specific Functions ---
 
-        /**
-         * Renders a single chat item element (now with avatar and chatId).
-         */
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
@@ -421,7 +476,7 @@
             chatElement.setAttribute('data-username', username.toLowerCase());
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
-            const timeString = lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeString = isNaN(lastMessageTime) ? '' : lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             const unreadBadge = count > 0 ? `<span class="badge-style">${count > 99 ? '99+' : count}</span>` : '';
 
@@ -449,14 +504,10 @@
             return chatElement;
         }
 
-        /**
-         * Filters the chat list based on the search query.
-         */
         function filterChatList(query) {
             const chatListElement = document.getElementById('chatList');
             const lowerCaseQuery = query.toLowerCase().trim();
-            let found = 0;
-
+            
             chatListElement.innerHTML = ''; // Clear current list
 
             const filteredChats = allChats.filter(chat => {
@@ -475,7 +526,7 @@
         }
 
         /**
-         * Renders a single message bubble (now with rounded, softer edges).
+         * Renders a single message bubble.
          */
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
@@ -488,9 +539,41 @@
             const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             let mediaContent = '';
-            if (msg.mediaPath) {
-                const imageUrl = isUser ? `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}` : msg.mediaPath;
-                mediaContent = `<img src="${imageUrl}" class="max-w-full h-auto rounded-lg mb-2 cursor-pointer shadow-lg" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/280x200/f0f0f0/666666?text=Image+Error'" alt="Chat Image"/>`;
+            
+            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
+            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
+            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
+
+            if (isUserMedia) {
+                // User sent media (image/file from Telegram, displayed via API)
+                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
+                mediaContent = `
+                    <img src="${imageUrl}" 
+                         class="max-w-full h-auto rounded-lg mb-2 cursor-pointer shadow-lg" 
+                         onclick="window.open('${imageUrl}', '_blank')" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/f0f0f0/666666?text=Image+Error'" 
+                         alt="Chat Media"/>
+                `;
+            } else if (isAdminMedia) {
+                 // Admin sent media (Base64 data URL, directly displayed)
+                 if (msg.mediaPath.startsWith('data:image/')) {
+                     // Image display
+                     mediaContent = `
+                        <img src="${msg.mediaPath}" 
+                            class="max-w-full h-auto max-h-48 rounded-lg mb-2 cursor-pointer shadow-lg" 
+                            onclick="window.open('${msg.mediaPath}', '_blank')" 
+                            alt="Admin Image"/>
+                     `;
+                 } else {
+                    // Document/File display (using icon and name)
+                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
+                    mediaContent = `
+                        <div class="flex items-center space-x-2 p-2 bg-indigo-700 rounded-lg mb-2">
+                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
+                            <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
+                        </div>
+                    `;
+                 }
             }
 
             messageElement.innerHTML = `
@@ -505,9 +588,6 @@
             return messageElement;
         }
         
-        /**
-         * Filters the chat history messages based on the search query.
-         */
         function filterChatHistory(query) {
             const lowerCaseQuery = query.toLowerCase().trim();
             const messages = document.querySelectorAll('#messageHistory .message-bubble');
@@ -524,7 +604,6 @@
                 }
             });
             
-            // Optional: Provide feedback if no messages match
             const noResultMessage = document.getElementById('noHistoryResults');
             if (noResultMessage) noResultMessage.remove();
 
@@ -538,9 +617,6 @@
         }
 
 
-        /**
-         * Fetches and displays the initial chat list.
-         */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Chats များကို ဆွဲယူနေပါသည်...</div>';
@@ -552,7 +628,7 @@
                 if (!response.ok) throw new Error('Authentication or Server error');
                 const chats = await response.json();
 
-                allChats = chats; // Store full list
+                allChats = chats; 
                 chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
@@ -571,13 +647,9 @@
             }
         }
 
-        /**
-         * Fetches and displays the message history for a selected chat.
-         */
         async function selectChat(chatId, username) {
             currentChatId = chatId;
             
-            // 1. Update UI state (Header, Input, and Search visibility)
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-700 dark:text-gray-100">${username}</span>
@@ -586,21 +658,19 @@
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
             document.getElementById('chatHistorySearchArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearch').value = ''; // Clear search field on chat switch
+            document.getElementById('chatHistorySearch').value = ''; 
             
-            // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
-                
-                // Reset the unread count state and remove the visual badge
                 unreadCounts[chatId] = 0;
                 const badge = activeChatElement.querySelector('.badge-style');
                 if (badge) badge.remove();
             }
+            
+            clearFileSelection(); // Clear file selection on chat switch
 
-            // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
             historyContainer.innerHTML = '<div class="text-center text-gray-400 dark:text-gray-400">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
 
@@ -609,19 +679,68 @@
                 if (!response.ok) throw new Error('Failed to load history');
                 const history = await response.json();
 
-                // Clear and render messages
                 historyContainer.innerHTML = '';
                 history.forEach(msg => {
                     historyContainer.prepend(createMessageBubble(msg));
                 });
                 
-                historyContainer.scrollTop = 0; // Scroll to top (reverse order)
+                historyContainer.scrollTop = 0; 
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
                 historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
             }
         }
+        
+        /**
+         * Clears all file-related state and UI elements.
+         */
+        function clearFileSelection() {
+            selectedFile = null;
+            mediaPath = null;
+            mediaType = null;
+            filename = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+        }
+
+        /**
+         * Handles file selection, converts to Base64, and updates the preview.
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Maximum file size of 5MB for demonstration (Telegram limits vary)
+            if (file.size > 5 * 1024 * 1024) {
+                 alert("File size exceeds 5MB limit.");
+                 event.target.value = ''; // Clear selection
+                 return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                mediaPath = e.target.result; // Base64 Data URL
+                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
+                filename = file.name;
+                
+                // Update Preview UI
+                document.getElementById('fileName').textContent = filename;
+                document.getElementById('fileSize').textContent = formatBytes(file.size);
+                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
+                document.getElementById('filePreview').classList.remove('hidden');
+                
+                if (mediaType === 'photo') {
+                    // Optional: Show actual image preview
+                }
+            };
+            reader.onerror = (e) => {
+                console.error("File reading error:", e);
+                clearFileSelection();
+            };
+            reader.readAsDataURL(file);
+        }
+
 
         /**
          * Sends admin reply to the server via Socket.io.
@@ -632,8 +751,8 @@
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
 
-            if (!text) {
-                console.warn("Cannot send empty message.");
+            if (!text && !mediaPath) {
+                console.warn("Cannot send empty message or file.");
                 return;
             }
 
@@ -644,7 +763,9 @@
             const data = {
                 chatId: currentChatId,
                 text: text,
-                mediaPath: null 
+                mediaPath: mediaPath, // Base64 data URL or null
+                mediaType: mediaType, // 'photo', 'document', or null
+                filename: filename // File name for document type
             };
 
             socket.emit('admin_reply', data, (response) => {
@@ -652,18 +773,23 @@
                 sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
                 
                 if (response.success) {
-                    replyInput.value = '';
-                    
+                    // Local Echo
                     const tempMsg = {
                         chatId: currentChatId,
                         sender: 'admin',
                         text: text,
-                        mediaPath: null,
+                        mediaPath: mediaPath, // Keep Base64 for local echo
+                        filename: filename,
                         timestamp: new Date().toISOString()
                     };
                     const historyContainer = document.getElementById('messageHistory');
                     historyContainer.prepend(createMessageBubble(tempMsg));
                     historyContainer.scrollTop = 0;
+                    
+                    // Clear state after successful send
+                    replyInput.value = '';
+                    clearFileSelection();
+
                 } else {
                     console.error("Failed to send message:", response.error);
                 }
@@ -713,7 +839,6 @@
                 
                 // 4. Update the chat list display
                 if (document.getElementById('chatListSearch').value.trim() === '') {
-                     // If no search is active, directly update the list
                     user.unreadCount = unreadCounts[chatId]; 
                     const newChatElement = createChatListItem(user);
                     chatList.prepend(newChatElement);
@@ -722,24 +847,22 @@
                     if (currentChatId === chatId) {
                         const historyContainer = document.getElementById('messageHistory');
                         historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; // Scroll to top (reverse order)
-                        newChatElement.classList.add('active'); // Keep the active state
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); // Re-apply history search
+                        historyContainer.scrollTop = 0; 
+                        newChatElement.classList.add('active'); 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
                     } else {
-                        // Flash the new chat item for notification
                         newChatElement.classList.add('ring-4', 'ring-red-500/50');
                         setTimeout(() => {
                             newChatElement.classList.remove('ring-4', 'ring-red-500/50');
                         }, 1000);
                     }
                 } else {
-                    // If search is active, re-filter the list to ensure the new message is visible if it matches
                     filterChatList(document.getElementById('chatListSearch').value);
                     if (currentChatId === chatId) {
                         const historyContainer = document.getElementById('messageHistory');
                         historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; // Scroll to top (reverse order)
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); // Re-apply history search
+                        historyContainer.scrollTop = 0; 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
                     }
                 }
 
@@ -754,7 +877,6 @@
             loadDarkModePreference();
             setupSocketListeners();
             
-            // Attach navigation handlers
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -762,7 +884,6 @@
                 });
             });
 
-            // Default to Dashboard on load
             showSection('dashboard');
         });
 
