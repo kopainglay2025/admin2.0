@@ -44,21 +44,13 @@
 
         /* --- Refined CSS for Chat Messages --- */
         .chat-messages {
-            /* max-height: calc(100vh - 120px); - REMOVED: Rely on flex-grow for layout safety */
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; /* Keep messages stacked from bottom */
         }
         
-        /* Custom scrollbar for aesthetics (responsive for dark/light mode) */
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #3B82F6; 
-            border-radius: 4px;
-        }
-        .dark .chat-messages::-webkit-scrollbar-thumb {
-            background-color: #60A5FA;
-        }
+        /* Custom scrollbar styles များကို ဖယ်ရှားလိုက်ပါပြီ။ */
+        /* ယခုအခါ browser ၏ မူရင်း (default) scrollbar ကို အသုံးပြုမည်။ */
 
         .badge-style {
             position: absolute; 
