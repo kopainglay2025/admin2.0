@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-import time # Added import for time.time()
+import time
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from telegram import Bot
@@ -16,6 +16,7 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN', '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR
 # Admin Panel ကို ဝင်ရောက်ရန် Password ကို ဤနေရာတွင် ထည့်ပါ။
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin130718')
 # Webhook URL (သင့် VPS ရဲ့ Public URL/webhook)
+# သတိပေးချက်: Telegram Webhook သည် မဖြစ်မနေ HTTPS (https://) ဖြစ်ရပါမည်။
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'http://178.62.215.102:4210/webhook')
 # -----------------------------------
 
@@ -29,15 +30,29 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 try:
     bot = Bot(token=BOT_TOKEN)
     logging.info(f"Telegram Bot ID: {bot.get_me().id}")
-    # Webhook ကို တစ်ခါတည်း သတ်မှတ်လိုက်ပါ
+    
+    # Webhook ကို သတ်မှတ်ခြင်း (HTTPS လိုအပ်သည်ကို သတိပြုပါ)
+    if 'http://' in WEBHOOK_URL.lower():
+        # HTTP URL ဖြင့် set webhook လုပ်ပါက API error တက်မည်ကို သိရှိသော်လည်း set လုပ်ကြည့်ပါသည်
+        logging.error("--- Webhook Error Alert ---")
+        logging.error("Telegram requires HTTPS for webhooks. Your current URL uses HTTP.")
+        logging.error("You MUST configure a reverse proxy (e.g., Nginx) with an SSL certificate.")
+        logging.error("---------------------------")
+
     if 'YOUR_PUBLIC_URL_HERE' not in WEBHOOK_URL:
-        bot.set_webhook(WEBHOOK_URL)
-        logging.info(f"Webhook set to: {WEBHOOK_URL}")
+        # set_webhook လုပ်ရာတွင် error ရှိ/မရှိ စစ်ဆေးပါ
+        if bot.set_webhook(WEBHOOK_URL):
+             logging.info(f"Webhook set successfully to: {WEBHOOK_URL}")
+        else:
+             logging.error(f"Webhook setup failed for URL: {WEBHOOK_URL}. Check network and HTTPS.")
     else:
         logging.warning("Please set WEBHOOK_URL to your actual public server address.")
 
+except TelegramError as e:
+    logging.error(f"Telegram API Error during initialization (set_webhook): {e.message}")
+    bot = None
 except Exception as e:
-    logging.error(f"Error initializing Telegram Bot: {e}")
+    logging.error(f"General Error initializing Telegram Bot: {e}")
     bot = None
 
 # Real-time Chat များကို သိမ်းဆည်းရန် (In-memory storage)
