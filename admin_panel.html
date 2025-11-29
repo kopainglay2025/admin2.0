@@ -228,7 +228,7 @@
                                 id="attach-button" disabled>
                             <!-- SVG Paperclip Icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 2 0111 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 0 0111 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
                             </svg>
                         </button>
 
@@ -640,18 +640,20 @@
             
             // 1. Array Update: Remove ALL existing entries for this chatId (Strong De-duplication)
             // chatId တူညီသည့် entry အားလုံးကို ဖယ်ရှားပြီး filteredChats အသစ်ကို ရယူခြင်း။
-            const filteredChats = activeChats.filter(c => c.telegramId !== chatId);
+            // **FIX for duplication:** We ensure 'activeChats' is updated with filtered data immediately.
+            activeChats = activeChats.filter(c => c.telegramId !== chatId);
 
             // 2. Add the updated user data to the front
             // အပ်ဒိတ်လုပ်ထားသော user data ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းရန် Entry အသစ်ဖန်တီးခြင်း
             const newChatEntry = {
                 ...updatedUser,
                 telegramId: chatId, // Ensure telegramId is correctly set
-                lastMessageTime: updatedUser.lastMessageTime || new Date().toISOString(),
+                // lastMessageTime ကို ပေးပို့သည့်အချိန်ဖြင့် သို့မဟုတ် ရှိပြီးသားအချိန်ဖြင့် သတ်မှတ်ပါ
+                lastMessageTime: updatedUser.lastMessageTime || new Date().toISOString(), 
             };
             
             // filtered chats အပေါ်တွင် entry အသစ်ကို ထည့်ခြင်းဖြင့် စာရင်း၏ အပေါ်ဆုံးသို့ ရောက်စေခြင်း
-            activeChats = [newChatEntry, ...filteredChats]; 
+            activeChats = [newChatEntry, ...activeChats]; // 'filteredChats' ကို အသုံးပြုပြီးသားဖြစ်သောကြောင့် 'activeChats' ကို ပြန်သုံးနိုင်သည်။
 
             // 3. Unread Counts Logic: ဝင်လာသော message (user) အတွက်သာ count တိုးခြင်း
             if (messageSender === 'user' && chatId !== currentChatId) {
