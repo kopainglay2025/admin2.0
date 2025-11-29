@@ -49,8 +49,8 @@
 
         /* Message History container */
         .chat-messages {
-            /* Adjust height to accommodate the new search bar (h-16) and header (h-20) and input area (min-h-24) */
-            max-height: calc(100vh - 176px - 100px); 
+            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area ~64px) - (Input Area min-h-[100px]) = 100vh - 244px */
+            max-height: calc(100vh - 244px); 
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; 
@@ -136,7 +136,7 @@
 <!-- Main container with modern background color -->
 <body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex transition-colors duration-400">
 
-    <!-- 1. Full Sidebar (w-64) - လှပသော ဘေးဘောင် Menu -->
+    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
     <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 shadow-2xl z-20 transition-all duration-400">
         <!-- Logo/Title -->
         <div class="p-6 text-2xl font-extrabold flex items-center h-20 border-b border-indigo-700 dark:border-slate-700">
@@ -149,26 +149,26 @@
             <!-- Navigation items with better hover/active effects -->
             <a href="#" class="nav-item flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-indigo-600 active-nav bg-indigo-700 shadow-lg" data-section="dashboard">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-medium">ဒက်ရှ်ဘုတ်</span>
+                <span class="font-medium">Dashboard</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-indigo-600" data-section="chat">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="font-medium">ချတ်များ</span>
+                <span class="font-medium">Chats</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-indigo-600" data-section="broadcast">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span class="font-medium">ထုတ်လွှင့်မှု</span>
+                <span class="font-medium">Broadcast</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-indigo-600" data-section="settings">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="font-medium">ဆက်တင်များ</span>
+                <span class="font-medium">Settings</span>
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button (အောက်ဆုံး) -->
+        <!-- Dark Mode Toggle Button (Bottom) -->
         <div class="p-6 border-t border-indigo-700 dark:border-slate-700">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-md">
@@ -180,7 +180,7 @@
         </div>
     </div>
 
-    <!-- 2. Chat List Panel (w-80) - ပိုကျယ်ပြီး ခေတ်မီသော Chat စာရင်း -->
+    <!-- 2. Chat List Panel (w-80) - Wider, Modern Chat List -->
     <div id="chatListPanel" class="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex-col flex-shrink-0 transition-colors duration-400 shadow-inner hidden">
         <!-- Chat List Header -->
         <div class="p-6 text-xl font-extrabold border-b dark:border-gray-700 text-gray-800 dark:text-white h-20 flex items-center transition-colors duration-400">
@@ -189,7 +189,7 @@
 
         <!-- Chat List Search Input -->
         <div class="p-4 border-b dark:border-gray-700">
-            <input type="text" id="chatListSearch" placeholder="Chat/User ရှာရန်..."
+            <input type="text" id="chatListSearch" placeholder="Search Chat/User..."
                    onkeyup="filterChatList(this.value)"
                    class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 text-sm">
         </div>
@@ -201,33 +201,33 @@
         </div>
     </div>
 
-    <!-- 3. Main Content Area (flex-grow) - အဓိက အကြောင်းအရာပြကွက် -->
+    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
     <!-- Background is slightly darker slate/gray to provide contrast to chat list -->
     <div class="flex-grow flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-400">
         
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
             <h1 class="text-4xl font-extrabold mb-8 text-gray-800 dark:text-gray-100">
-                🚀 စီမံခန့်ခွဲမှု ဒက်ရှ်ဘုတ်
+                🚀 Management Dashboard
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mb-10 border-b border-gray-200 dark:border-gray-700 pb-4">
-                ဤနေရာတွင် အဓိက စာရင်းဇယားများ၊ အသုံးပြုသူ ကိန်းဂဏန်းများ နှင့် စွမ်းဆောင်ရည် အချက်အလက်များကို ပြသပါမည်။
+                This area displays key statistics, user metrics, and performance data.
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Card 1 (Modern Design) -->
                 <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-8 rounded-2xl shadow-xl text-white transform hover:scale-[1.02] transition-all duration-300 cursor-pointer">
                     <div class="text-6xl font-black">1,245</div>
-                    <div class="text-sm mt-3 opacity-90">စုစုပေါင်း အသုံးပြုသူများ</div>
+                    <div class="text-sm mt-3 opacity-90">Total Users</div>
                 </div>
                 <!-- Card 2 (Modern Design) -->
                 <div class="bg-gradient-to-br from-emerald-500 to-green-600 p-8 rounded-2xl shadow-xl text-white transform hover:scale-[1.02] transition-all duration-300 cursor-pointer">
                     <div class="text-6xl font-black">25</div>
-                    <div class="text-sm mt-3 opacity-90">လက်ရှိ အွန်လိုင်း</div>
+                    <div class="text-sm mt-3 opacity-90">Currently Online</div>
                 </div>
                 <!-- Card 3 (Modern Design) -->
                 <div class="bg-gradient-to-br from-red-500 to-orange-500 p-8 rounded-2xl shadow-xl text-white transform hover:scale-[1.02] transition-all duration-300 cursor-pointer">
                     <div class="text-6xl font-black">156</div>
-                    <div class="text-sm mt-3 opacity-90">ဖြေကြားရန် လိုအပ်သော ချတ်များ</div>
+                    <div class="text-sm mt-3 opacity-90">Chats Awaiting Response</div>
                 </div>
             </div>
             
@@ -244,19 +244,19 @@
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
             <!-- Chat Header - Sleek, borderless look -->
             <header id="chatHeader" class="p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                <span class="text-xl font-semibold text-gray-700 dark:text-gray-100">Chat တစ်ခု ရွေးချယ်ပါ</span>
+                <span class="text-xl font-semibold text-gray-700 dark:text-gray-100">Select a Chat</span>
             </header>
             
             <!-- Chat History Search Input -->
             <div id="chatHistorySearchArea" class="p-3 bg-white dark:bg-gray-800 border-b dark:border-gray-700 hidden">
-                <input type="text" id="chatHistorySearch" placeholder="မက်ဆေ့ချ် ရှာရန်..."
+                <input type="text" id="chatHistorySearch" placeholder="Search Messages..."
                        onkeyup="filterChatHistory(this.value)"
                        class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-700 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 text-sm">
             </div>
 
             <!-- Message History -->
             <div id="messageHistory" class="flex-grow chat-messages bg-gray-50 dark:bg-gray-900 transition-colors duration-400">
-                <div class="text-center text-gray-500 dark:text-gray-400">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
+                <div class="text-center text-gray-500 dark:text-gray-400">No chat selected yet.</div>
             </div>
 
             <!-- Message Input - Floating effect -->
@@ -289,7 +289,7 @@
                     </button>
                     
                     <!-- Input field with better focus style -->
-                    <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ... (Emoji 💬, ပုံ 🖼️, ဖိုင် 📎 များ ပို့နိုင်သည်)"
+                    <input type="text" id="replyText" placeholder="Write a reply... (Send Emoji 💬, Images 🖼️, Files 📎)"
                            class="flex-grow border border-gray-300 dark:border-gray-600 rounded-xl p-4 dark:bg-gray-700 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 text-base"
                            onkeypress="if(event.key === 'Enter') sendReply()">
                            
@@ -304,16 +304,16 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-gray-800 dark:text-gray-100">📣 ထုတ်လွှင့်မှု စနစ်</h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-gray-800 dark:text-gray-100">📣 Broadcast System</h1>
             <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 transition-colors duration-300">
                 <p class="mb-6 text-gray-600 dark:text-gray-400">
-                    အသုံးပြုသူများအားလုံး သို့မဟုတ် သတ်မှတ်ထားသော အုပ်စုများသို့ မက်ဆေ့ချ်များ တစ်ပြိုင်နက် ပေးပို့ရန် ဤနေရာကို အသုံးပြုပါ။
+                    Use this area to send messages simultaneously to all users or specific groups.
                 </p>
-                <textarea class="w-full p-4 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 transition duration-150 text-base" rows="8" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
+                <textarea class="w-full p-4 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 transition duration-150 text-base" rows="8" placeholder="Write the text to broadcast."></textarea>
                 <button class="mt-4 bg-red-600 text-white p-4 rounded-xl font-bold hover:bg-red-700 transition duration-200 shadow-lg transform hover:scale-[1.02]">
                     <span class="flex items-center space-x-2">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span>ထုတ်လွှင့်ပါ</span>
+                        <span>Broadcast</span>
                     </span>
                 </button>
             </div>
@@ -321,19 +321,19 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-gray-800 dark:text-gray-100">⚙️ စနစ် ဆက်တင်များ</h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-gray-800 dark:text-gray-100">⚙️ System Settings</h1>
             <div class="space-y-8">
                 <!-- Setting Card 1 -->
                 <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 transition-colors duration-300">
                     <h3 class="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-100">API Key Management</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Change or generate a new API key.</p>
                     <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-700 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors duration-300 text-base">
                 </div>
                 <!-- Setting Card 2 -->
                 <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 transition-colors duration-300">
                     <h3 class="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-100">Bot Status Control</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-600 dark:text-gray-400 text-lg">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <span class="text-gray-600 dark:text-gray-400 text-lg">Turn Telegram Bot On/Off.</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
                             <!-- Toggle switch with vibrant colors -->
@@ -492,7 +492,7 @@
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
                     <p class="text-xs text-indigo-400 dark:text-indigo-300 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">${chat.lastMessageText || 'No text yet'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -521,7 +521,7 @@
                     chatListElement.appendChild(createChatListItem(chat));
                 });
             } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">"${query}" ဖြင့် ရှာမတွေ့ပါ</div>`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">No chats found for "${query}"</div>`;
             }
         }
 
@@ -611,7 +611,7 @@
                  const feedback = document.createElement('div');
                  feedback.id = 'noHistoryResults';
                  feedback.className = 'text-center text-red-400 font-medium my-4';
-                 feedback.textContent = `"${query}" ဖြင့် မက်ဆေ့ချ် ရှာမတွေ့ပါ`;
+                 feedback.textContent = `No messages found for "${query}"`;
                  document.getElementById('messageHistory').appendChild(feedback);
             }
         }
@@ -619,7 +619,7 @@
 
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Chats များကို ဆွဲယူနေပါသည်...</div>';
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Fetching chats...</div>';
             unreadCounts = {}; 
             allChats = []; 
 
@@ -632,7 +632,7 @@
                 chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">No Chats Found.</div>';
                     return;
                 }
                 
@@ -643,7 +643,7 @@
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Chats များ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။ Error: ${error.message}</div>`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error fetching chats. Error: ${error.message}</div>`;
             }
         }
 
@@ -672,7 +672,7 @@
             clearFileSelection(); // Clear file selection on chat switch
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-400 dark:text-gray-400">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
+            historyContainer.innerHTML = '<div class="text-center text-gray-400 dark:text-gray-400">Fetching history...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -688,7 +688,7 @@
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error fetching history.</div>`;
             }
         }
         
