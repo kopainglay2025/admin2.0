@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Dynamic Auth Interface</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use Inter font and custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-bg': '#0a0a0a', // Near black background
+                        'card-bg': '#1c1917', // Dark charcoal for card
+                        'accent-teal': '#00e0ff', // Vibrant Neon Blue/Teal for buttons/accents
+                        'accent-hover': '#00BFFF', // Slightly lighter on hover
+                        'dark-text': '#E5E7EB', // Light gray text
+                        'subtle-border': '#374151', // Dark slate border
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Apply the Inter font globally and ensure body covers full height */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 50%, rgba(30, 30, 40, 1) 0%, rgba(10, 10, 10, 1) 100%);
+        }
+        
+        /* Custom message box for non-alert messages */
+        #message-box {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .message-show {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        /* Input field focus glow */
+        .auth-input:focus {
+            outline: none;
+            border-color: #00e0ff !important;
+            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
+        }
+
+        /* Toggle Button Group style */
+        .toggle-group button {
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .toggle-group .active-toggle {
+            background-color: var(--accent-teal);
+            color: #111827;
+            font-weight: 700;
+            box-shadow: 0 0 15px rgba(0, 224, 255, 0.7);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 text-dark-text">
+
+    <!-- Custom Message Box UI -->
+    <div id="message-box" class="fixed top-5 z-50 p-4 rounded-xl shadow-2xl transition duration-300 transform" 
+         style="min-width: 300px; background-color: #2D3748; border-left: 5px solid var(--accent-teal);">
+        <p id="message-text" class="text-sm font-medium"></p>
+    </div>
+
+    <!-- Main Auth Card -->
+    <div class="w-full max-w-md bg-card-bg rounded-2xl shadow-2xl p-8 space-y-6 border border-subtle-border">
+        
+        <!-- Header -->
+        <h1 class="text-4xl font-extrabold text-center text-accent-teal tracking-wider">
+            QUANTUM ACCESS
+        </h1>
+        <p class="text-center text-sm text-gray-400">Securely connect to the system matrix.</p>
+        
+        <!-- Toggle Button Group -->
+        <div class="flex bg-subtle-border p-1 rounded-xl toggle-group">
+            <button id="signInTab" onclick="switchForm('signin')"
+                    class="flex-1 py-2 rounded-lg text-sm active-toggle">
+                Sign In
+            </button>
+            <button id="signUpTab" onclick="switchForm('signup')"
+                    class="flex-1 py-2 rounded-lg text-sm text-gray-400">
+                Sign Up
+            </button>
+        </div>
+
+        <!-- Form Container (Relative positioning for absolute children) -->
+        <div class="relative h-[300px] overflow-hidden">
+            
+            <!-- Sign In Form -->
+            <form id="signInForm" onsubmit="handleAuth(event, 'signin')" class="space-y-4 pt-4">
+                <div>
+                    <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Email)</label>
+                    <input type="email" id="signin-email" required
+                           class="auth-input w-full p-3 bg-card-bg border border-subtle-border rounded-xl text-dark-text placeholder-gray-500 transition duration-300">
+                </div>
+                <div>
+                    <label for="signin-password" class="block text-sm font-medium mb-2 text-gray-300">Password</label>
+                    <input type="password" id="signin-password" required
+                           class="auth-input w-full p-3 bg-card-bg border border-subtle-border rounded-xl text-dark-text placeholder-gray-500 transition duration-300">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full py-3 mt-6 bg-accent-teal text-primary-bg font-bold rounded-xl shadow-lg transition duration-300 hover:bg-accent-hover transform hover:scale-[1.01] shadow-[0_0_15px_rgba(0,224,255,0.5)]">
+                    Access System
+                </button>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signUpForm" onsubmit="handleAuth(event, 'signup')" 
+                  class="space-y-4 pt-4 absolute top-0 left-0 w-full opacity-0 translate-x-full">
+                <div>
+                    <label for="signup-username" class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+                    <input type="text" id="signup-username" required
+                           class="auth-input w-full p-3 bg-card-bg border border-subtle-border rounded-xl text-dark-text placeholder-gray-500 transition duration-300">
+                </div>
+                <div>
+                    <label for="signup-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Email)</label>
+                    <input type="email" id="signup-email" required
+                           class="auth-input w-full p-3 bg-card-bg border border-subtle-border rounded-xl text-dark-text placeholder-gray-500 transition duration-300">
+                </div>
+                <div>
+                    <label for="signup-password" class="block text-sm font-medium mb-2 text-gray-300">Create Password</label>
+                    <input type="password" id="signup-password" required
+                           class="auth-input w-full p-3 bg-card-bg border border-subtle-border rounded-xl text-dark-text placeholder-gray-500 transition duration-300">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full py-3 mt-6 bg-accent-teal text-primary-bg font-bold rounded-xl shadow-lg transition duration-300 hover:bg-accent-hover transform hover:scale-[1.01] shadow-[0_0_15px_rgba(0,224,255,0.5)]">
+                    Register New Node
+                </button>
+            </form>
+            
+        </div>
+        
+    </div>
+
+    <script>
+        const signInForm = document.getElementById('signInForm');
+        const signUpForm = document.getElementById('signUpForm');
+        const signInTab = document.getElementById('signInTab');
+        const signUpTab = document.getElementById('signUpTab');
+        const formContainer = document.querySelector('.relative.h-\\[300px\\]');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        // Initial form setup to ensure the height is correct
+        document.addEventListener('DOMContentLoaded', () => {
+            // Calculate height for sign up form initially and set container height
+            updateFormContainerHeight(signUpForm);
+        });
+
+        /**
+         * Utility to display custom UI messages instead of alerts.
+         * @param {string} message - The message to display.
+         * @param {string} type - 'success', 'error', or 'info'.
+         */
+        function showMessage(message, type = 'info') {
+            const colors = {
+                success: { background: '#15803d', border: '#4ade80' }, // Green
+                error: { background: '#b91c1c', border: '#f87171' }, // Red
+                info: { background: '#2D3748', border: '#00e0ff' }  // Teal/Default
+            };
+
+            const style = colors[type] || colors.info;
+
+            messageBox.style.backgroundColor = style.background;
+            messageBox.style.borderLeftColor = style.border;
+            messageText.textContent = message;
+            
+            messageBox.classList.add('message-show');
+            
+            setTimeout(() => {
+                messageBox.classList.remove('message-show');
+            }, 3000); // Message disappears after 3 seconds
+        }
+        
+        /**
+         * Helper function to dynamically adjust the container height based on the active form.
+         * This ensures smooth transition without layout shifts.
+         * @param {HTMLElement} formElement - The form whose height should be measured.
+         */
+        function updateFormContainerHeight(formElement) {
+            // Temporarily make the form visible to calculate its natural height
+            formElement.style.position = 'static';
+            formElement.style.opacity = '1';
+            formElement.style.transform = 'none';
+            
+            const height = formElement.offsetHeight + 40; // Add some padding
+            formContainer.style.height = `${height}px`;
+
+            // Reset positioning for transition animation
+            formElement.style.position = 'absolute';
+            if (formElement.id === 'signInForm') {
+                formElement.style.opacity = '1';
+                formElement.style.transform = 'translateX(0)';
+            } else {
+                 formElement.style.opacity = '0';
+                 formElement.style.transform = 'translateX(100%)';
+            }
+        }
+
+
+        /**
+         * Switches the visible form between Sign In and Sign Up.
+         * @param {string} type - 'signin' or 'signup'.
+         */
+        function switchForm(type) {
+            if (type === 'signin') {
+                // Animate forms
+                signInForm.style.transform = 'translateX(0)';
+                signInForm.style.opacity = '1';
+                signUpForm.style.transform = 'translateX(100%)';
+                signUpForm.style.opacity = '0';
+                
+                // Update tabs
+                signInTab.classList.add('active-toggle');
+                signUpTab.classList.remove('active-toggle');
+                signUpTab.classList.add('text-gray-400');
+                signInTab.classList.remove('text-gray-400');
+                
+                // Update container height
+                updateFormContainerHeight(signInForm);
+
+            } else if (type === 'signup') {
+                // Animate forms
+                signInForm.style.transform = 'translateX(-100%)';
+                signInForm.style.opacity = '0';
+                signUpForm.style.transform = 'translateX(0)';
+                signUpForm.style.opacity = '1';
+
+                // Update tabs
+                signUpTab.classList.add('active-toggle');
+                signInTab.classList.remove('active-toggle');
+                signInTab.classList.add('text-gray-400');
+                signUpTab.classList.remove('text-gray-400');
+
+                // Update container height
+                updateFormContainerHeight(signUpForm);
+            }
+        }
+
+        /**
+         * Placeholder function for actual authentication logic.
+         */
+        function handleAuth(event, type) {
+            event.preventDefault();
+            
+            if (type === 'signin') {
+                const email = document.getElementById('signin-email').value;
+                const password = document.getElementById('signin-password').value;
+                
+                // Replace this with actual Firebase signInWithEmailAndPassword call
+                console.log(`Attempting Sign In for: ${email}`);
+                showMessage(`[STATUS: OK] Accessing system with ${email}...`, 'success');
+                
+            } else if (type === 'signup') {
+                const username = document.getElementById('signup-username').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                
+                // Replace this with actual Firebase createUserWithEmailAndPassword call
+                console.log(`Attempting Sign Up for: ${email}`);
+                showMessage(`[STATUS: NODE CREATED] New user ${username} registered. Please sign in.`, 'success');
+                
+                // Optionally switch back to signin after registration
+                setTimeout(() => switchForm('signin'), 1500); 
+            }
+        }
+        
+    </script>
+</body>
+</html>
