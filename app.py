@@ -11,11 +11,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # --- သတ်မှတ်ရန် (Configuration) ---
 # သင့်ရဲ့ Bot Token ကို ဤနေရာတွင် ထည့်ပါ။
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k')
 # Admin Panel ကို ဝင်ရောက်ရန် Password ကို ဤနေရာတွင် ထည့်ပါ။
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'your_secret_admin_password')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin130718')
 # Webhook URL (သင့် VPS ရဲ့ Public URL/webhook)
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'YOUR_PUBLIC_URL_HERE/webhook')
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'https://tpfootball.live/webhook')
 # -----------------------------------
 
 app = Flask(__name__)
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     eventlet.monkey_patch()
     
     # ပုံမှန်အားဖြင့် Port 5000 ဖြင့် run ပါမည်။ VPS ၏ Firewall တွင် ခွင့်ပြုထားရန် လိုပါသည်။
-    logging.info("Starting SocketIO server on http://0.0.0.0:5000")
-    wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
+    logging.info("Starting SocketIO server on http://0.0.0.0:4210")
+    wsgi.server(eventlet.listen(('0.0.0.0', 4210)), app)
 
 # မှတ်ချက်- production အတွက် HTTPS (Nginx/Reverse Proxy) ကို အသုံးပြုရန် မဖြစ်မနေ လိုအပ်ပါသည်။
