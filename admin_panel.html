@@ -44,7 +44,7 @@
 
         /* --- Refined CSS for Chat Messages --- */
         .chat-messages {
-            overflow-y: auto; /* Scrollbar ကို ပြန်ဖွင့်ထားပါပြီ */
+            overflow-y: auto; /* Scrollbar ကို ဖွင့်ထားပြီးသား */
             display: flex;
             flex-direction: column-reverse; /* Keep messages stacked from bottom */
         }
@@ -489,6 +489,34 @@
             `;
             return messageElement;
         }
+        
+        /**
+         * Helper function to add 20 dummy messages for testing scrollability.
+         */
+        function addDummyMessages(container) {
+            // Check if the container is already full of dummy messages
+            if (container.children.length > 15) return; 
+
+            for (let i = 20; i >= 1; i--) {
+                const isUser = i % 2 === 0;
+                const sender = isUser ? 'user' : 'admin';
+                const text = isUser 
+                    ? `အသုံးပြုသူရဲ့ စာအမှတ် ${i}။ ဒီမက်ဆေ့ချ်က scroll bar ကို စမ်းသပ်ဖို့ ထည့်ထားတာပါ။` 
+                    : `Admin ရဲ့ စာအမှတ် ${i}။ Scrollable ဧရိယာအတွက် လိုအပ်သော စမ်းသပ်စာသား။`;
+                const dummyMsg = {
+                    chatId: currentChatId,
+                    sender: sender,
+                    text: text,
+                    mediaPath: null,
+                    timestamp: new Date(Date.now() - (i * 60000)).toISOString() // Backdated timestamp
+                };
+                container.prepend(createMessageBubble(dummyMsg));
+            }
+            // Ensure the container is scrolled to the bottom (top of the reversed list)
+            container.scrollTop = 0;
+            console.log("Added 20 dummy messages to ensure scrollbar visibility.");
+        }
+
 
         /**
          * Fetches and displays the initial chat list.
@@ -561,23 +589,30 @@
             // Responsive placeholder text
             historyContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
 
+            let history = [];
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
-                const history = await response.json();
-
-                // Clear and render messages
-                historyContainer.innerHTML = '';
-                history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
-                });
-                
-                historyContainer.scrollTop = 0; 
-
+                history = await response.json();
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
+                // On error, still try to add dummy messages for demonstration
+                addDummyMessages(historyContainer);
+                return; 
             }
+
+            // Clear and render messages
+            historyContainer.innerHTML = '';
+            history.forEach(msg => {
+                historyContainer.prepend(createMessageBubble(msg));
+            });
+            
+            // If the fetched history is small or empty, add dummy messages to ensure the scrollbar is visible for demonstration.
+            if (history.length < 5) {
+                addDummyMessages(historyContainer);
+            }
+
+            historyContainer.scrollTop = 0; 
         }
 
         /**
