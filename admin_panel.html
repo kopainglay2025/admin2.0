@@ -76,7 +76,7 @@
             box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
         }
 
-        /* Toggle Button Group style */
+        /* Toggle Button Group style (Kept for UI consistency) */
         .toggle-group button {
             transition: all 0.3s ease;
             position: relative;
@@ -98,19 +98,16 @@
             top: 0;
             padding: 0;
         }
-        /* Sign Up starts off-screen */
         #signUpForm {
             opacity: 0;
             transform: translateX(100%);
         }
-        /* Sign In starts on-screen */
         #signInForm {
             opacity: 1;
             transform: translateX(0);
         }
 
         /* --- Chat Specific Styles --- */
-        /* Chat Item Styling */
         .chat-item {
             background-color: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -127,7 +124,7 @@
         
         /* Active Chat Item - Secondary Neon Accent */
         .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
+            background-color: #581c87; 
             color: white !important; 
             border: 2px solid var(--secondary-neon);
             box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
@@ -142,7 +139,6 @@
 
         /* Message History container */
         .chat-messages {
-            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
             display: flex;
@@ -170,12 +166,12 @@
 
         /* Message Bubbles */
         .admin-bubble {
-            background-color: #312e81; /* Indigo-700 */
+            background-color: #312e81; 
             color: white;
             border-bottom-right-radius: 8px !important;
         }
         .user-bubble {
-            background-color: #374151; /* Slate-700 */
+            background-color: #374151; 
             color: #F9FAFB; 
             border-bottom-left-radius: 8px !important;
         }
@@ -220,7 +216,6 @@
              box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
              background-color: #00ffff;
         }
-
     </style>
 </head>
 <body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex flex-col sm:flex-row">
@@ -240,17 +235,19 @@
             <h1 class="text-4xl font-extrabold text-center text-[var(--primary-neon)] tracking-wider">
                 QUANTUM ACCESS
             </h1>
-            <p class="text-center text-sm text-gray-400">Securely connect to the system matrix.</p>
+            <p id="auth-status" class="text-center text-sm text-gray-400">
+                Initializing connection to Firebase Auth...
+            </p>
             
             <!-- Toggle Button Group -->
             <div class="flex bg-gray-700/50 p-1 rounded-xl toggle-group">
                 <button id="signInTab" onclick="switchForm('signin')"
                         class="flex-1 py-2 rounded-lg text-sm active-toggle">
-                    Sign In
+                    Sign In (Simulated)
                 </button>
                 <button id="signUpTab" onclick="switchForm('signup')"
                         class="flex-1 py-2 rounded-lg text-sm text-gray-400">
-                    Sign Up
+                    Sign Up (Simulated)
                 </button>
             </div>
 
@@ -261,21 +258,24 @@
                 <form id="signInForm" onsubmit="handleAuth(event, 'signin')" class="auth-form space-y-4 pt-4">
                     <div>
                         <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Username/Email)</label>
-                        <!-- Updated default value for sign-in email -->
+                        <!-- Pre-filled with user's specific credentials -->
                         <input type="text" id="signin-email" required value="admin"
                                class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
                     </div>
                     <div>
                         <label for="signin-password" class="block text-sm font-medium mb-2 text-gray-300">Password</label>
-                        <!-- Updated default value for sign-in password -->
+                        <!-- Pre-filled with user's specific credentials -->
                         <input type="password" id="signin-password" required value="Paing@123"
                                class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
                     </div>
                     
                     <button type="submit" id="signInBtn"
                             class="w-full py-3 mt-6 bg-[var(--primary-neon)] text-primary-bg font-bold rounded-xl shadow-lg transition duration-300 hover:opacity-90 transform hover:scale-[1.01] shadow-[0_0_15px_rgba(0,224,255,0.5)] flex items-center justify-center">
-                        Access System
+                        Attempt Canvas Token Access
                     </button>
+                    <p class="text-xs text-center text-gray-500 mt-2">
+                        Note: Authentication uses the secure Canvas token. Input fields are for UI demonstration.
+                    </p>
                 </form>
 
                 <!-- Sign Up Form -->
@@ -298,9 +298,12 @@
                     </div>
                     
                     <button type="submit" id="signUpBtn"
-                            class="w-full py-3 mt-6 bg-[var(--primary-neon)] text-primary-bg font-bold rounded-xl shadow-lg transition duration-300 hover:opacity-90 transform hover:scale-[1.01] shadow-[0_0_15px_rgba(0,224,255,0.5)] flex items-center justify-center">
-                        Register New Node
+                            class="w-full py-3 mt-6 bg-gray-500 text-gray-900 font-bold rounded-xl shadow-lg transition duration-300 hover:opacity-90 transform hover:scale-[1.01]">
+                        Register New Node (Not Functional)
                     </button>
+                     <p class="text-xs text-center text-red-400 mt-2">
+                        Sign Up is disabled. Only Sign In with Canvas Token is supported.
+                    </p>
                 </form>
                 
             </div>
@@ -311,15 +314,15 @@
     <!-- === Admin Portal View (Hidden until authenticated) === -->
     <div id="admin-portal" class="hidden w-full h-full flex flex-col sm:flex-row">
         
-        <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
+        <!-- 1. Full Sidebar (w-64) -->
         <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
-            <!-- Logo/Title: Neon Emphasis -->
+            <!-- Logo/Title -->
             <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
                 <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
                 <span class="tracking-widest">QUANTUM</span>
             </div>
 
-            <!-- Navigation Menu with Neon Indicators -->
+            <!-- Navigation Menu -->
             <nav id="mainNav" class="p-4 space-y-2 flex-grow">
                 
                 <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
@@ -348,19 +351,14 @@
                 </a>
             </nav>
             
-            <!-- Dark Mode Toggle Button -->
-            <div class="p-6 border-t border-gray-700/30">
-                 <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                        class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
-                    <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
-                </button>
+            <!-- User ID Display -->
+            <div class="p-4 border-t border-gray-700/30 text-xs text-gray-500 break-words">
+                <p>Authenticated User ID:</p>
+                <p id="userIdDisplay" class="text-[var(--primary-neon)] font-mono text-sm mt-1 truncate">N/A</p>
             </div>
         </div>
 
-        <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
+        <!-- 2. Chat List Panel (w-80) -->
         <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
             <!-- Chat List Header -->
             <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
@@ -376,11 +374,11 @@
 
             <!-- Chat List Container -->
             <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-                <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
+                <div class="text-center p-4 text-gray-500 text-sm">Awaiting Firebase connection...</div>
             </div>
         </div>
 
-        <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
+        <!-- 3. Main Content Area (flex-grow) -->
         <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
             
             <!-- === SECTION: Dashboard === -->
@@ -394,18 +392,18 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- Card 1 (Neon Blue Gradient) -->
                     <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
-                        <div class="text-6xl font-black">1,245</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
+                        <div class="text-6xl font-black" id="totalUsersCount">0</div>
+                        <div class="text-sm mt-3 opacity-90 tracking-wider">Total Chats / Entities</div>
                     </div>
                     <!-- Card 2 (Neon Green Gradient) -->
                     <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
                         <div class="text-6xl font-black">25</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
+                        <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions (Simulated)</div>
                     </div>
                     <!-- Card 3 (Neon Magenta/Red Gradient) -->
                     <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
-                        <div class="text-6xl font-black">156</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
+                        <div class="text-6xl font-black" id="unreadMessagesCount">0</div>
+                        <div class="text-sm mt-3 opacity-90 tracking-wider">Unread Messages</div>
                     </div>
                 </div>
                 
@@ -418,60 +416,46 @@
                 </div>
             </div>
 
-            <!-- === SECTION: Chat (Existing Chat Logic) === -->
+            <!-- === SECTION: Chat === -->
             <div id="section-chat" class="main-section flex-grow flex-col hidden">
-                <!-- Chat Header - Sleek, borderless look -->
+                <!-- Chat Header -->
                 <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
                     <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
                 </header>
                 
                 <!-- Chat History Search Input -->
                 <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
-                    <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
+                    <input type="text" id="chatHistorySearch" placeholder="Search Messages in History (Client-Side)..."
                            onkeyup="filterChatHistory(this.value)"
                            class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
                 </div>
 
                 <!-- Message History -->
                 <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
-                    <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
+                    <div class="text-center text-gray-600">No chat selected yet. Select an entity from the left.</div>
                 </div>
 
-                <!-- Message Input - Floating effect -->
+                <!-- Message Input -->
                 <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
                     
-                    <!-- File/Image Preview Area -->
+                    <!-- File/Image Preview Area (File sending is simulated/placeholder) -->
                     <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
-                                <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
-                                <span id="fileSize" class="text-xs text-gray-500"></span>
-                            </div>
-                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
+                         <div class="text-sm text-gray-400">File sending is a placeholder for this environment.</div>
                     </div>
 
                     <div class="flex space-x-2">
-                        <!-- Hidden File Input -->
-                        <input type="file" id="fileInput" class="hidden" 
-                               onchange="handleFileSelect(event)" 
-                               accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                               
-                        <!-- Attach Button -->
-                        <button onclick="document.getElementById('fileInput').click()" 
-                                class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                        <!-- Hidden File Input (Disabled for simplicity) -->
+                        <button disabled 
+                                class="text-gray-600 p-4 rounded-xl flex items-center justify-center opacity-50 cursor-not-allowed">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                         </button>
                         
-                        <!-- Input field with neon focus style -->
-                        <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
+                        <!-- Input field -->
+                        <input type="text" id="replyText" placeholder="Transmit data packet (Powered by Firestore)..."
                                class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
                                onkeypress="if(event.key === 'Enter') sendReply()">
                                
-                        <!-- Send button with vibrant glow -->
+                        <!-- Send button -->
                         <button id="sendButton" onclick="sendReply()"
                                 class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -480,111 +464,90 @@
                 </div>
             </div>
 
-            <!-- === SECTION: Broadcast === -->
-            <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
+            <!-- === SECTION: Broadcast / Settings (Placeholder) === -->
+             <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
                 <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
                 <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <p class="mb-6 text-gray-400">
-                        Send high-priority messages to target user segments.
-                    </p>
-                    <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
-                    <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
-                        <span class="flex items-center space-x-2">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                            <span>Initiate Broadcast</span>
-                        </span>
-                    </button>
+                    <p class="text-xl text-gray-300">This feature is pending integration with the Gemini API for bulk communication.</p>
                 </div>
             </div>
 
-            <!-- === SECTION: Settings === -->
             <div id="section-settings" class="main-section flex-grow p-8 hidden">
                 <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
-                <div class="space-y-8">
-                    <!-- Setting Card 1 -->
-                    <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                        <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
-                        <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
-                        <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
-                    </div>
-                    <!-- Setting Card 2 -->
-                    <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                        <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" value="" class="sr-only peer" checked>
-                                <!-- Toggle switch with vibrant colors -->
-                                <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
-                            </label>
-                        </div>
-                    </div>
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Firebase Status</h3>
+                    <p class="text-sm text-gray-400 mb-4">
+                        Status: <span id="firebaseStatus" class="font-bold text-green-400">Connected</span>
+                    </p>
+                    <p class="text-sm text-gray-400">
+                        App ID: <span class="font-mono text-[var(--primary-neon)]" id="appIdDisplay">N/A</span>
+                    </p>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
+    <!-- 4. Firebase and JavaScript Logic -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, query, orderBy, limit, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // setLogLevel('debug'); // Uncomment to see Firebase logs
+
         // --- Client-side State Management ---
-        const apiKey = ""; 
-        const BASE_URL = ''; 
-        let socket;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-quantum-admin';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db, auth;
+        let userId = null;
+        let isAuthReady = false; 
         
         let currentChatId = null;
-        let unreadCounts = {}; 
+        let unsubscribeChatHistory = null;
         let allChats = []; 
-        const htmlElement = document.documentElement;
+        let unreadCounts = {}; 
 
-        // --- File State Variables ---
-        let selectedFile = null;
-        let mediaPath = null;
-        let mediaType = null;
-        let filename = null;
-
-        // --- Auth UI Elements ---
+        // UI Elements
         const authView = document.getElementById('auth-view');
         const adminPortal = document.getElementById('admin-portal');
+        const authStatus = document.getElementById('auth-status');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const chatListElement = document.getElementById('chatList');
+        const historyContainer = document.getElementById('messageHistory');
+        const totalUsersCount = document.getElementById('totalUsersCount');
+        const unreadMessagesCount = document.getElementById('unreadMessagesCount');
         const signInForm = document.getElementById('signInForm');
         const signUpForm = document.getElementById('signUpForm');
-        const signInTab = document.getElementById('signInTab');
-        const signUpTab = document.getElementById('signUpTab');
         const formContainer = document.getElementById('form-container');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
 
-        // --- Utility Functions ---
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        // --- Firestore Paths ---
+        // Public collection for shared chat data (all users can read/write)
+        function getChatCollectionRef() {
+            return collection(db, `/artifacts/${appId}/public/data/chats`);
         }
         
-        function getFileIcon(mimeType) {
-            if (mimeType.startsWith('image/')) return '🖼️';
-            if (mimeType.includes('pdf')) return '📄';
-            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
-            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-            return '📎';
+        function getMessageCollectionRef(chatId) {
+            return collection(db, `/artifacts/${appId}/public/data/chats/${chatId}/messages`);
         }
+        
+        // --- Utility Functions (same as previous version, stripped of unused file logic) ---
 
         /**
          * Utility to display custom UI messages instead of alerts.
-         * @param {string} message - The message to display.
-         * @param {string} type - 'success', 'error', or 'info'.
          */
         function showMessage(message, type = 'info') {
             const colors = {
-                success: { background: '#15803d', border: '#4ade80' }, // Green
-                error: { background: '#b91c1c', border: '#f87171' }, // Red
-                info: { background: '#2D3748', border: getComputedStyle(document.documentElement).getPropertyValue('--primary-neon') }  // Neon/Default
+                success: { background: '#15803d', border: '#4ade80' }, 
+                error: { background: '#b91c1c', border: '#f87171' }, 
+                info: { background: '#2D3748', border: getComputedStyle(document.documentElement).getPropertyValue('--primary-neon') } 
             };
 
             const style = colors[type] || colors.info;
@@ -597,24 +560,17 @@
             
             setTimeout(() => {
                 messageBox.classList.remove('message-show');
-            }, 3000); // Message disappears after 3 seconds
+            }, 3000); 
         }
 
-        // --- Auth UI Functions ---
-
-        /**
-         * Helper function to dynamically adjust the container height based on the active form.
-         */
         function updateFormContainerHeight(formElement) {
-            // Temporarily reset styles for accurate height calculation
             formElement.style.position = 'static';
             formElement.style.opacity = '1';
             formElement.style.transform = 'none';
             
-            const height = formElement.offsetHeight + 40; // Add padding
+            const height = formElement.offsetHeight + 40; 
             formContainer.style.height = `${height}px`;
 
-            // Reset styles for animation
             formElement.style.position = 'absolute';
             if (formElement.id === 'signInForm') {
                 formElement.style.opacity = '1';
@@ -625,99 +581,82 @@
             }
         }
 
-
-        /**
-         * Switches the visible form between Sign In and Sign Up.
-         * @param {string} type - 'signin' or 'signup'.
-         */
         function switchForm(type) {
             if (type === 'signin') {
-                // Animate forms
                 signInForm.style.transform = 'translateX(0)';
                 signInForm.style.opacity = '1';
                 signUpForm.style.transform = 'translateX(100%)';
                 signUpForm.style.opacity = '0';
                 
-                // Update tabs
                 signInTab.classList.add('active-toggle');
                 signUpTab.classList.remove('active-toggle');
                 signUpTab.classList.add('text-gray-400');
                 signInTab.classList.remove('text-gray-400');
                 
-                // Update container height
                 updateFormContainerHeight(signInForm);
-
             } else if (type === 'signup') {
-                // Animate forms
                 signInForm.style.transform = 'translateX(-100%)';
                 signInForm.style.opacity = '0';
                 signUpForm.style.transform = 'translateX(0)';
                 signUpForm.style.opacity = '1';
 
-                // Update tabs
                 signUpTab.classList.add('active-toggle');
                 signInTab.classList.remove('active-toggle');
                 signInTab.classList.add('text-gray-400');
                 signUpTab.classList.remove('text-gray-400');
 
-                // Update container height
                 updateFormContainerHeight(signUpForm);
             }
         }
         
+        // --- Firebase/Auth Functions ---
+
         /**
-         * Placeholder function for actual authentication logic.
+         * Attempts to log in using the custom Canvas token or anonymously.
          */
-        function handleAuth(event, type) {
+        async function handleAuth(event, type) {
             event.preventDefault();
             
-            const buttonId = type === 'signin' ? 'signInBtn' : 'signUpBtn';
-            const button = document.getElementById(buttonId);
-            
-            // Show loading state
+            if (type === 'signup') {
+                showMessage("Sign Up is disabled. Please use the Canvas environment's authentication token.", 'error');
+                return;
+            }
+
+            const button = document.getElementById('signInBtn');
             const originalText = button.innerHTML;
             button.disabled = true;
             button.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
-            
-            setTimeout(() => {
+
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    // onAuthStateChanged listener handles the rest
+                } else {
+                    await signInAnonymously(auth);
+                    // onAuthStateChanged listener handles the rest
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                showMessage(`Authentication failed: ${error.message}`, 'error');
+            } finally {
                 button.disabled = false;
                 button.innerHTML = originalText;
-
-                if (type === 'signin') {
-                    const email = document.getElementById('signin-email').value;
-                    const password = document.getElementById('signin-password').value;
-                    
-                    // --- UPDATED CREDENTIAL CHECK ---
-                    const ADMIN_USERNAME = "admin";
-                    const ADMIN_PASSWORD = "Paing@123";
-
-                    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                        showMessage(`[ACCESS GRANTED] Welcome back, Administrator.`, 'success');
-                        login(); // Proceed to main app
-                    } else {
-                        // Show error message with red border
-                        showMessage(`[ACCESS DENIED] Invalid credentials. Retry matrix connection.`, 'error');
-                    }
-                    
-                } else if (type === 'signup') {
-                    // For now, we simulate a successful signup then redirect to login.
-                    const username = document.getElementById('signup-username').value;
-                    showMessage(`[STATUS: NODE CREATED] New user ${username} registered. Please sign in.`, 'success');
-                    switchForm('signin');
-                }
-            }, 1500); // Simulate network delay
+            }
         }
 
         /**
          * Switches the view to the Admin Portal.
          */
-        function login() {
+        function login(user) {
+            userId = user.uid;
+            userIdDisplay.textContent = userId;
+            
             authView.classList.add('hidden');
             adminPortal.classList.remove('hidden');
-            // Re-initialize core components like chat list and socket connection
-            if (allChats.length === 0) {
-                 fetchChats();
-            }
+            showMessage(`[ACCESS GRANTED] Connected as ${user.isAnonymous ? 'Anonymous' : 'Authenticated'} user.`, 'success');
+            
+            // Start listening to the chat list once authenticated
+            fetchChats();
             // Ensure first section is shown
             showSection('dashboard');
         }
@@ -725,97 +664,62 @@
         /**
          * Switches the view back to the Authentication Portal.
          */
-        function logout() {
-            adminPortal.classList.add('hidden');
-            authView.classList.remove('hidden');
-            showMessage('[SESSION TERMINATED] Access revoked. Please sign in again.', 'info');
-            // Optional: Clear form fields
-            document.getElementById('signin-email').value = '';
-            document.getElementById('signin-password').value = '';
-        }
-
-        // --- Other Admin Portal Functions (Unchanged but adapted) ---
-
-        function toggleDarkMode() {
-            // Theme is fixed dark for this portal.
-            showMessage("Theme control locked: Optimal Quantum Dark Mode active.", 'info');
-        }
-
-        function updateThemeIcon() {
-            // Fixed icon
-        }
-
-        function loadDarkModePreference() {
-            htmlElement.classList.add('dark'); 
-            updateThemeIcon();
-        }
-
-        // --- Navigation Functions ---
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
-
-            const targetSection = document.getElementById(`section-${sectionId}`);
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                if (sectionId === 'chat') {
-                     targetSection.classList.add('flex-col');
-                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
-                } else {
-                     targetSection.classList.remove('flex-col');
-                }
-            }
-
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active-nav');
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                if (allChats.length === 0) {
-                    fetchChats();
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                }
-            } else {
-                chatListPanel.classList.add('hidden');
-                currentChatId = null; 
-                document.getElementById('chatHistorySearch').value = ''; 
-                clearFileSelection(); 
+        async function logout() {
+            try {
+                await signOut(auth);
+                adminPortal.classList.add('hidden');
+                authView.classList.remove('hidden');
+                historyContainer.innerHTML = '<div class="text-center text-gray-600">No chat selected yet. Select an entity from the left.</div>';
+                
+                // Clear state
+                userId = null;
+                isAuthReady = false;
+                userIdDisplay.textContent = 'N/A';
+                allChats = [];
+                unreadCounts = {};
+                if (unsubscribeChatHistory) unsubscribeChatHistory();
+                currentChatId = null;
+                
+                showMessage('[SESSION TERMINATED] Access revoked. Please sign in again.', 'info');
+            } catch (error) {
+                console.error("Logout failed:", error);
+                showMessage(`Logout failed: ${error.message}`, 'error');
             }
         }
 
-        // --- Chat Specific Functions (Same as previous version) ---
-        
+
+        // --- Chat UI Helpers (Minimal Changes) ---
+
         function createChatListItem(chat) {
-            const chatId = chat.telegramId;
+            const chatId = chat.id;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || 'Unknown Entity';
-            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
+            // Use 'name' or fallback to a shortened ID
+            const username = chat.name || `Chat Entity ${displayId}`;
+            const count = unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
+            // Use data-name for filtering
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl cursor-pointer';
             chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', username.toLowerCase());
+            chatElement.setAttribute('data-name', username.toLowerCase());
 
             const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
 
-            // Avatar SVG Placeholder - Futuristic style
             const avatar = `
                 <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
             `;
+            // Display only the last message text, not media info
+            const lastMessageText = chat.lastMessage?.text || chat.lastMessage?.mediaType || '[No recent communication]';
 
             chatElement.innerHTML = `
                 ${avatar}
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
                     <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
+                    <p class="text-sm text-gray-400 truncate mt-1">${lastMessageText}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -827,74 +731,19 @@
             return chatElement;
         }
 
-        function filterChatList(query) {
-            const chatListElement = document.getElementById('chatList');
-            const lowerCaseQuery = query.toLowerCase().trim();
-            
-            chatListElement.innerHTML = ''; 
-
-            const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || '').toLowerCase();
-                const chatId = String(chat.telegramId);
-                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
-            });
-            
-            if (filteredChats.length > 0) {
-                filteredChats.forEach(chat => {
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
-            } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
-            }
-        }
-
         function createMessageBubble(msg) {
-            const isUser = msg.sender === 'user';
+            // Note: In a real system, 'sender' would be checked against the logged-in user ID.
+            // Here, we simulate 'user' (external) and 'admin' (this user) based on the 'senderId' field.
+            const isUser = msg.senderId !== userId;
             const alignment = isUser ? 'justify-start' : 'justify-end';
             const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
             
             const messageElement = document.createElement('div');
             messageElement.className = `message-bubble flex ${alignment} mb-3`;
             
-            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeString = new Date(msg.timestamp.toDate ? msg.timestamp.toDate() : msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            let mediaContent = '';
-            
-            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
-            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
-            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
-
-            if (isUserMedia) {
-                // User sent media (image/file from Telegram, displayed via API)
-                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
-                mediaContent = `
-                    <img src="${imageUrl}" 
-                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
-                         onclick="window.open('${imageUrl}', '_blank')" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
-                         alt="Chat Media"/>
-                `;
-            } else if (isAdminMedia) {
-                 // Admin sent media (Base64 data URL, directly displayed)
-                 if (msg.mediaPath.startsWith('data:image/')) {
-                     // Image display
-                     mediaContent = `
-                        <img src="${msg.mediaPath}" 
-                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
-                            onclick="window.open('${msg.mediaPath}', '_blank')" 
-                            alt="Admin Image"/>
-                     `;
-                 } else {
-                    // Document/File display (using icon and name)
-                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
-                    mediaContent = `
-                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
-                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
-                            <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
-                        </div>
-                    `;
-                 }
-            }
+            let mediaContent = ''; // Placeholder for media
 
             messageElement.innerHTML = `
                 <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
@@ -907,184 +756,219 @@
             `;
             return messageElement;
         }
-        
-        function filterChatHistory(query) {
-            const lowerCaseQuery = query.toLowerCase().trim();
-            const messages = document.querySelectorAll('#messageHistory .message-bubble');
-            let foundCount = 0;
 
-            messages.forEach(messageDiv => {
-                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
-                
-                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
-                    messageDiv.classList.remove('hidden');
-                    foundCount++;
-                } else {
-                    messageDiv.classList.add('hidden');
+        // --- Navigation Functions ---
+        function showSection(sectionId) {
+            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
+
+            const targetSection = document.getElementById(`section-${sectionId}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+
+            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active-nav');
+            }
+
+            const chatListPanel = document.getElementById('chatListPanel');
+            if (sectionId === 'chat') {
+                chatListPanel.classList.remove('hidden');
+                targetSection.classList.add('flex-col');
+                document.getElementById('chatHistorySearchArea').classList.remove('hidden'); 
+            } else {
+                chatListPanel.classList.add('hidden');
+                // Ensure chat listeners are removed when leaving chat section
+                if (unsubscribeChatHistory) {
+                    unsubscribeChatHistory();
+                    unsubscribeChatHistory = null;
                 }
-            });
+                currentChatId = null;
+            }
             
-            const noResultMessage = document.getElementById('noHistoryResults');
-            if (noResultMessage) noResultMessage.remove();
-
-            if (lowerCaseQuery !== '' && foundCount === 0) {
-                 const feedback = document.createElement('div');
-                 feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
-                 feedback.textContent = `No data packets found for query: "${query}"`;
-                 document.getElementById('messageHistory').appendChild(feedback);
+            // Update Dashboard metrics if switching to dashboard
+            if (sectionId === 'dashboard') {
+                totalUsersCount.textContent = allChats.length;
+                unreadMessagesCount.textContent = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
             }
         }
 
+        // --- Firestore Chat Logic ---
 
-        async function fetchChats() {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
-            unreadCounts = {}; 
-            allChats = []; 
+        /**
+         * Listens for real-time updates on the list of active chats/users.
+         */
+        function fetchChats() {
+            if (!isAuthReady) return;
 
-            try {
-                // Simulate some chats
-                const chats = [
-                    { telegramId: '1234567890', username: 'Agent Smith', lastMessageText: 'Confirming uplink established.', lastMessageTime: Date.now() - 3600000, unreadCount: 3 },
-                    { telegramId: '987654321', username: 'Field Operator 7', lastMessageText: 'Target acquired and neutralized.', lastMessageTime: Date.now() - 100000 },
-                    { telegramId: '555111222', username: 'The Architect', lastMessageText: 'Sending system diagnostics.', lastMessageTime: Date.now() - 86400000 },
-                ];
+            const chatsRef = getChatCollectionRef();
+            const q = query(chatsRef, limit(50)); // Limit to 50 active chats
 
-
-                allChats = chats; 
-                chatListElement.innerHTML = '';
+            onSnapshot(q, (snapshot) => {
+                const updatedChats = [];
+                let newUnreadCounts = {};
                 
-                if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
-                    return;
-                }
-                
-                chats.forEach(chat => {
-                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
+                snapshot.docChanges().forEach(change => {
+                    const chatData = { id: change.doc.id, ...change.doc.data() };
+
+                    // Recalculate unread counts based on last admin read status
+                    const lastReadTime = chatData.lastReadByAdmin?.toDate ? chatData.lastReadByAdmin.toDate().getTime() : 0;
+                    const lastMessageTime = chatData.lastMessage?.timestamp?.toDate ? chatData.lastMessage.timestamp.toDate().getTime() : 0;
+                    
+                    // Simple heuristic: if last message time is after last read time, mark as potentially unread (1)
+                    // In a production app, we would query the messages collection for a proper unread count.
+                    const isUnread = lastMessageTime > lastReadTime;
+                    newUnreadCounts[chatData.id] = isUnread ? 1 : 0; 
+
+                    if (change.type === 'added' || change.type === 'modified') {
+                         updatedChats.push(chatData);
+                    } else if (change.type === 'removed') {
+                        // Remove from list
+                    }
                 });
 
-            } catch (error) {
-                console.error("Error fetching chat list (using simulation):", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
+                allChats = updatedChats.sort((a, b) => {
+                    const timeA = a.lastMessage?.timestamp?.toDate ? a.lastMessage.timestamp.toDate() : new Date(0);
+                    const timeB = b.lastMessage?.timestamp?.toDate ? b.lastMessage.toDate() : new Date(0);
+                    return timeB - timeA; // Sort by most recent message first
+                });
+                
+                unreadCounts = newUnreadCounts;
+                renderChatList();
+            }, (error) => {
+                console.error("Error fetching chats:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error fetching chats: ${error.message}</div>`;
+            });
+        }
+        
+        function renderChatList() {
+            chatListElement.innerHTML = '';
+             if (allChats.length === 0) {
+                chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                return;
+            }
+            
+            filterChatList(document.getElementById('chatListSearch').value || '');
+
+            // Update dashboard counts
+            totalUsersCount.textContent = allChats.length;
+            unreadMessagesCount.textContent = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+        }
+
+        function filterChatList(query) {
+            const lowerCaseQuery = query.toLowerCase().trim();
+            chatListElement.innerHTML = ''; 
+
+            const filteredChats = allChats.filter(chat => {
+                const name = (chat.name || '').toLowerCase();
+                const chatId = String(chat.id);
+                return name.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+            });
+            
+            if (filteredChats.length > 0) {
+                filteredChats.forEach(chat => {
+                    chatListElement.appendChild(createChatListItem(chat));
+                });
+            } else {
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
+            }
+
+            // Re-apply active class
+            if (currentChatId) {
+                const activeChatElement = document.getElementById(`chat-${currentChatId}`);
+                if (activeChatElement) activeChatElement.classList.add('active');
             }
         }
 
-        async function selectChat(chatId, username) {
+
+        /**
+         * Selects a chat, updates the UI, and sets up a new Firestore listener for messages.
+         */
+        function selectChat(chatId, username) {
+            if (unsubscribeChatHistory) {
+                unsubscribeChatHistory(); // Unsubscribe from the previous chat's history
+            }
             currentChatId = chatId;
-            
+
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
+                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Live Feed</span>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearch').value = ''; 
             
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
+                // Clear unread count locally and update Firestore status
                 unreadCounts[chatId] = 0;
                 const badge = activeChatElement.querySelector('.badge-style');
                 if (badge) badge.remove();
+                
+                // Update Firestore document to mark as read
+                const chatDocRef = doc(getChatCollectionRef(), chatId);
+                updateDoc(chatDocRef, {
+                    lastReadByAdmin: new Date(), 
+                    unreadCount: 0 // Optional, if we tracked count
+                }).catch(e => console.error("Error marking chat as read:", e));
             }
             
-            clearFileSelection(); 
+            historyContainer.innerHTML = '<div class="text-center text-gray-600">Establishing real-time data link...</div>';
 
-            const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
-
-            try {
-                // Simulate a chat history
-                const history = [
-                    { sender: 'user', text: 'Target data transfer failed. Check firewall logs.', mediaPath: '', timestamp: Date.now() - 60000 },
-                    { sender: 'admin', text: 'Firewall is clean. Retrying transfer via quantum tunnel...', mediaPath: '', timestamp: Date.now() - 120000 },
-                    { sender: 'user', text: 'I am seeing some strange network traffic patterns.', mediaPath: '', timestamp: Date.now() - 180000 },
-                    { sender: 'admin', text: 'Acknowledged. Scanning subnet for anomalous activity.', mediaPath: '', timestamp: Date.now() - 240000 },
-                ];
-
-
+            const messagesRef = getMessageCollectionRef(chatId);
+            // Query messages: ordered by timestamp, last 50 messages
+            const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(50));
+            
+            // Set up new listener
+            unsubscribeChatHistory = onSnapshot(q, (snapshot) => {
                 historyContainer.innerHTML = '';
-                history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
+                
+                if (snapshot.empty) {
+                    historyContainer.innerHTML = '<div class="text-center text-gray-600">No communication history found for this entity.</div>';
+                    return;
+                }
+                
+                // Use a document fragment for performance
+                const fragment = document.createDocumentFragment();
+                // Since we query by 'desc' (most recent first), we must append the items in reverse 
+                // order to maintain the correct display order (oldest at top of view, newest at bottom).
+                
+                const messages = [];
+                snapshot.forEach(doc => {
+                    messages.push({ id: doc.id, ...doc.data() });
+                });
+
+                messages.reverse().forEach(msg => { // Process from oldest to newest
+                    fragment.appendChild(createMessageBubble(msg));
                 });
                 
-                historyContainer.scrollTop = 0; 
-
-            } catch (error) {
+                historyContainer.appendChild(fragment);
+                historyContainer.scrollTop = 0; // Scroll to the top (most recent message)
+                
+            }, (error) => {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
-            }
-        }
-        
-        /**
-         * Clears all file-related state and UI elements.
-         */
-        function clearFileSelection() {
-            selectedFile = null;
-            mediaPath = null;
-            mediaType = null;
-            filename = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
-        }
-
-        /**
-         * Handles file selection, converts to Base64, and updates the preview.
-         */
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            // Max file size 5MB
-            if (file.size > 5 * 1024 * 1024) {
-                 showMessage("File size exceeds 5MB transmission limit.", 'error');
-                 event.target.value = ''; 
-                 return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                mediaPath = e.target.result; // Base64 Data URL
-                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
-                filename = file.name;
-                
-                // Update Preview UI
-                document.getElementById('fileName').textContent = filename;
-                document.getElementById('fileSize').textContent = formatBytes(file.size);
-                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
-                document.getElementById('filePreview').classList.remove('hidden');
-                
-                if (mediaType === 'photo') {
-                    // Optional: Show actual image preview
-                }
-            };
-            reader.onerror = (e) => {
-                console.error("File reading error:", e);
-                clearFileSelection();
-            };
-            reader.readAsDataURL(file);
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets: ${error.message}</div>`;
+            });
         }
 
 
         /**
-         * Sends admin reply to the server via Socket.io.
+         * Sends a reply by adding a new message document to the Firestore subcollection.
          */
-        function sendReply() {
-            if (!currentChatId || !socket) {
-                showMessage("Connection Error: Select a chat or check socket status.", 'error');
+        async function sendReply() {
+            if (!currentChatId || !userId) {
+                showMessage("System not ready or no chat selected.", 'error');
                 return;
             }
 
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
 
-            if (!text && !mediaPath) {
-                console.warn("Transmission aborted: Empty data packet.");
+            if (!text) {
+                showMessage("Transmission aborted: Empty data packet.", 'info');
                 return;
             }
 
@@ -1092,81 +976,39 @@
             sendButton.disabled = true;
             sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
 
-            const data = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: mediaPath, 
-                mediaType: mediaType, 
-                filename: filename 
-            };
+            try {
+                const newMessage = {
+                    senderId: userId, // The admin's user ID
+                    text: text,
+                    timestamp: new Date(),
+                    read: false, // Mark for the external user to read
+                    type: 'text'
+                };
+                
+                const messagesRef = getMessageCollectionRef(currentChatId);
+                await addDoc(messagesRef, newMessage);
 
-            // SIMULATION: Since socket is not connected in this environment, we simulate success after 1 second
-            setTimeout(() => {
-                const response = { success: true }; // Assume success
+                // Update the parent chat document with the last message summary
+                const chatDocRef = doc(getChatCollectionRef(), currentChatId);
+                await updateDoc(chatDocRef, {
+                    lastMessage: {
+                        text: text,
+                        timestamp: newMessage.timestamp,
+                        senderId: userId
+                    },
+                    lastReadByAdmin: newMessage.timestamp, // Mark as read by admin instantly
+                });
 
+                replyInput.value = '';
+                showMessage("Data packet transmitted successfully.", 'success');
+
+            } catch (error) {
+                console.error("Error transmitting data packet:", error);
+                showMessage(`Transmission failed: ${error.message}`, 'error');
+            } finally {
                 sendButton.disabled = false;
                 sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
-                
-                if (response.success) {
-                    // Local Echo
-                    const tempMsg = {
-                        chatId: currentChatId,
-                        sender: 'admin',
-                        text: text,
-                        mediaPath: mediaPath, 
-                        filename: filename,
-                        timestamp: new Date().toISOString()
-                    };
-                    const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
-                    
-                    // Clear state after successful send
-                    replyInput.value = '';
-                    clearFileSelection();
-                    showMessage("Data packet transmitted successfully.", 'success');
-
-                } else {
-                    console.error("Failed to transmit data packet:", response.error);
-                    showMessage("Transmission failed. Check connection logs.", 'error');
-                }
-            }, 1000); 
-
-            /* Original Socket.io logic:
-            socket.emit('admin_reply', data, (response) => {
-                sendButton.disabled = false;
-                sendButton.innerHTML = '...';
-                
-                if (response.success) {
-                    // Local Echo...
-                } else {
-                    // Error handling...
-                }
-            });
-            */
-        }
-
-
-        // ------------------------------------------------------------------
-        // CORE FIX: Handling Real-time Updates (Socket.io)
-        // ------------------------------------------------------------------
-
-        function setupSocketListeners() {
-            if (typeof io !== 'function') {
-                // If Socket.io is not available (like in this environment), we skip connection
-                console.warn("Socket.io library not found. Real-time chat disabled.");
-                // For demonstration, we simulate a 'socket' object
-                socket = { emit: (event, data, callback) => callback({ success: true }) };
-                return;
             }
-            socket = io();
-            
-            socket.on('new_message', (data) => {
-                const chatId = String(data.chatId);
-                const user = data.user;
-                const message = data.message;
-                // ... (rest of the socket logic remains the same)
-            });
         }
 
 
@@ -1174,10 +1016,44 @@
         // Initialization
         // ------------------------------------------------------------------
 
-        // Initial check to set the form container height correctly
+        function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Set session persistence (optional, but good practice)
+                setPersistence(auth, browserSessionPersistence);
+
+                // Listener for authentication state change
+                onAuthStateChanged(auth, (user) => {
+                    isAuthReady = true;
+                    if (user) {
+                        authStatus.textContent = 'Connection established.';
+                        login(user);
+                    } else {
+                        // If auth failed or user logged out, display auth view
+                        authView.classList.remove('hidden');
+                        adminPortal.classList.add('hidden');
+                        authStatus.textContent = 'Ready to establish connection.';
+                    }
+                });
+
+                // Display App ID in settings
+                document.getElementById('appIdDisplay').textContent = appId;
+                
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                authStatus.textContent = `Error: ${error.message}`;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadDarkModePreference();
-            setupSocketListeners();
+            // Hide the admin portal initially until auth confirms
+            adminPortal.classList.add('hidden');
+            authView.classList.remove('hidden');
+
+            initializeFirebase();
             
             // Set initial height for sign in form
             updateFormContainerHeight(signInForm);
