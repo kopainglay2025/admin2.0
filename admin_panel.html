@@ -334,7 +334,7 @@
         const replyText = document.getElementById('reply-text');
         const sendButton = document.getElementById('send-button');
         const attachButton = document.getElementById('attach-button');
-        const emojiButton = document.getElementById('emoji-button'); // New
+        const emojiButton = document.getElementById('emoji-button'); 
         const fileInput = document.getElementById('file-input');
         const filePreviewArea = document.getElementById('file-preview-area');
         const fileNameSpan = document.getElementById('file-name');
@@ -345,7 +345,7 @@
         const modalImageContent = document.getElementById('modal-image-content');
         const downloadLink = document.getElementById('download-link');
         
-        // Emoji Picker Elements (New)
+        // Emoji Picker Elements
         const emojiPickerContainer = document.getElementById('emoji-picker-container');
 
 
@@ -360,7 +360,7 @@
         };
         
         // ------------------------------------
-        // Emoji Data and Logic (New)
+        // Emoji Data and Logic
         // ------------------------------------
         const emojiList = {
             'ရယ်မောခြင်း & လူများ': ['😀', '😂', '🤣', '😊', '😍', '😎', '🤩', '😘', '😗', '😋', '🤫', '🤔', '🙌', '🙏', '👍', '👎', '👏', '💯'],
@@ -372,7 +372,7 @@
         };
 
         const renderEmojiPicker = () => {
-            if (emojiPickerContainer.innerHTML) return; // တစ်ကြိမ်သာ render လုပ်ရန်
+            if (emojiPickerContainer.innerHTML) return; 
 
             for (const category in emojiList) {
                 const categoryDiv = document.createElement('div');
@@ -401,7 +401,7 @@
 
         const toggleEmojiPicker = (event) => {
             event.preventDefault();
-            renderEmojiPicker(); // ဖွင့်သည့်အခါမှသာ render လုပ်ရန်
+            renderEmojiPicker(); 
             emojiPickerContainer.classList.toggle('hidden');
         };
 
@@ -669,7 +669,7 @@
             replyText.disabled = false;
             sendButton.disabled = false;
             attachButton.disabled = false;
-            emojiButton.disabled = false; // New: Emoji Button ကို ဖွင့်ပေးခြင်း
+            emojiButton.disabled = false; 
             
             chatWindow.innerHTML = '<div class="text-center text-gray-500 py-4" id="initial-loading">History ကို ရယူနေသည်...</div>';
             
@@ -702,7 +702,10 @@
                 }
                 
                 // Load More အတွက် Scroll Position ကို မှတ်ထားခြင်း
-                const scrollHeightBefore = chatWindow.scrollHeight;
+                let scrollHeightBefore = 0;
+                if (!isInitialLoad) {
+                    scrollHeightBefore = chatWindow.scrollHeight;
+                }
 
                 if (isInitialLoad) {
                     chatWindow.innerHTML = '';
@@ -710,7 +713,7 @@
                     chatWindow.scrollTop = chatWindow.scrollHeight; // အောက်ဆုံးသို့ ရွှေ့ခြင်း
                 } else {
                     history.reverse().forEach(msg => renderMessage(msg, true));
-                    // Scroll Position ကို ချိန်ညှိခြင်း
+                    // Scroll Position ကို ချိန်ညှိခြင်း (Previous content height ကို ပြန်ရွှေ့ခြင်း)
                     const scrollHeightAfter = chatWindow.scrollHeight;
                     chatWindow.scrollTop = scrollHeightAfter - scrollHeightBefore;
                 }
@@ -733,7 +736,7 @@
                     }
                 } else {
                     document.getElementById('load-more-btn')?.remove();
-                    if(isInitialLoad) {
+                    if(isInitialLoad || history.length > 0) {
                          const endMsg = document.createElement('div');
                          endMsg.textContent = '--- စကားပြောဆိုမှု အစမှ အဆုံး ---';
                          endMsg.className = 'text-center text-xs text-gray-400 py-2';
@@ -742,8 +745,6 @@
                 }
                 
                 currentChatOffset += history.length;
-
-                // For load more, scroll is handled above. For initial load, scroll is at the end.
 
             } catch (error) {
                 console.error("Fetch history error:", error);
@@ -797,7 +798,7 @@
             }
 
             if (!file.type.startsWith('image/')) {
-                // Custom modal ဖြင့် ပြသရန် (alert() ကို ရှောင်ရန်)
+                // Console တွင်သာ ပြသရန်
                 console.error('ကျေးဇူးပြု၍ ဓာတ်ပုံဖိုင်ကိုသာ ရွေးချယ်ပေးပါ');
                 clearFileSelection();
                 return;
@@ -849,12 +850,17 @@
             };
 
             // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
-            socket.emit('admin_reply', messagePayload, () => {
+            socket.emit('admin_reply', messagePayload, (response) => {
                 // Post-send cleanup
                 sendButton.disabled = false;
                 replyText.disabled = false;
                 attachButton.disabled = false;
                 emojiButton.disabled = false;
+
+                if (response && !response.success) {
+                    // Send failed, revert local echo (optional, or rely on socket.on('error'))
+                    console.error("Admin Reply failed:", response.error);
+                }
             });
 
             // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
@@ -884,28 +890,24 @@
             // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
             const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
             
-            // --- FIX: Server မှပို့လိုက်သော အချိန်အသစ်ပါသည့် User object ကိုသာ အသုံးပြုခြင်း ---
             if (existingIndex > -1) {
                 // ရှိပြီးသား user ဖြစ်ပါက စာရင်းအဟောင်းကို ဖယ်ရှားခြင်း
                 activeChats.splice(existingIndex, 1); 
             }
             // အပ်ဒိတ်လုပ်ထားသော user (server မှ ပို့ပေးသည်) ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းခြင်း
             activeChats.unshift(user);
-            // ---------------------------------------------------------------------------------
             
             // ၂။ မဖတ်ရသေးသော စာရေတွက်စနစ် (Unread Counts) ကို အပ်ဒိတ်လုပ်ခြင်း
-            // User message ဖြစ်ပြီး လက်ရှိ chat မဟုတ်ပါက count တိုးခြင်း
             if (message.sender === 'user' && chatId !== currentChatId) {
                 unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
+                saveUnreadCounts(); 
             } else if (chatId === currentChatId) {
-                // လက်ရှိ chat ဖြစ်ပါက count ကို 0 ပြန်ထားခြင်း (safety)
                 unreadCounts[chatId] = 0;
             }
 
 
             if (currentView === 'chat') {
-                renderChatList(); // Chat list ၏ အစဉ်လိုက်နှင့် badge များကို ပြန်လည်ပြသခြင်း
+                renderChatList(); 
             }
 
             // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
@@ -940,6 +942,7 @@
         // ------------------------------------
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Load Chat View by default
             switchView('chat'); 
         });
 
