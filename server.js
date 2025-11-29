@@ -14,23 +14,10 @@ const { FieldValue } = require('firebase-admin/firestore'); // Firestore Operati
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // ၁။ Telegram Bot Token
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
 
 // ၂။ Firebase Admin SDK Service Account JSON (တစ်ကြောင်းတည်းဖြင့် JSON String အဖြစ် ထည့်သွင်းပါ)
-// (အကယ်၍ process.env တွင် မသတ်မှတ်ထားပါက၊ အောက်ပါ Hardcoded Key ကို အသုံးပြုပါမည်)
-const FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '[{
-  "type": "service_account",
-  "project_id": "mkschat-5e0b6",
-  "private_key_id": "0196dab42c8336d2c567aa6805a88a524a85d32f",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCzqYA2dw6CVAOA\nuszuMMP2LFVQ2QxLCQUvSvWJbZIFLZvWNpERlP0G96QPLS9A9Nnu5vfNiPnNbSfG\nAgOnPRnOGO6C1zuhpzvZVXpazKz0lRVZ/vGZ39ANqPz0awC5JRAZoQtQUuTDgyqI\nPw9B03x3r1etivfaGdsb9/r9SlUkuSkGjybPlaN/7kQBTk6vpqx10qOVKBxTfzpG\nCm2JKAhAXxj9Z0I0S+K0fqTgqpyTky8eaySDOEiy3kJ3r9B+aqfCb7701U0n1MAW\nfK3x2ap0zausARIVBPwVLdJQTNQRmTYhQikKavN+S8nsu2YNF6IsaHwfrAeaLymr\n9ivWOZkbAgMBAAECggEAEitCbRT4jFOPZcr+WIQ+p7xEsIASudqNV1gJoWlJoBPE\nXmh28+6Q8XhvyJ0gLz3TyvuOnzmKpwIH81gBeJM5ndnFnR5ucw2k2XjHKTw+WB8P\njAy38Ctt20PLY7MX3UwTPGmd6Z9Ib+vpjDfHBOLXWTSL9bVHwBsR89p4hnmoR1Cg\nBoQVAx93coKNyEhzcB1ie8ngPnm4OcIK6VBuMY2NtsNF/kxfVzFfOPvpsaM35zgY\nP84KdMgwyIKhwNW/ssaqhMH/9fjBZkL/AjDRl7sip877CnC6oKZNSA3WABO31LdO\nVCYH0NzIQeBDl6gT12P8I6Bb7lonBzDVTAjAXDD0SQKBgQDwuAfyNBiRjWUH0AHZ\nGpBb3l5bci2wkiY0FsE9nVqDT+DLQaAH+tEL//1r+jcx79AhLrYCuUqT38UT2j6w\nxTLMx1JpiAkHQKS+DsLL0agQR9RW4TAD6KD84bJGfpdYrNwxiTtrSr9odmFBAoAK\n/FaKHORCyLacPypFjIL3tmml5wKBgQC/ETl+01/skj3Tcfz3COUH3XgeC+gzdXND\nksXt74viK5dyGNpIs0dSRMfHUZBkEbrpejI38PEIN3vs9WZJvbx5AlSa/c+OB6to\nTfRsQbf+J5sqvPInuqpm3AQZhz+6Vkl10JLgqGgzVmJLvAj7KjPesLjWNftTyxdc\neT2Z7oAkrQKBgQDX9YLLfIl+K8g0Fh1SVU6l3P3yNKFhA/1aRf/f80e8/vDB6YJV\nJmRdy6/kK3tRRcEHxAxurSWHPP5mLSqJFKHargf1vaG76/bgvAVvLg0FbivGNgkJ\nuK6VsTZroC7P02VI28F/JHRMl8fwtvmA4ZoSFpGCiOerjc+yzbjB29k0iQKBgQCx\nkaV4i6NLbkINP5OUVmzcGWRnsDM1l8Lumvpd/dFn+ZE/FX/QLuVqvMdaIyBpD91A\n3TLMsJyhQUdn2k0c3TvKznKotJdvbQtM3Z35+j2v80kOuBjo+V8iRvl8bCi62TRe\nTOAj7/8fLvodXnyOSBN6s4ykb/jKUCW+6GJqq6/l5QKBgHWfiC6CZ+rWnm3V8P67\nL5luOMY+AIDKp8fZtBJ237ltZtG3QmSU6Tls/MQ0VV5JoucyhmPI2Q240/qy5mJi\nqZozmHgez/qblRYSe0ma2/u+7khHAdRPZciFHKK9tgmcfzg+hXGljJNKF7Bszi85\nKMmA+MhJFg0KlDeQrPoiTLjJ\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@mkschat-5e0b6.iam.gserviceaccount.com",
-  "client_id": "117927424354770866130",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40mkschat-5e0b6.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}]';
+const FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
 // ၃။ Admin Login အချက်အလက်များ
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
@@ -39,13 +26,18 @@ const PORT = process.env.PORT || 80;
 // =========================================================
 
 // Firebase Admin SDK ကို စတင်ခြင်း
-// Hardcoded Key သို့မဟုတ် Environment Variable မှ ရယူထားသော Key သည် မှန်ကန်သော JSON ဖြစ်ကြောင်း စစ်ဆေးခြင်း
+if (!FIREBASE_SERVICE_ACCOUNT_KEY) {
+    console.error('ERROR: FIREBASE_SERVICE_ACCOUNT_KEY environment variable ကို သတ်မှတ်ပေးပါ!');
+    // ဤနေရာတွင် Firebase Project မှ download လုပ်ထားသော Service Account JSON file ၏ အကြောင်းအရာများအားလုံးကို ထည့်သွင်းရန် လိုအပ်ပါသည်။
+    // ဥပမာ- FIREBASE_SERVICE_ACCOUNT_KEY='{"type": "service_account", ...}'
+    process.exit(1); 
+}
+
 let serviceAccount;
 try {
     serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT_KEY);
 } catch (e) {
     console.error('ERROR: FIREBASE_SERVICE_ACCOUNT_KEY သည် မှန်ကန်သော JSON format မဟုတ်ပါ:', e.message);
-    console.log('Firebase Admin SDK စတင်၍ မရပါ၊ server ကို ပိတ်လိုက်ပါမည်။');
     process.exit(1); 
 }
 
