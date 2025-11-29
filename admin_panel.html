@@ -44,41 +44,41 @@
 
         /* --- Refined CSS for Chat Messages --- */
         .chat-messages {
-            overflow-y: auto;
+            overflow-y: auto; /* Scrollbar ကို ပြန်ဖွင့်ထားပါပြီ */
             display: flex;
             flex-direction: column-reverse; /* Keep messages stacked from bottom */
-            /* Firefox Scrollbar Styling */
-            scrollbar-width: thin;
-            scrollbar-color: #9CA3AF #F3F4F6; /* thumb track */
         }
         
-        /* WebKit (Chrome, Safari) Scrollbar Styling */
+        /* Custom Webkit Scrollbar Styles for .chat-messages (Scrollbar ကို ရှင်းရှင်းလင်းလင်း မြင်စေရန်) */
         .chat-messages::-webkit-scrollbar {
-            width: 8px; /* ဒေါင်လိုက် scrollbar အတွက် အနံ */
+            width: 8px; /* Scrollbar ၏ အကျယ် */
         }
 
         .chat-messages::-webkit-scrollbar-track {
-            background: #F3F4F6; /* Track background (light mode) */
-            border-radius: 4px;
+            background: #e0e0e0; /* Light track in light mode */
+            border-radius: 10px;
+        }
+        
+        /* Dark Mode အတွက် Track */
+        .dark .chat-messages::-webkit-scrollbar-track {
+            background: #374151; /* Darker track in dark mode (gray-700) */
         }
 
         .chat-messages::-webkit-scrollbar-thumb {
-            background-color: #9CA3AF; /* Thumb color (light mode) */
-            border-radius: 4px; /* Thumb ကို ထောင့်ဝိုင်းပေးခြင်း */
+            background: #9ca3af; /* Gray thumb in light mode */
+            border-radius: 10px;
         }
-        
-        /* Dark mode အတွက် Scrollbar ပုံစံ */
-        .dark .chat-messages::-webkit-scrollbar-track {
-             background: #1F2937; /* Dark background */
-        }
+
+        /* Dark Mode အတွက် Thumb */
         .dark .chat-messages::-webkit-scrollbar-thumb {
-            background-color: #4B5563; /* Darker thumb for better contrast */
-        }
-        .dark .chat-messages {
-            scrollbar-color: #4B5563 #1F2937; /* Dark mode Firefox */
+            background: #4b5563; /* Even darker thumb in dark mode (gray-600) */
         }
         
-        /* Badge for unread count */
+        /* Thumb Hover effect */
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* Slightly darker on hover */
+        }
+
         .badge-style {
             position: absolute; 
             top: 8px; 
