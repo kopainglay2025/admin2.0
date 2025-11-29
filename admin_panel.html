@@ -7,34 +7,25 @@
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Apply smooth transition for color scheme change to all elements */
-        html.dark {
-            color-scheme: dark;
-        }
-        
-        /* Ensure body and its children transition smoothly */
+        /* Body standard light mode font and background */
         body { 
             font-family: 'Inter', sans-serif;
-            /* Applying transition to all color-related properties */
-            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+            background-color: #f3f4f6; /* Light gray background for body */
+            transition: background-color 0.3s, color 0.3s;
         }
         
         /* Style for the chat item */
         .chat-item {
             cursor: pointer;
-            transition: background-color 0.15s ease, color 0.15s ease;
+            transition: background-color 0.15s ease;
         }
         
-        /* Hover state for light mode */
+        /* Hover state for chat list (Light Mode only) */
         .chat-item:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-        }
-        /* Hover state for dark mode */
-        .dark .chat-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: #f3f4f6; /* Lighter background on hover */
         }
         
-        /* Fixed accent color for active chat (must override dark mode for visibility) */
+        /* Fixed accent color for active chat */
         .chat-item.active {
             background-color: #10B981; /* Green accent color */
             color: white !important; 
@@ -56,9 +47,6 @@
             background-color: #3B82F6; 
             border-radius: 4px;
         }
-        .dark .chat-messages::-webkit-scrollbar-thumb {
-            background-color: #60A5FA;
-        }
 
         .badge-style {
             position: absolute; 
@@ -77,11 +65,12 @@
         }
     </style>
 </head>
-<!-- Body element uses full responsive classes for background and text color -->
-<body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex transition-colors duration-300">
+<!-- Body uses standard light gray background -->
+<body class="bg-gray-100 h-screen overflow-hidden flex">
 
     <!-- 1. Narrow Menu Bar (w-20) - ဘယ်ဘက်ဆုံးရှိ Menu များ -->
-    <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0 border-r border-gray-700 dark:border-gray-700 transition-colors duration-300">
+    <!-- Fixed dark background for the sidebar for contrast -->
+    <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0 border-r border-gray-200">
         <!-- Logo/Title Placeholder (Icon) -->
         <div class="p-4 text-xl font-bold border-b border-gray-700 flex items-center justify-center h-20">
             <span title="Admin Portal">AP</span>
@@ -107,57 +96,51 @@
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button (အောက်ဆုံး) -->
+        <!-- Dark Mode Toggle Button REMOVED -->
         <div class="p-4 border-t border-gray-700">
-            <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-2 rounded-full hover:bg-gray-700 transition duration-150 w-full flex justify-center">
-                <!-- Icon will be set by JS (Moon or Sun) -->
-                <svg id="themeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>
-                </svg>
-            </button>
+             <!-- Placeholder for bottom margin -->
         </div>
     </div>
 
     <!-- 2. Chat List Panel (w-64) - Menu ဘေးက Chat စာရင်း -->
-    <div id="chatListPanel" class="w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex-col flex-shrink-0 transition-colors duration-300 hidden">
+    <div id="chatListPanel" class="w-64 bg-white border-r border-gray-200 flex-col flex-shrink-0 hidden">
         <!-- Chat List Header -->
-        <div class="p-4 text-lg font-semibold border-b dark:border-gray-700 text-gray-800 dark:text-white h-20 flex items-center transition-colors duration-300">
+        <div class="p-4 text-lg font-semibold border-b border-gray-200 text-gray-800 h-20 flex items-center">
             Conversations
         </div>
 
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
-            <!-- Placeholder uses responsive text color -->
-            <div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Loading chats...</div>
+            <!-- Placeholder uses standard text color -->
+            <div class="text-center p-4 text-gray-500 text-sm">Loading chats...</div>
         </div>
     </div>
 
     <!-- 3. Main Content Area (flex-grow) - ညာဘက်အကျဆုံး အကြောင်းအရာပြကွက် -->
-    <!-- Main content area background is responsive -->
-    <div class="flex-grow flex flex-col bg-white dark:bg-gray-900 transition-colors duration-300">
+    <!-- Main content area background is standard white -->
+    <div class="flex-grow flex flex-col bg-white">
         
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
-            <!-- Header text color responsive -->
-            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ဒက်ရှ်ဘုတ် (Dashboard)</h1>
-            <!-- Paragraph text color responsive -->
-            <p class="text-gray-600 dark:text-gray-400 transition-colors duration-300">
+            <!-- Header text standard dark color -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">ဒက်ရှ်ဘုတ် (Dashboard)</h1>
+            <!-- Paragraph text standard gray color -->
+            <p class="text-gray-600">
                 ဤနေရာတွင် အဓိက စာရင်းဇယားများ၊ အသုံးပြုသူ ကိန်းဂဏန်းများ နှင့် စွမ်းဆောင်ရည် အချက်အလက်များကို ပြသပါမည်။
             </p>
             <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Card 1 (Background/Text colors fully responsive) -->
-                <div class="bg-blue-100 dark:bg-blue-900 p-6 rounded-xl shadow-lg text-blue-800 dark:text-blue-200 transition-colors duration-300">
+                <!-- Card 1 (Fixed Light Mode colors) -->
+                <div class="bg-blue-100 p-6 rounded-xl shadow-lg text-blue-800">
                     <div class="text-4xl font-extrabold">1,245</div>
                     <div class="text-sm mt-1">စုစုပေါင်း အသုံးပြုသူများ</div>
                 </div>
-                <!-- Card 2 (Background/Text colors fully responsive) -->
-                <div class="bg-green-100 dark:bg-green-900 p-6 rounded-xl shadow-lg text-green-800 dark:text-green-200 transition-colors duration-300">
+                <!-- Card 2 (Fixed Light Mode colors) -->
+                <div class="bg-green-100 p-6 rounded-xl shadow-lg text-green-800">
                     <div class="text-4xl font-extrabold">25</div>
                     <div class="text-sm mt-1">လက်ရှိ အွန်လိုင်း</div>
                 </div>
-                <!-- Card 3 (Background/Text colors fully responsive) -->
-                <div class="bg-yellow-100 dark:bg-yellow-900 p-6 rounded-xl shadow-lg text-yellow-800 dark:text-yellow-200 transition-colors duration-300">
+                <!-- Card 3 (Fixed Light Mode colors) -->
+                <div class="bg-yellow-100 p-6 rounded-xl shadow-lg text-yellow-800">
                     <div class="text-4xl font-extrabold">156</div>
                     <div class="text-sm mt-1">ဖြေကြားရန် လိုအပ်သော ချတ်များ</div>
                 </div>
@@ -166,23 +149,23 @@
 
         <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat Header fully responsive -->
-            <header id="chatHeader" class="p-4 border-b shadow-sm bg-white dark:bg-gray-800 flex items-center justify-between z-10 transition-colors duration-300 h-20 dark:border-gray-700">
-                <span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">Chat တစ်ခု ရွေးချယ်ပါ</span>
+            <!-- Chat Header standard light colors -->
+            <header id="chatHeader" class="p-4 border-b shadow-sm bg-white flex items-center justify-between z-10 h-20 border-gray-200">
+                <span class="text-xl font-semibold text-gray-700">Chat တစ်ခု ရွေးချယ်ပါ</span>
             </header>
 
-            <!-- Message History area background is responsive -->
-            <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-                <!-- Placeholder uses responsive text color -->
-                <div class="text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
+            <!-- Message History area standard light gray background -->
+            <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50">
+                <!-- Placeholder standard gray text -->
+                <div class="text-center text-gray-500">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
             </div>
 
-            <!-- Message Input area fully responsive -->
-            <div id="chatInputArea" class="p-4 border-t bg-white dark:bg-gray-800 transition-colors duration-300 dark:border-gray-700 hidden">
+            <!-- Message Input area standard white background -->
+            <div id="chatInputArea" class="p-4 border-t bg-white border-gray-200 hidden">
                 <div class="flex space-x-3">
-                    <!-- Input field background, border, and text fully responsive -->
+                    <!-- Input field standard light colors -->
                     <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
-                           class="flex-grow border border-gray-300 dark:border-gray-600 rounded-lg p-3 dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                           class="flex-grow border border-gray-300 rounded-lg p-3 bg-white text-gray-800 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                            onkeypress="if(event.key === 'Enter') sendReply()">
                     <!-- Send button colors remain accent blue -->
                     <button id="sendButton" onclick="sendReply()"
@@ -195,16 +178,16 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <!-- Header text color responsive -->
-            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ထုတ်လွှင့်မှု (Broadcast)</h1>
-            <!-- Broadcast card fully responsive -->
-            <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
-                <!-- Paragraph text color responsive -->
-                <p class="mb-4 text-gray-600 dark:text-gray-400 transition-colors duration-300">
+            <!-- Header text standard dark color -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">ထုတ်လွှင့်မှု (Broadcast)</h1>
+            <!-- Broadcast card standard light colors -->
+            <div class="bg-gray-100 p-6 rounded-xl shadow-lg border border-gray-200">
+                <!-- Paragraph text standard gray color -->
+                <p class="mb-4 text-gray-600">
                     အသုံးပြုသူများအားလုံး သို့မဟုတ် သတ်မှတ်ထားသော အုပ်စုများသို့ မက်ဆေ့ချ်များ တစ်ပြိုင်နက် ပေးပို့ရန် ဤနေရာကို အသုံးပြုပါ။
                 </p>
-                <!-- Textarea background, border, and text fully responsive -->
-                <textarea class="w-full p-3 border rounded-lg border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150" rows="5" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
+                <!-- Textarea standard light colors -->
+                <textarea class="w-full p-3 border rounded-lg border-gray-300 bg-white text-gray-800 focus:ring-blue-500 focus:border-blue-500 transition duration-150" rows="5" placeholder="ထုတ်လွှင့်မည့် စာသားကို ရေးပါ။"></textarea>
                 <!-- Button colors remain accent red -->
                 <button class="mt-3 bg-red-600 text-white p-3 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
                     ထုတ်လွှင့်ပါ
@@ -214,25 +197,25 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <!-- Header text color responsive -->
-            <h1 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">ဆက်တင်များ (Settings)</h1>
+            <!-- Header text standard dark color -->
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">ဆက်တင်များ (Settings)</h1>
             <div class="space-y-6">
-                <!-- Setting Card 1 fully responsive -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100 transition-colors duration-300">API Key Management</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 transition-colors duration-300">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
-                    <!-- Input field background and text responsive -->
-                    <input type="text" value="************************" readonly class="w-full p-3 border rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors duration-300">
+                <!-- Setting Card 1 standard light colors -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">API Key Management</h3>
+                    <p class="text-sm text-gray-500 mb-4">API key ကို ပြောင်းလဲခြင်း သို့မဟုတ် အသစ်ထုတ်လုပ်ခြင်း။</p>
+                    <!-- Input field standard light colors -->
+                    <input type="text" value="************************" readonly class="w-full p-3 border rounded-lg bg-gray-100 text-gray-800 border-gray-300 transition-colors duration-300">
                 </div>
-                <!-- Setting Card 2 fully responsive -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border dark:border-gray-700 transition-colors duration-300">
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100 transition-colors duration-300">Bot Status</h3>
+                <!-- Setting Card 2 standard light colors -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Bot Status</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-600 dark:text-gray-400 transition-colors duration-300">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <span class="text-gray-600">Telegram Bot ကို ဖွင့်/ပိတ်ပါ။</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
-                            <!-- Toggle switch color responsive -->
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <!-- Toggle switch standard light colors -->
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer bg-gray-200 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-gray-300 peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
                 </div>
@@ -250,47 +233,9 @@
         const socket = io();
         let currentChatId = null;
         let unreadCounts = {}; 
-        const htmlElement = document.documentElement;
 
-        // --- Dark Mode Functions ---
-        function toggleDarkMode() {
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            const themeIcon = document.getElementById('themeIcon');
-            if (!themeIcon) return;
-
-            if (htmlElement.classList.contains('dark')) {
-                // Sun icon (Light mode available)
-                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
-            } else {
-                // Moon icon (Dark mode available)
-                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>';
-            }
-        }
-
-        function loadDarkModePreference() {
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            // Load theme from localStorage or system preference
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                htmlElement.classList.add('dark');
-            } else if (savedTheme === 'light') {
-                htmlElement.classList.remove('dark');
-            }
-            updateThemeIcon();
-        }
-
-        // --- Navigation Functions ---
+        // --- Navigation Functions (Simplified) ---
+        
         /**
          * Switches the displayed content area based on the selected section.
          * Toggles the visibility of the Chat List Panel accordingly.
@@ -345,8 +290,8 @@
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            // Added text colors for light/dark mode and transition
-            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative text-gray-800 dark:text-gray-200 transition-colors duration-300';
+            // Standard light mode text colors
+            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative text-gray-800 transition-colors duration-300';
             chatElement.setAttribute('data-chat-id', chatId);
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
@@ -357,9 +302,9 @@
             chatElement.innerHTML = `
                 <div class="flex-grow min-w-0">
                     <p class="font-semibold truncate text-sm">${chat.username || chatId}</p>
-                    <!-- Secondary text responsive to dark mode -->
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
+                    <!-- Secondary text standard gray color -->
+                    <p class="text-xs text-gray-500 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
+                    <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'စာသားမရှိသေးပါ'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -378,9 +323,9 @@
             const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
             
-            // User message bubble is responsive: light gray in light mode, dark gray in dark mode
+            // Standard light mode colors for message bubbles
             const bubbleClass = isUser 
-                ? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 transition-colors duration-300' 
+                ? 'bg-gray-200 text-gray-800' 
                 : 'bg-blue-600 text-white'; // Admin reply is fixed blue
 
             const messageElement = document.createElement('div');
@@ -396,7 +341,7 @@
             }
 
             // Ensure the time text is visible in both bubble types
-            const timeColor = isUser ? 'text-gray-500 dark:text-gray-300' : 'text-white opacity-90';
+            const timeColor = isUser ? 'text-gray-500' : 'text-white opacity-90';
 
             messageElement.innerHTML = `
                 <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}">
@@ -415,8 +360,8 @@
          */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            // Responsive placeholder text
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">Chats များကို ဆွဲယူနေပါသည်...</div>';
+            // Standard placeholder text
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>';
             unreadCounts = {}; // Reset counts on initial load
 
             try {
@@ -426,8 +371,8 @@
 
                 chatListElement.innerHTML = '';
                 if (chats.length === 0) {
-                    // Responsive placeholder text
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
+                    // Standard placeholder text
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm">မည်သည့် Chat မှ ရှာမတွေ့ပါ။</div>';
                     return;
                 }
                 
@@ -449,7 +394,7 @@
             currentChatId = chatId;
             
             // 1. Update UI state (Header and Input)
-            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">${username}</span>`;
+            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700">${username}</span>`;
             document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
@@ -466,8 +411,8 @@
 
             // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
-            // Responsive placeholder text
-            historyContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
+            // Standard placeholder text
+            historyContainer.innerHTML = '<div class="text-center text-gray-500">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -586,7 +531,7 @@
         // Initialization
         // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            loadDarkModePreference();
+            // No dark mode loading required.
             
             // Attach navigation handlers
             document.querySelectorAll('.nav-item').forEach(item => {
