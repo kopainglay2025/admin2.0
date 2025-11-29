@@ -1,23 +1,15 @@
 {
-  "name": "telegram-admin-panel",
-  "version": "1.0.0",
-  "description": "Admin panel and backend for a Telegram bot using Node.js and Firebase.",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "node-telegram-bot-api": "^0.64.0",
-    "firebase-admin": "^11.11.0"
-  },
-  "keywords": [
-    "telegram",
-    "bot",
-    "firebase",
-    "admin"
-  ],
-  "author": "",
-  "license": "ISC"
+"name": "telegram-admin-chat",
+"version": "1.0.0",
+"description": "Admin panel for real-time chat with Telegram users via a bot.",
+"main": "server.js",
+"scripts": {
+"start": "node server.js"
+},
+"dependencies": {
+"express": "^4.19.2",
+"socket.io": "^4.7.5",
+"node-telegram-bot-api": "^0.66.0",
+"firebase-admin": "^12.1.1"
+}
 }
