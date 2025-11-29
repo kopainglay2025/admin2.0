@@ -42,41 +42,20 @@
             opacity: 0.9;
         }
 
-        /* --- Refined CSS for Chat Messages --- */
         .chat-messages {
-            overflow-y: auto; /* Scrollbar ကို ဖွင့်ထားပြီးသား */
+            max-height: calc(100vh - 120px); 
+            overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; /* Keep messages stacked from bottom */
+            flex-direction: column-reverse; 
         }
-        
-        /* Custom Webkit Scrollbar Styles for .chat-messages (Scrollbar ကို ရှင်းရှင်းလင်းလင်း မြင်စေရန်) */
-        .chat-messages::-webkit-scrollbar {
-            width: 8px; /* Scrollbar ၏ အကျယ် */
+        /* Custom scrollbar for aesthetics (responsive for dark/light mode) */
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb { 
+            background-color: #3B82F6; 
+            border-radius: 4px;
         }
-
-        .chat-messages::-webkit-scrollbar-track {
-            background: #e0e0e0; /* Light track in light mode */
-            border-radius: 10px;
-        }
-        
-        /* Dark Mode အတွက် Track */
-        .dark .chat-messages::-webkit-scrollbar-track {
-            background: #374151; /* Darker track in dark mode (gray-700) */
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #9ca3af; /* Gray thumb in light mode */
-            border-radius: 10px;
-        }
-
-        /* Dark Mode အတွက် Thumb */
         .dark .chat-messages::-webkit-scrollbar-thumb {
-            background: #4b5563; /* Even darker thumb in dark mode (gray-600) */
-        }
-        
-        /* Thumb Hover effect */
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; /* Slightly darker on hover */
+            background-color: #60A5FA;
         }
 
         .badge-style {
@@ -86,7 +65,7 @@
             background-color: #EF4444; 
             color: white; 
             font-size: 0.75rem; 
-            font-weight: 100; 
+            font-weight: 700; 
             border-radius: 9999px; 
             height: 20px; 
             width: 20px; 
@@ -134,7 +113,7 @@
                     class="p-2 rounded-full hover:bg-gray-700 transition duration-150 w-full flex justify-center">
                 <!-- Icon will be set by JS (Moon or Sun) -->
                 <svg id="themeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>
                 </svg>
             </button>
         </div>
@@ -148,13 +127,6 @@
             Conversations
         </div>
 
-        <!-- NEW: Chat List Search Input -->
-        <div class="p-3 border-b dark:border-gray-700">
-            <input type="text" id="chatListSearch" placeholder="အသုံးပြုသူအမည်ဖြင့် ရှာရန်..."
-                   class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                   oninput="filterChatList(this.value)">
-        </div>
-        
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
             <!-- Placeholder uses responsive text color -->
@@ -195,21 +167,19 @@
         <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
             <!-- Chat Header -->
-            <!-- Note: The header now includes a dynamic search box when a chat is selected -->
             <header id="chatHeader" class="p-4 border-b shadow-sm bg-white dark:bg-gray-800 flex items-center justify-between z-10 transition-colors duration-300 h-20 dark:border-gray-700">
                 <span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">Chat တစ်ခု ရွေးချယ်ပါ</span>
             </header>
 
-            <!-- Message History (flex-grow added here for robust layout) -->
+            <!-- Message History -->
             <!-- Background color responsive -->
             <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
                 <!-- Placeholder uses responsive text color -->
                 <div class="text-center text-gray-500 dark:text-gray-400">ချတ် ရွေးချယ်မှု မရှိသေးပါ။</div>
             </div>
 
-            <!-- Message Input (Admin Reply Box) -->
-            <!-- This is hidden by default and only shown when selectChat is called -->
-            <div id="chatInputArea" class="p-4 border-t bg-white dark:bg-gray-800 transition-colors duration-300 dark:border-gray-700 hidden z-20">
+            <!-- Message Input -->
+            <div id="chatInputArea" class="p-4 border-t bg-white dark:bg-gray-800 transition-colors duration-300 dark:border-gray-700 hidden">
                 <div class="flex space-x-3">
                     <!-- Input field background, border, and text fully responsive -->
                     <input type="text" id="replyText" placeholder="စာပြန်ရန် ရေးသားပါ..."
@@ -302,7 +272,7 @@
                 themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
             } else {
                 // Moon icon (Dark mode available)
-                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>';
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>';
             }
         }
 
@@ -336,11 +306,6 @@
                 // Ensure chat section handles its internal flex display
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
-                     // Reset chat header if no chat is active
-                     if (!currentChatId) {
-                        document.getElementById('chatHeader').innerHTML = '<span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">Chat တစ်ခု ရွေးချယ်ပါ</span>';
-                        document.getElementById('chatInputArea').classList.add('hidden'); // Ensure input is hidden
-                     }
                 } else {
                      targetSection.classList.remove('flex-col');
                 }
@@ -365,58 +330,6 @@
                 chatListPanel.classList.add('hidden');
                 currentChatId = null; // Clear active chat when leaving the chat section
             }
-        }
-
-        // --- Chat List Search Function ---
-        function filterChatList(query) {
-            const chatItems = document.querySelectorAll('#chatList .chat-item');
-            const lowerCaseQuery = query.toLowerCase().trim();
-
-            chatItems.forEach(item => {
-                const usernameElement = item.querySelector('.font-semibold');
-                const username = usernameElement ? usernameElement.textContent.toLowerCase() : '';
-                
-                // Show the item if the username contains the query, otherwise hide it
-                if (username.includes(lowerCaseQuery)) {
-                    item.classList.remove('hidden');
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
-        }
-
-
-        // --- Message History Search Function ---
-        function searchMessages(query) {
-            const messages = document.querySelectorAll('#messageHistory > .flex'); // Select all message containers
-            const lowerCaseQuery = query.toLowerCase().trim();
-            
-            let firstMatchFound = false;
-
-            messages.forEach(msgContainer => {
-                const bubble = msgContainer.querySelector('.rounded-xl');
-                const textElement = bubble.querySelector('p');
-                const originalText = textElement.textContent;
-                
-                // Reset previous highlight
-                textElement.innerHTML = originalText; 
-
-                if (lowerCaseQuery.length > 0 && originalText.toLowerCase().includes(lowerCaseQuery)) {
-                    // Highlight the text using a regular expression (g=global, i=case-insensitive)
-                    const highlightedText = originalText.replace(
-                        new RegExp(`(${query})`, 'gi'), 
-                        '<span class="bg-yellow-300 dark:bg-yellow-500 text-gray-900 dark:text-gray-900 rounded-sm p-0.5 font-bold">$1</span>'
-                    );
-                    textElement.innerHTML = highlightedText;
-                    
-                    if (!firstMatchFound) {
-                        // Scroll to the first match
-                        bubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstMatchFound = true;
-                    }
-
-                }
-            });
         }
 
 
@@ -489,34 +402,6 @@
             `;
             return messageElement;
         }
-        
-        /**
-         * Helper function to add 20 dummy messages for testing scrollability.
-         */
-        function addDummyMessages(container) {
-            // Check if the container is already full of dummy messages
-            if (container.children.length > 15) return; 
-
-            for (let i = 20; i >= 1; i--) {
-                const isUser = i % 2 === 0;
-                const sender = isUser ? 'user' : 'admin';
-                const text = isUser 
-                    ? `အသုံးပြုသူရဲ့ စာအမှတ် ${i}။ ဒီမက်ဆေ့ချ်က scroll bar ကို စမ်းသပ်ဖို့ ထည့်ထားတာပါ။` 
-                    : `Admin ရဲ့ စာအမှတ် ${i}။ Scrollable ဧရိယာအတွက် လိုအပ်သော စမ်းသပ်စာသား။`;
-                const dummyMsg = {
-                    chatId: currentChatId,
-                    sender: sender,
-                    text: text,
-                    mediaPath: null,
-                    timestamp: new Date(Date.now() - (i * 60000)).toISOString() // Backdated timestamp
-                };
-                container.prepend(createMessageBubble(dummyMsg));
-            }
-            // Ensure the container is scrolled to the bottom (top of the reversed list)
-            container.scrollTop = 0;
-            console.log("Added 20 dummy messages to ensure scrollbar visibility.");
-        }
-
 
         /**
          * Fetches and displays the initial chat list.
@@ -557,20 +442,8 @@
             currentChatId = chatId;
             
             // 1. Update UI state (Header and Input)
-            // Header now includes the Message Search Input
-            document.getElementById('chatHeader').innerHTML = `
-                <span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">${username}</span>
-                <div class="relative w-1/3 min-w-[200px]">
-                    <input type="text" id="messageSearch" placeholder="မက်ဆေ့ချ် ရှာရန်..."
-                           class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150 pl-10"
-                           oninput="searchMessages(this.value)">
-                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-            `;
-
-            // Show Reply Box and automatically focus on the input field (FIX for missing reply box)
-            document.getElementById('chatInputArea').classList.remove('hidden'); 
-            document.getElementById('replyText').focus(); // NEW: Focus the input for quick reply
+            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700 dark:text-gray-100 transition-colors duration-300">${username}</span>`;
+            document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
@@ -587,32 +460,25 @@
             // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
             // Responsive placeholder text
-            historyContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
+            historyContainer.innerHTML = '<div class="text-center text-gray-400 dark:text-gray-400 transition-colors duration-300">မှတ်တမ်းများကို ဆွဲယူနေပါသည်...</div>';
 
-            let history = [];
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
-                history = await response.json();
+                const history = await response.json();
+
+                // Clear and render messages
+                historyContainer.innerHTML = '';
+                history.forEach(msg => {
+                    historyContainer.prepend(createMessageBubble(msg));
+                });
+                
+                historyContainer.scrollTop = 0; 
+
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                // On error, still try to add dummy messages for demonstration
-                addDummyMessages(historyContainer);
-                return; 
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">မှတ်တမ်းများ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
             }
-
-            // Clear and render messages
-            historyContainer.innerHTML = '';
-            history.forEach(msg => {
-                historyContainer.prepend(createMessageBubble(msg));
-            });
-            
-            // If the fetched history is small or empty, add dummy messages to ensure the scrollbar is visible for demonstration.
-            if (history.length < 5) {
-                addDummyMessages(historyContainer);
-            }
-
-            historyContainer.scrollTop = 0; 
         }
 
         /**
