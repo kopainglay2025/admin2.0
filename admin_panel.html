@@ -1,1057 +1,344 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Messenger Panel - Redesign V2</title>
-    <!-- Tailwind CSS (CDN) -->
+    <title>Telegram Admin Portal</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
-        body { font-family: 'Padauk', sans-serif; }
-        
-        /* Messenger Style */
-        .user-message {
-            background-color: #e2e8f0; /* Gray-200 */
-            border-radius: 1.25rem 1.25rem 1.25rem 0.5rem;
-            color: #1a202c; /* Gray-900 */
-            max-width: 80%;
-            align-self: flex-start;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        body { font-family: 'Inter', sans-serif; }
+        /* Style for the active chat and the chat list */
+        .chat-item {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
         }
-        .admin-message {
-            background-color: #10b981; /* Emerald-500 */
-            border-radius: 1.25rem 1.25rem 0.5rem 1.25rem;
-            color: white;
-            max-width: 80%;
-            align-self: flex-end;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        .chat-item:hover {
+            background-color: rgba(255, 255, 255, 0.05); /* Lighter hover for dark background */
         }
-        
-        /* Custom scrollbar for chat window */
-        #chat-window::-webkit-scrollbar { width: 8px; }
-        #chat-window::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 4px; } /* Gray-400 */
-        #chat-window::-webkit-scrollbar-track { background-color: #f3f4f6; } /* Gray-100 */
-
-        /* Custom active state for navigation */
-        .nav-item {
-            border-radius: 0.5rem; /* rounded-lg */
-            margin: 0.25rem 0.5rem; /* mx-2 my-0.5 */
+        .chat-item.active {
+            background-color: #10B981; /* Green color for active chat */
         }
-        .nav-item.active {
-            background-color: #059669; /* Emerald-600 */
-            color: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .nav-item:hover:not(.active) {
-            background-color: #1e293b; /* Slate-800 */
-            color: white;
-        }
-
-        /* Custom active state for chat list */
-        .chat-list-item.active {
-            background-color: #10b981; /* Emerald-500 */
-            color: white;
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
-        }
-        .chat-list-item:hover:not(.active) {
-            background-color: #334155; /* Slate-700 */
-        }
-
-        /* Badge for Unread Count */
-        .unread-badge {
-            background-color: #ef4444; /* Red-500 */
-            color: white;
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 0.15rem 0.5rem;
-            border-radius: 9999px; /* Full rounded */
-            margin-left: 0.5rem;
-            min-width: 1.5rem;
-            text-align: center;
-        }
-        
-        /* Image Preview Style */
-        .message-image {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            object-fit: contain;
-        }
-
-        /* Lightbox modal animation */
-        #image-modal {
-            transition: opacity 0.3s ease-in-out;
-        }
-        
-        /* Emoji Picker Custom Styles */
-        #emoji-picker-container {
-            position: absolute;
-            bottom: 100%; /* input bar ရဲ့ အပေါ်မှာ ရှိစေရန် */
-            right: 0;
-            width: 100%; /* input area width အတိုင်း ထားရန် */
-            max-height: 300px; 
+        .chat-messages {
+            max-height: calc(100vh - 120px); /* Adjust height for header/footer/input */
             overflow-y: auto;
-            z-index: 20; /* input bar (z-index: 10) ထက် ပိုမြင့်စေရန် */
-            padding: 10px;
-            border-radius: 0.75rem 0.75rem 0 0;
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -2px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column-reverse; /* To show newest messages at the bottom */
         }
-
-        .emoji-button {
-            font-size: 1.5rem;
-            width: 40px;
-            height: 40px;
-            padding: 2px;
-            border-radius: 0.5rem;
-            transition: transform 0.1s ease-out;
-        }
-
-        .emoji-button:hover {
-            background-color: #e5e7eb; /* Gray-200 */
-            transform: scale(1.1);
-        }
-
+        /* Custom scrollbar for aesthetics */
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: #3B82F6; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-gray-100 h-screen flex antialiased p-6">
+<body class="bg-gray-100 h-screen overflow-hidden flex">
 
-    <!-- Main Container -->
-    <div class="flex flex-row w-full h-full shadow-2xl rounded-2xl overflow-hidden bg-white">
+    <!-- 1. Sidebar (Chat List) -->
+    <div class="w-80 bg-[#1e293b] text-white flex flex-col">
+        <div class="p-6 text-xl font-bold border-b border-gray-700">Admin Portal</div>
 
-        <!-- ---------------------------------------------------- -->
-        <!-- LEFT SECTION (Menu Navigation & Chat List) -->
-        <!-- ---------------------------------------------------- -->
-        <div id="left-panel" class="w-1/3 flex flex-row overflow-hidden border-r border-slate-700 transition-all duration-300">
-            
-            <!-- COLUMN 1: Menu Navigation -->
-            <div id="menu-nav-col" class="w-40 flex flex-col bg-slate-950 shadow-xl z-30">
-                
-                <!-- App Header -->
-                <div class="p-4 border-b border-slate-700 bg-slate-950 text-emerald-400 font-extrabold text-lg sticky top-0 z-20">
-                    Admin Portal
-                </div>
-
-                <!-- Menu Navigation -->
-                <nav id="main-nav" class="flex flex-col py-3">
-                    <a href="#" class="nav-item p-3 px-4 text-slate-300 transition duration-200" data-view="dashboard">
-                        Dashboard
-                    </a>
-                    <a href="#" class="nav-item active p-3 px-4 text-white transition duration-200" data-view="chat">
-                        Chat
-                    </a>
-                    <a href="#" class="nav-item p-3 px-4 text-slate-300 transition duration-200" data-view="broadcast">
-                        Broadcast
-                    </a>
-                    <a href="#" class="nav-item p-3 px-4 text-slate-300 transition duration-200" data-view="settings">
-                        Settings
-                    </a>
-                </nav>
-            </div>
-            
-            <!-- COLUMN 2: Chat List Panel -->
-            <div id="chat-list-panel" class="flex-grow flex flex-col bg-slate-800" data-for-view="chat">
-                
-                <!-- Chat List Header -->
-                <div id="chat-list-header" class="p-4 bg-slate-700 text-white font-bold text-xl sticky top-0 z-10 shadow-lg">
-                    အသုံးပြုသူ စာရင်း
-                </div>
-                
-                <!-- Chat List Container -->
-                <div id="user-list-container" class="overflow-y-auto flex-grow">
-                    <!-- Placeholder for loading -->
-                    <div class="p-4 text-center text-slate-400" id="loading-chats">စာရင်းများကို ရယူနေသည်...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ---------------------------------------------------- -->
-        <!-- RIGHT SECTION (Dynamic Content Area) -->
-        <!-- ---------------------------------------------------- -->
-        <div id="right-panel" class="w-2/3 flex flex-col">
-            
-            <!-- View: Dashboard -->
-            <div id="view-dashboard" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Dashboard</h1>
-                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
-                    <p class="font-bold">သတိပေးချက်:</p>
-                    <p>ဤသည်မှာ Dashboard ဧရိယာဖြစ်သည်။ Chat စနစ်၏ စာရင်းအင်းများ (ဥပမာ- စုစုပေါင်း အသုံးပြုသူ၊ တစ်ရက်တာ message အရေအတွက်) ကို ဤနေရာတွင် ပြသနိုင်ပါသည်။</p>
-                </div>
-            </div>
-
-            <!-- View: Chat (Default View) -->
-            <div id="view-chat" class="view-content flex flex-col h-full">
-                <!-- Chat Header (Clean White with subtle shadow) -->
-                <div id="chat-header" class="p-4 border-b border-gray-200 bg-white shadow-lg sticky top-0 z-10">
-                    <p id="current-chat-title" class="font-bold text-xl text-gray-800">
-                        စကားပြောရန် အသုံးပြုသူကို ရွေးချယ်ပါ
-                    </p>
-                    <p id="current-chat-subtitle" class="text-sm text-gray-500"></p>
-                </div>
-
-                <!-- Chat Messages Window -->
-                <div id="chat-window" class="flex-grow p-6 space-y-4 overflow-y-auto flex flex-col bg-gray-50">
-                    <!-- Messages will be dynamically inserted here -->
-                    <div class="flex justify-center items-center h-full text-gray-400 text-lg" id="no-chat-selected">
-                        ဘယ်ဘက်ရှိ အသုံးပြုသူ တစ်ဦးဦးကို နှိပ်ပြီး စတင်ပြောဆိုပါ။
-                    </div>
-                </div>
-
-                <!-- Message Input (Sleek design) -->
-                <div id="message-input-area" class="p-4 border-t border-gray-200 bg-white shadow-inner relative">
-                    
-                    <!-- EMOJI PICKER CONTAINER (New Element) -->
-                    <div id="emoji-picker-container" class="bg-white border border-gray-200 hidden">
-                        <!-- Content rendered by JS -->
-                    </div>
-
-                    <!-- File Preview Area -->
-                    <div id="file-preview-area" class="flex items-center p-2 mb-2 border border-gray-300 rounded-lg hidden bg-gray-100">
-                        <span id="file-name" class="text-sm text-gray-700 truncate flex-grow"></span>
-                        <button type="button" onclick="clearFileSelection()" class="ml-3 text-red-500 hover:text-red-700">
-                            <!-- SVG Close Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <form id="reply-form" class="flex" onsubmit="handleReply(event)">
-                        <!-- Hidden File Input -->
-                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="previewFile(event)">
-                        
-                        <!-- Attach Button -->
-                        <button type="button" onclick="document.getElementById('file-input').click()"
-                                class="bg-gray-200 text-gray-600 p-3 rounded-l-xl hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition duration-150 shadow-md"
-                                id="attach-button" disabled>
-                            <!-- SVG Paperclip Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 0 0111 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
-                            </svg>
-                        </button>
-
-                        <!-- Emoji Button (New) -->
-                        <button type="button" onclick="toggleEmojiPicker(event)"
-                                class="bg-gray-200 text-gray-600 p-3 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition duration-150 shadow-md"
-                                id="emoji-button" disabled>
-                            <!-- SVG Smiley Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
-
-                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ... (Emoji များပါ ရိုက်ထည့်နိုင်သည်)"
-                               class="flex-grow p-3 border-t border-b border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
-                               disabled required>
-                        <button type="submit" id="send-button"
-                                class="bg-emerald-600 text-white p-3 rounded-r-xl hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-150 shadow-md hover:shadow-lg"
-                                disabled>
-                            <!-- SVG Send Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- View: Broadcast -->
-            <div id="view-broadcast" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Broadcast Message</h1>
-                <div class="bg-teal-100 border-l-4 border-teal-500 text-teal-700 p-4 rounded-lg mb-6">
-                    <p class="font-bold">အချက်အလက်:</p>
-                    <p>ဤနေရာမှ Telegram ရှိ အသုံးပြုသူအားလုံးသို့ တစ်ပြိုင်တည်း စာများ ပို့နိုင်ရန် စီစဉ်နိုင်ပါသည်။</p>
-                </div>
-                <textarea class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500" placeholder="ပို့လိုသော စာသားကို ရိုက်ထည့်ပါ..."></textarea>
-                <button class="mt-4 bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition duration-150 shadow-md">Broadcast စတင်ပါ</button>
-            </div>
-
-            <!-- View: Settings -->
-            <div id="view-settings" class="view-content p-8 h-full bg-gray-50 overflow-y-auto hidden">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Settings</h1>
-                <div class="bg-gray-200 p-4 rounded-lg">
-                    <p class="font-bold">ချိန်ညှိမှုများ:</p>
-                    <p>ဤနေရာတွင် Admin Account စကားဝှက် ပြောင်းလဲခြင်း သို့မဟုတ် Bot ၏ အခြေခံ ချိန်ညှိမှုများကို ပြုလုပ်နိုင်ပါသည်။</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-    
-    <!-- ---------------------------------------------------- -->
-    <!-- Image Modal/Lightbox Overlay - Click to view full image -->
-    <!-- ---------------------------------------------------- -->
-    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center hidden" onclick="closeImageModal()">
-        <div class="relative max-w-6xl max-h-full mx-auto p-4" onclick="event.stopPropagation()">
-            <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white text-3xl font-bold hover:text-gray-300">
-                &times;
-            </button>
-            <!-- Image content will be loaded here -->
-            <img id="modal-image-content" class="max-w-full max-h-screen object-contain rounded-lg shadow-2xl" src="" alt="Full-size image">
-            
-            <!-- Download Button -->
-            <a id="download-link" href="#" download class="absolute bottom-4 right-4 bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-lg">
-                ဒေါင်းလုတ်ဆွဲရန်
+        <!-- Navigation Placeholder -->
+        <nav class="p-4 space-y-2 text-sm">
+            <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-700 bg-gray-700/50">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                Chat
             </a>
+            <!-- Other Nav Items -->
+        </nav>
+
+        <!-- Chat List Container -->
+        <div id="chatList" class="flex-grow overflow-y-auto px-2">
+            <!-- Chat items will be dynamically inserted here -->
+            <div class="text-center p-4 text-gray-500">Loading chats...</div>
         </div>
     </div>
 
+    <!-- 2. Main Chat Area -->
+    <div class="flex-grow flex flex-col bg-white">
+        <!-- Chat Header -->
+        <header id="chatHeader" class="p-4 border-b shadow-sm bg-white flex items-center justify-between z-10">
+            <span class="text-xl font-semibold text-gray-700">Select a chat</span>
+        </header>
 
+        <!-- Message History -->
+        <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50">
+            <!-- Messages will appear here -->
+            <div class="text-center text-gray-500">No chat selected.</div>
+        </div>
+
+        <!-- Message Input -->
+        <div id="chatInputArea" class="p-4 border-t bg-white hidden">
+            <div class="flex space-x-3">
+                <input type="text" id="replyText" placeholder="Write a reply..."
+                       class="flex-grow border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                       onkeypress="if(event.key === 'Enter') sendReply()">
+                <button id="sendButton" onclick="sendReply()"
+                        class="bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center justify-center shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Socket.io and JavaScript Logic -->
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Use a placeholder/empty string for the API Key as the server handles auth
+        const apiKey = "";
+        const BASE_URL = ''; // Relative path, handled by Express server
         const socket = io();
-        const apiBaseUrl = window.location.origin;
-
-        // Configuration
-        const MESSAGE_LIMIT = 30; // တစ်ကြိမ်လျှင် မက်ဆေ့ချ် ၃၀ သာ တင်ရန်
-        
-        let activeChats = [];
-        
-        // **SessionStorage မှ Unread Count ကို စတင်ရယူခြင်း**
-        // Page Reload လိုက်သောအခါ count မပျက်စေရန် session storage ကို အသုံးပြုထားသည်။
-        let unreadCounts = JSON.parse(sessionStorage.getItem('unreadCounts') || '{}');
-        
         let currentChatId = null;
-        let currentChatOffset = 0; // Pagination အတွက်
-        let allHistoryLoaded = false;
-        let currentView = 'chat'; 
 
-        const navItems = document.querySelectorAll('.nav-item');
-        const viewContents = document.querySelectorAll('.view-content');
-        
-        const leftPanel = document.getElementById('left-panel');
-        const rightPanel = document.getElementById('right-panel');
-        const menuNavCol = document.getElementById('menu-nav-col');
+        /**
+         * Renders a single chat item element.
+         * @param {object} chat - Chat data object from /api/chats.
+         * @returns {HTMLElement} The chat list item element.
+         */
+        function createChatListItem(chat) {
+            const chatElement = document.createElement('div');
+            chatElement.id = `chat-${chat.telegramId}`;
+            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative';
+            chatElement.setAttribute('data-chat-id', chat.telegramId);
 
-        const chatListPanel = document.getElementById('chat-list-panel');
-        const chatListHeader = document.getElementById('chat-list-header');
-        const userListContainer = document.getElementById('user-list-container');
-        
-        const chatWindow = document.getElementById('chat-window');
-        const chatHeaderTitle = document.getElementById('current-chat-title');
-        const chatHeaderSubtitle = document.getElementById('current-chat-subtitle');
-        const replyText = document.getElementById('reply-text');
-        const sendButton = document.getElementById('send-button');
-        const attachButton = document.getElementById('attach-button');
-        const emojiButton = document.getElementById('emoji-button'); 
-        const fileInput = document.getElementById('file-input');
-        const filePreviewArea = document.getElementById('file-preview-area');
-        const fileNameSpan = document.getElementById('file-name');
-        const noChatSelected = document.getElementById('no-chat-selected');
-        
-        // Image Modal Elements
-        const imageModal = document.getElementById('image-modal');
-        const modalImageContent = document.getElementById('modal-image-content');
-        const downloadLink = document.getElementById('download-link');
-        
-        // Emoji Picker Elements
-        const emojiPickerContainer = document.getElementById('emoji-picker-container');
-        
-        // **FIX 1:** Map to store temporary locally echoed message elements
-        const localEchoMap = new Map(); // Key: tempId, Value: messageEl
+            const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
+            const timeString = lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            // Logic to determine if a badge is needed (unread status)
+            // Since the server doesn't explicitly track 'unread', we use the simple visual marker from the screenshot
+            const unreadBadge = chat.unreadCount > 0 ? `<span class="absolute top-1 right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">${chat.unreadCount}</span>` : '';
 
-        // Helper function to format time
-        const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('my-MM', {
-            hour: '2-digit', minute: '2-digit', hour12: true
-        });
-        
-        // **Helper: Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း**
-        const saveUnreadCounts = () => {
-             sessionStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-        };
-        
-        // ------------------------------------
-        // Emoji Data and Logic
-        // ------------------------------------
-        const emojiList = {
-            'ရယ်မောခြင်း & လူများ': ['😀', '😂', '🤣', '😊', '😍', '😎', '🤩', '😘', '😗', '😋', '🤫', '🤔', '🙌', '🙏', '👍', '👎', '👏', '💯'],
-            'အစားအသောက် & သောက်စရာ': ['🍕', '🍔', '🍟', '🍣', '🍰', '🍩', '☕', '🍹', '🍺', '🍎', '🍉', '🍇', '🍊', '🍓'],
-            'တိရစ္ဆာန် & သဘာဝ': ['🐶', '🐱', '🐻', '🐼', '🦊', '🐯', '🦁', '🦋', '🌱', '🌷', '🌹', '🌞', '🌙', '⭐', '✨'],
-            'လှုပ်ရှားမှုများ': ['⚽', '🏀', '🏈', '🎮', '🎤', '🎧', '🎨', '🎬', '🎯', '🏅', '🏆', '🎉', '🎁', '🎈'],
-            'အရာဝတ္ထုများ': ['📱', '💻', '📚', '💰', '💸', '🔑', '💡', '🔔', '✉️', '📎', '📌', '🗓️'],
-            'သင်္ကေတများ': ['❤️', '💔', '❓', '❗', '✅', '❌', '⭕', '⚠️', '🅿️', '🔝', '🆕', '🆓']
-        };
-
-        const renderEmojiPicker = () => {
-            if (emojiPickerContainer.innerHTML) return; 
-
-            for (const category in emojiList) {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'mb-4';
-                categoryDiv.innerHTML = `<h3 class="text-sm font-semibold text-gray-700 mb-2">${category}</h3>`;
-
-                const emojiGrid = document.createElement('div');
-                emojiGrid.className = 'flex flex-wrap gap-2';
-                
-                emojiList[category].forEach(emoji => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'emoji-button';
-                    button.textContent = emoji;
-                    button.title = emoji;
-                    button.onclick = (e) => {
-                        e.preventDefault();
-                        insertEmoji(emoji);
-                    };
-                    emojiGrid.appendChild(button);
-                });
-                categoryDiv.appendChild(emojiGrid);
-                emojiPickerContainer.appendChild(categoryDiv);
-            }
-        };
-
-        const toggleEmojiPicker = (event) => {
-            event.preventDefault();
-            renderEmojiPicker(); 
-            emojiPickerContainer.classList.toggle('hidden');
-        };
-
-        const insertEmoji = (emoji) => {
-            const start = replyText.selectionStart;
-            const end = replyText.selectionEnd;
-            const value = replyText.value;
-            
-            // Emoji ကို cursor တည်နေရာတွင် ထည့်သွင်းခြင်း
-            replyText.value = value.substring(0, start) + emoji + value.substring(end);
-            
-            // cursor ကို emoji နောက်သို့ ရွှေ့ခြင်း
-            replyText.selectionStart = replyText.selectionEnd = start + emoji.length;
-            replyText.focus();
-        };
-        
-        // မျက်နှာပြင်ပေါ်ရှိ တခြားနေရာကို နှိပ်လျှင် Picker ကို ပိတ်ရန်
-        document.addEventListener('click', (e) => {
-            const isEmojiButton = emojiButton.contains(e.target);
-            const isInsidePicker = emojiPickerContainer.contains(e.target);
-            
-            if (!isEmojiButton && !isInsidePicker && !emojiPickerContainer.classList.contains('hidden')) {
-                emojiPickerContainer.classList.add('hidden');
-            }
-        });
-
-
-        // ------------------------------------
-        // Menu Navigation Function
-        // ------------------------------------
-
-        const switchView = (viewId) => {
-            currentView = viewId;
-            const isChatView = viewId === 'chat';
-            
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
-
-            // ၁။ Navigation Item များကို အပ်ဒိတ်လုပ်ခြင်း
-            navItems.forEach(item => {
-                item.classList.remove('active', 'text-white', 'text-slate-300', 'hover:bg-slate-800'); 
-                
-                if (item.getAttribute('data-view') === viewId) {
-                    item.classList.add('active', 'text-white');
-                } else {
-                    item.classList.add('text-slate-300');
-                }
-            });
-
-            // ၂။ Content View များကို ပြောင်းလဲခြင်း
-            viewContents.forEach(view => {
-                if (view.id === `view-${viewId}`) {
-                    view.classList.remove('hidden');
-                } else {
-                    view.classList.add('hidden');
-                }
-            });
-
-            // ၃။ LAYOUT: Chat View အတွက် Column Widths ကို ထိန်းချုပ်ခြင်း (Dynamic Resizing)
-            if (isChatView) {
-                // Chat View: 3-column layout (Menu | Chat List | Content)
-                leftPanel.classList.add('w-1/3');
-                leftPanel.classList.remove('w-40');
-                rightPanel.classList.add('w-2/3');
-                rightPanel.classList.remove('flex-grow');
-                
-                chatListPanel.classList.remove('hidden');
-                
-                // Add border back to menu column
-                menuNavCol.classList.add('border-r', 'border-slate-800');
-
-                if (activeChats.length === 0) {
-                    fetchChats();
-                }
-            } else {
-                // Other Views: 2-column layout (Menu | Content)
-                leftPanel.classList.remove('w-1/3');
-                leftPanel.classList.add('w-40'); 
-                rightPanel.classList.remove('w-2/3');
-                rightPanel.classList.add('flex-grow'); 
-
-                // Hide Chat List column completely
-                chatListPanel.classList.add('hidden');
-                
-                // Remove right border of the menu column if it's the edge of the panel
-                menuNavCol.classList.remove('border-r', 'border-slate-800');
-            }
-        };
-
-        // Event listener for navigation
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchView(e.currentTarget.getAttribute('data-view'));
-            });
-        });
-
-        // ------------------------------------
-        // Image Modal Functions (Lightbox)
-        // ------------------------------------
-        
-        const openImageModal = (event, src) => {
-            event.stopPropagation(); // Message bubble ကို နှိပ်မိခြင်းမှ ကာကွယ်ရန်
-            modalImageContent.src = src;
-            downloadLink.href = src;
-            
-            // Base64 image များကို download လုပ်ရာတွင် filename ပါရန်
-            if (src.startsWith('data:') || src.includes('api/get-media')) {
-                downloadLink.setAttribute('download', 'image.png');
-            } else {
-                downloadLink.removeAttribute('download');
-            }
-
-            imageModal.classList.remove('hidden');
-        };
-
-        const closeImageModal = () => {
-            imageModal.classList.add('hidden');
-            modalImageContent.src = ''; // Clear src
-        };
-
-
-        // ------------------------------------
-        // UI Rendering Functions
-        // ------------------------------------
-
-        // Helper function to determine the correct image source URL
-        const getImageSource = (message) => {
-            // 1. Admin reply local echo/Base64 from history
-            if (message.imageUrl) {
-                return message.imageUrl;
-            }
-            
-            // 2. User message (or admin message with Telegram file_id)
-            if (message.mediaPath) {
-                // Assuming mediaPath holds the Telegram file_id or Base64
-                if (message.mediaPath.startsWith('data:')) {
-                    // It's a Base64 string (from admin reply)
-                    return message.mediaPath;
-                } else {
-                    // Assume it's a file_id and use API endpoint to fetch the image
-                    return `${apiBaseUrl}/api/get-media?file_id=${message.mediaPath}`;
-                }
-            }
-
-            return null;
-        };
-
-
-        // ၁။ Chat Message ကို Render လုပ်ခြင်း
-        const renderMessage = (message, prepend = false) => {
-            
-            // **FIX:** စာများကို Official Message ID (သို့) Temporary ID ဖြင့် ပြန်မပြစေရန် စစ်ဆေးခြင်း
-            if (message.id) {
-                const existingEl = document.querySelector(`[data-message-id="${message.id}"]`);
-                if (existingEl) {
-                    return; // Message already rendered by its official ID
-                }
-            }
-
-            const isUser = message.sender === 'user';
-            const imageSrc = getImageSource(message); // Unified image source determination
-
-            const messageEl = document.createElement('div');
-            messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
-            
-            // Official Message ID သို့မဟုတ် Temporary ID ကို ထည့်သွင်းခြင်း
-            if (message.id) {
-                messageEl.dataset.messageId = message.id;
-            } else if (message.tempId) { // For local echo
-                messageEl.dataset.tempId = message.tempId;
-            }
-            
-            // Local echo message အတွက် ယာယီ opacity ကို လျှော့ထားခြင်း
-            if (message.tempId && !isUser) {
-                 messageEl.classList.add('opacity-70', 'transition-opacity');
-            }
-
-
-            const bubble = document.createElement('div');
-            bubble.className = `p-3 shadow-md text-sm ${isUser ? 'user-message' : 'admin-message'}`;
-            
-            let contentHTML = '';
-            
-            // ဓာတ်ပုံပါရှိလျှင် ပြသခြင်း + Modal ဖွင့်နိုင်ရန် `onclick` ထည့်သွင်းခြင်း
-            if (imageSrc) {
-               contentHTML += `
-                    <img src="${imageSrc}" 
-                         class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                         alt="Image attachment" loading="lazy"
-                         onerror="this.onerror=null; this.src='https://placehold.co/200x200/cccccc/333333?text=Image+Load+Fail'"
-                         onclick="openImageModal(event, '${imageSrc}')">
-                `;
-            }
-            
-            // စာသားပါရှိလျှင် ပြသခြင်း
-            if (message.text && message.text.trim().length > 0) {
-                 // **မှတ်ချက်:** whitespace-pre-wrap သည် စာကြောင်းအသစ် (newline) နှင့် Emojis များကို မှန်ကန်စွာ ပြသနိုင်ရန် ကူညီပေးသည်။
-                 contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
-            } else if (!imageSrc) {
-                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း
-                 contentHTML += `<p class="italic opacity-80">${isUser ? 'စာသားမပါသော မက်ဆေ့ခ်ျ' : 'Admin မှ စာသားမပါဘဲ ပို့ထားသည်'}</p>`;
-            } else if (imageSrc && !message.text) {
-                 // ဓာတ်ပုံသာ ပါရှိလျှင် placeholder ထည့်ခြင်း
-                 contentHTML += `<p class="italic opacity-80">${isUser ? 'ပုံတစ်ပုံ ပို့ထားသည်' : 'Admin မှ ဓာတ်ပုံပို့ထားသည်'}</p>`;
-            }
-
-            bubble.innerHTML = `
-                ${contentHTML}
-                <span class="block text-xs mt-1 opacity-75 text-right ${isUser ? 'text-gray-600' : 'text-emerald-200'}">${formatTime(message.timestamp)}</span>
+            chatElement.innerHTML = `
+                <div class="flex-grow min-w-0">
+                    <p class="font-semibold truncate text-sm">${chat.username || chat.telegramId}</p>
+                    <p class="text-xs text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
+                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'No message'}</p>
+                </div>
+                ${unreadBadge}
             `;
-            
-            messageEl.appendChild(bubble);
 
-            if (prepend) {
-                // Load More အတွက် အပေါ်မှ ထည့်ခြင်း (Load More Button ပြီးနောက်)
-                const loadMoreBtn = document.getElementById('load-more-btn');
-                if (loadMoreBtn) {
-                     chatWindow.insertBefore(messageEl, loadMoreBtn.nextSibling); 
-                } else {
-                     chatWindow.insertBefore(messageEl, chatWindow.firstChild);
-                }
-            } else {
-                // မက်ဆေ့ချ်အသစ် သို့မဟုတ် စတင်တင်သည့်အခါ အောက်မှ ထည့်ခြင်း
-                chatWindow.appendChild(messageEl);
-            }
-            
-            return messageEl;
-        };
-
-        // **ပြင်ဆင်ထားသော Function:** Chat Entry ကို စာရင်းအပေါ်ဆုံးသို့ ရွှေ့ပြီး List ကို ပြန်ဆွဲခြင်း (De-duplication Logic ပါဝင်သည်)
-        const moveChatEntryToTop = (chatId, updatedUser, messageSender) => {
-            
-            // 1. Array Update: Remove ALL existing entries for this chatId (Strong De-duplication)
-            // chatId တူညီသည့် entry အားလုံးကို ဖယ်ရှားပြီး filteredChats အသစ်ကို ရယူခြင်း။
-            // **FIX for duplication:** We ensure 'activeChats' is updated with filtered data immediately.
-            activeChats = activeChats.filter(c => c.telegramId !== chatId);
-
-            // 2. Add the updated user data to the front
-            // အပ်ဒိတ်လုပ်ထားသော user data ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းရန် Entry အသစ်ဖန်တီးခြင်း
-            const newChatEntry = {
-                ...updatedUser,
-                telegramId: chatId, // Ensure telegramId is correctly set
-                // lastMessageTime ကို ပေးပို့သည့်အချိန်ဖြင့် သို့မဟုတ် ရှိပြီးသားအချိန်ဖြင့် သတ်မှတ်ပါ
-                lastMessageTime: updatedUser.lastMessageTime || new Date().toISOString(), 
-            };
-            
-            // filtered chats အပေါ်တွင် entry အသစ်ကို ထည့်ခြင်းဖြင့် စာရင်း၏ အပေါ်ဆုံးသို့ ရောက်စေခြင်း
-            activeChats = [newChatEntry, ...activeChats]; // 'filteredChats' ကို အသုံးပြုပြီးသားဖြစ်သောကြောင့် 'activeChats' ကို ပြန်သုံးနိုင်သည်။
-
-            // 3. Unread Counts Logic: ဝင်လာသော message (user) အတွက်သာ count တိုးခြင်း
-            if (messageSender === 'user' && chatId !== currentChatId) {
-                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                saveUnreadCounts(); 
-            } else if (chatId === currentChatId) {
-                // လက်ရှိဖွင့်ထားသော chat ဆိုပါက count ကို ရှင်းပစ်ခြင်း
-                unreadCounts[chatId] = 0;
-                saveUnreadCounts();
-            }
-
-            // 4. Re-render the UI
-            if (currentView === 'chat') {
-                renderChatList(); 
-            }
-        };
-
-
-        // ၂။ Chat List ကို Render လုပ်ခြင်း
-        const renderChatList = () => {
-            userListContainer.innerHTML = ''; 
-            const fragment = document.createDocumentFragment();
-
-            activeChats.forEach(chat => {
-                const chatId = chat.telegramId;
-                const isActive = currentChatId === chatId;
-                const unreadCount = unreadCounts[chatId] || 0;
-
-                const chatItem = document.createElement('div');
-                chatItem.dataset.chatId = chatId;
-
-                chatItem.className = `chat-list-item p-4 border-b border-slate-700 text-white cursor-pointer transition duration-150 ${isActive ? 'active' : ''}`;
-
-                // lastMessageTime ကို display အတွက် သုံးခြင်း
-                const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
-                const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
-
-                chatItem.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <p class="text-base truncate ${isActive ? 'font-semibold' : ''} flex-grow">${chat.username}</p>
-                        ${unreadCount > 0 ? `<span class="unread-badge ml-2">${unreadCount}</span>` : ''}
-                    </div>
-                    <p class="text-xs ${isActive ? 'text-emerald-200' : 'text-slate-400'} mt-1">${timeString}</p>
-                `;
-
-                chatItem.onclick = () => selectChat(chatId);
-                fragment.appendChild(chatItem);
+            chatElement.addEventListener('click', () => {
+                selectChat(chat.telegramId, chat.username || chat.telegramId);
             });
-            userListContainer.appendChild(fragment);
-        };
 
-        // ၃။ Chat ကို ရွေးချယ်ပြီး Pagination ဖြင့် စတင် History တင်ခြင်း
-        const selectChat = async (chatId) => {
-            if (currentChatId === chatId) return; 
+            return chatElement;
+        }
 
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
+        /**
+         * Renders a single message bubble.
+         */
+        function createMessageBubble(msg) {
+            const isUser = msg.sender === 'user';
+            const alignment = isUser ? 'justify-start' : 'justify-end';
+            const bubbleClass = isUser ? 'bg-gray-200 text-gray-800' : 'bg-blue-600 text-white';
 
-            // Unread Count ကို ရှင်းလင်းခြင်းနှင့် Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း
-            if (unreadCounts[chatId] > 0) {
-                unreadCounts[chatId] = 0;
-                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${alignment}`;
+            
+            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            let mediaContent = '';
+            if (msg.mediaPath && isUser) {
+                // User-sent media: Use the /api/get-media endpoint with file_id
+                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
+                mediaContent = `<img src="${imageUrl}" class="w-48 h-auto rounded-lg mb-2 cursor-pointer" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/200x150/f0f0f0/666666?text=Image+Error'" alt="User Image"/>`;
+            } else if (msg.mediaPath && !isUser) {
+                // Admin-sent media (saved as Base64): Display the Base64 string directly
+                mediaContent = `<img src="${msg.mediaPath}" class="w-48 h-auto rounded-lg mb-2 cursor-pointer" onclick="window.open('${msg.mediaPath}', '_blank')" alt="Admin Image"/>`;
             }
 
-            currentChatId = chatId;
-            currentChatOffset = 0; 
-            allHistoryLoaded = false;
-            
-            clearFileSelection();
+            messageElement.innerHTML = `
+                <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}">
+                    ${mediaContent}
+                    <p class="${msg.text ? 'block' : 'hidden'}">${msg.text || ''}</p>
+                    <span class="block text-[10px] opacity-75 mt-1 text-right">${timeString}</span>
+                </div>
+            `;
+            return messageElement;
+        }
 
-            // UI အခြေအနေကို ပြောင်းလဲခြင်း
-            const user = activeChats.find(c => c.telegramId === chatId);
-            if (!user) {
-                chatHeaderTitle.textContent = "အသုံးပြုသူ ရှာမတွေ့ပါ";
-                chatHeaderSubtitle.textContent = "";
-                return;
-            }
-            chatHeaderTitle.textContent = user.username;
-            chatHeaderSubtitle.textContent = `Telegram ID: ${chatId}`;
-            noChatSelected.classList.add('hidden');
-            replyText.disabled = false;
-            sendButton.disabled = false;
-            attachButton.disabled = false;
-            emojiButton.disabled = false;
-            
-            chatWindow.innerHTML = '<div class="text-center text-gray-500 py-4" id="initial-loading">History ကို ရယူနေသည်...</div>';
-            
-            // Chat List ကို ချက်ချင်း အပ်ဒိတ်လုပ်ပြီး badge ကို ဖျောက်ခြင်း
-            renderChatList(); 
-
-            await loadChatHistory(chatId, MESSAGE_LIMIT, currentChatOffset, true);
-        };
-
-        // ၄။ Chat History ကို Limit/Offset ဖြင့် ရယူခြင်း (Pagination)
-        const loadChatHistory = async (chatId, limit, offset, isInitialLoad = false) => {
-            if (allHistoryLoaded && !isInitialLoad) {
-                document.getElementById('load-more-btn')?.remove();
-                return;
-            }
-
-            const loadMoreBtn = document.getElementById('load-more-btn');
-            if (loadMoreBtn) loadMoreBtn.disabled = true;
+        /**
+         * Fetches and displays the initial chat list.
+         */
+        async function fetchChats() {
+            const chatListElement = document.getElementById('chatList');
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500">Loading chats...</div>';
 
             try {
-                const response = await fetch(`${apiBaseUrl}/api/chats/${chatId}/history?limit=${limit}&offset=${offset}`);
+                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
+                if (!response.ok) throw new Error('Authentication or Server error');
+                const chats = await response.json();
 
-                if (response.status === 401) throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
-                if (!response.ok) throw new Error('History ရယူမှု မအောင်မြင်ပါ');
-                
-                const history = await response.json();
-                
-                if (history.length < limit) {
-                    allHistoryLoaded = true;
+                chatListElement.innerHTML = '';
+                if (chats.length === 0) {
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500">No active chats found.</div>';
+                    return;
                 }
                 
-                // Load More အတွက် Scroll Position ကို မှတ်ထားခြင်း
-                let scrollHeightBefore = 0;
-                if (!isInitialLoad) {
-                    scrollHeightBefore = chatWindow.scrollHeight;
-                }
+                // Add an arbitrary unread count for mock display (based on screenshot)
+                const mockChats = chats.map((c, index) => ({
+                    ...c,
+                    // Mock a simple "unread" status for the selected chat
+                    unreadCount: index === 0 ? 1 : 0 
+                }));
 
-                if (isInitialLoad) {
-                    chatWindow.innerHTML = '';
-                    history.forEach(msg => renderMessage(msg, false));
-                    chatWindow.scrollTop = chatWindow.scrollHeight; // အောက်ဆုံးသို့ ရွှေ့ခြင်း
-                } else {
-                    history.reverse().forEach(msg => renderMessage(msg, true));
-                    // Scroll Position ကို ချိန်ညှိခြင်း (Previous content height ကို ပြန်ရွှေ့ခြင်း)
-                    const scrollHeightAfter = chatWindow.scrollHeight;
-                    chatWindow.scrollTop = scrollHeightAfter - scrollHeightBefore;
-                }
-
-                const loadingEl = document.getElementById('initial-loading');
-                if (loadingEl) loadingEl.remove();
-
-                if (!allHistoryLoaded) {
-                    const existingBtn = document.getElementById('load-more-btn');
-                    if (!existingBtn) {
-                        const btn = document.createElement('button');
-                        btn.id = 'load-more-btn';
-                        btn.textContent = 'ယခင်စာများ ထပ်ယူရန်...';
-                        btn.className = 'w-full p-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg transition duration-150 shadow-sm sticky top-0';
-                        btn.onclick = () => loadChatHistory(chatId, MESSAGE_LIMIT, currentChatOffset);
-                        // Button ကို အပေါ်ဆုံးတွင် ထည့်ခြင်း
-                        chatWindow.insertBefore(btn, chatWindow.firstChild);
-                    } else {
-                        existingBtn.disabled = false;
-                    }
-                } else {
-                    document.getElementById('load-more-btn')?.remove();
-                    if(isInitialLoad || history.length > 0) {
-                         const endMsg = document.createElement('div');
-                         endMsg.textContent = '--- စကားပြောဆိုမှု အစမှ အဆုံး ---';
-                         endMsg.className = 'text-center text-xs text-gray-400 py-2';
-                         chatWindow.insertBefore(endMsg, chatWindow.firstChild);
-                    }
-                }
-                
-                currentChatOffset += history.length;
-
-            } catch (error) {
-                console.error("Fetch history error:", error);
-                if (isInitialLoad) {
-                    chatWindow.innerHTML = `<div class="text-center text-red-500">Chat history ကို ရယူရာတွင် အမှားဖြစ်ပွားသည်: ${error.message}</div>`;
-                } else {
-                    const errorBtn = document.getElementById('load-more-btn');
-                    if (errorBtn) {
-                        errorBtn.textContent = `🚫 Error: ${error.message}`;
-                        setTimeout(() => {
-                            errorBtn.textContent = 'ယခင်စာများ ထပ်ယူရန်...';
-                            errorBtn.disabled = false;
-                        }, 5000); 
-                    }
-                }
-            }
-        };
-
-
-        // ၅။ အသုံးပြုသူ စာရင်းကို API မှ ရယူခြင်း
-        const fetchChats = async () => {
-            const loadingEl = document.getElementById('loading-chats');
-            loadingEl.classList.remove('hidden');
-            try {
-                const response = await fetch(`${apiBaseUrl}/api/chats`);
-                
-                if (response.status === 401) throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
-                if (!response.ok) throw new Error('Chat list ရယူမှု မအောင်မြင်ပါ');
-
-                activeChats = await response.json();
-                
-                // **DE-DUPLICATION LOGIC 1: Initial Load မှာ ထပ်နေသော Chat များကို စစ်ထုတ်ခြင်း**
-                const uniqueChatMap = new Map();
-                activeChats.forEach(chat => {
-                    // ၎င်း user ၏ မက်ဆေ့ခ်ျ အချိန်အသစ်ဆုံးကို ယူခြင်း
-                    if (!uniqueChatMap.has(chat.telegramId) || new Date(chat.lastMessageTime) > new Date(uniqueChatMap.get(chat.telegramId).lastMessageTime)) {
-                        uniqueChatMap.set(chat.telegramId, chat);
-                    }
+                mockChats.forEach(chat => {
+                    chatListElement.appendChild(createChatListItem(chat));
                 });
 
-                // Map မှ unique list ပြန်ရယူခြင်း
-                activeChats = Array.from(uniqueChatMap.values());
-
-                // List ကို lastMessageTime ဖြင့် စီခြင်း (Server က မစီပေးလျှင်သော်လည်းကောင်း)
-                activeChats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
-
-                renderChatList();
             } catch (error) {
-                console.error("Fetch chats error:", error);
-                userListContainer.innerHTML = `<div class="p-4 text-center text-red-500">စာရင်းရယူရာတွင် အမှား။ Server ကို စစ်ဆေးပါ။ (${error.message})</div>`;
-            } finally {
-                loadingEl.classList.add('hidden');
+                console.error("Error fetching chat list:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500">Failed to load chats. Error: ${error.message}</div>`;
             }
-        };
+        }
 
-        // ------------------------------------
-        // Photo Handling Functions
-        // ------------------------------------
-        let selectedFileBase64 = null; 
-
-        // ဓာတ်ပုံရွေးချယ်ပြီး Preview ပြခြင်း
-        const previewFile = (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                clearFileSelection();
-                return;
-            }
-
-            if (!file.type.startsWith('image/')) {
-                // Console တွင်သာ ပြသရန်
-                console.error('ကျေးဇူးပြု၍ ဓာတ်ပုံဖိုင်ကိုသာ ရွေးချယ်ပေးပါ');
-                clearFileSelection();
-                return;
+        /**
+         * Fetches and displays the message history for a selected chat.
+         */
+        async function selectChat(chatId, username) {
+            currentChatId = chatId;
+            
+            // 1. Update UI state (Header and Input)
+            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700">${username}</span>`;
+            document.getElementById('chatInputArea').classList.remove('hidden');
+            
+            // 2. Highlight active chat in the sidebar
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+            const activeChatElement = document.getElementById(`chat-${chatId}`);
+            if (activeChatElement) {
+                activeChatElement.classList.add('active');
+                // Remove the unread badge after selection (mocking read status)
+                const badge = activeChatElement.querySelector('.bg-red-600');
+                if (badge) badge.remove();
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                selectedFileBase64 = e.target.result; 
-                fileNameSpan.textContent = file.name;
-                filePreviewArea.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        };
+            // 3. Fetch history
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = '<div class="text-center text-gray-500">Loading history...</div>';
 
-        // ရွေးချယ်ထားသော ဓာတ်ပုံကို ရှင်းထုတ်ခြင်း
-        const clearFileSelection = () => {
-            selectedFileBase64 = null;
-            fileInput.value = ''; 
-            filePreviewArea.classList.add('hidden');
-            fileNameSpan.textContent = '';
-        };
+            try {
+                // Ensure to pass chatId in the URL
+                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
+                if (!response.ok) throw new Error('Failed to load history');
+                const history = await response.json();
 
-        // ------------------------------------
-        // Event Handlers
-        // ------------------------------------
-
-        // Admin မှ Message ပြန်ပို့ခြင်း
-        const handleReply = (event) => {
-            event.preventDefault();
-            const text = replyText.value.trim();
-            
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
-
-            if (!text && !selectedFileBase64 || !currentChatId) {
-                return;
-            }
-            
-            // **FIX 1: Unique Temporary ID ကို ထုတ်လုပ်ခြင်း**
-            const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-            
-            // UI ကို ချက်ချင်း ပိတ်ပြီး Loading ပြရန်
-            sendButton.disabled = true;
-            replyText.disabled = true;
-            attachButton.disabled = true;
-            emojiButton.disabled = true;
-
-            const messagePayload = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: selectedFileBase64,
-                tempId: tempId // Temporary ID ကို Server သို့ ပို့ခြင်း
-            };
-
-            // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
-            const tempMessage = {
-                chatId: currentChatId,
-                sender: 'admin',
-                text: text,
-                imageUrl: selectedFileBase64, 
-                timestamp: new Date().toISOString(),
-                tempId: tempId // Local echo message အတွက် temporary ID ထည့်ခြင်း
-            };
-            
-            const messageEl = renderMessage(tempMessage); // <-- CALL 1 (The only call to renderMessage for admin outgoing)
-            localEchoMap.set(tempId, messageEl); // Local echo element ကို သိမ်းထားခြင်း
-            
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-
-            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
-            // Callback တွင် ရှင်းလင်းမှုများ ပြုလုပ်ခြင်း
-            socket.emit('admin_reply', messagePayload, (response) => {
-                // Post-send cleanup
-                sendButton.disabled = false;
-                replyText.disabled = false;
-                attachButton.disabled = false;
-                emojiButton.disabled = false;
+                // Clear and render messages
+                historyContainer.innerHTML = '';
+                history.forEach(msg => {
+                    // Prepend new messages so the column-reverse CSS works for scrolling
+                    historyContainer.prepend(createMessageBubble(msg));
+                });
                 
-                // Server မှ အတည်ပြုပြီးပါက local echo ကို opacity ပြန်တက်ခြင်း
-                const echoedEl = localEchoMap.get(tempId);
-                if (echoedEl) {
-                    echoedEl.classList.remove('opacity-70'); // Opacity ပြန်တက်ခြင်း
-                    localEchoMap.delete(tempId); // Map မှ ဖယ်ရှားခြင်း
-                    
-                    // Server က official ID နဲ့ timestamp ကို ပြန်မပေးရင်တောင် local echo က ပြီးသွားပြီ
-                }
+                // Scroll to bottom (since we use column-reverse, this is technically scrolling to the 'top' of the reversed container)
+                historyContainer.scrollTop = 0; 
 
-                if (response && !response.success) {
-                    // Send failed, show error on the echoed message
-                    console.error("Admin Reply failed:", response.error);
-                    // ယာယီစာကို ၅စက္ကန့်ကြာ အနီရောင်ပြရန်
-                    if (echoedEl) {
-                        echoedEl.classList.add('border-2', 'border-red-500');
-                        setTimeout(() => echoedEl.classList.remove('border-2', 'border-red-500'), 5000);
-                    }
+            } catch (error) {
+                console.error(`Error fetching chat history for ${chatId}:`, error);
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Failed to load history.</div>`;
+            }
+        }
+
+        /**
+         * Sends admin reply to the server via Socket.io.
+         */
+        function sendReply() {
+            if (!currentChatId) return;
+
+            const replyInput = document.getElementById('replyText');
+            const text = replyInput.value.trim();
+
+            if (!text) {
+                console.warn("Cannot send empty message.");
+                return;
+            }
+
+            // Simple loading state
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>';
+
+            const data = {
+                chatId: currentChatId,
+                text: text,
+                mediaPath: null // Extend this later for image/media uploads
+            };
+
+            // Emit the reply to the server
+            socket.emit('admin_reply', data, (response) => {
+                // Restore button state
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+                
+                if (response.success) {
+                    // 1. Clear input
+                    replyInput.value = '';
+                    
+                    // 2. Add the message locally (echo)
+                    const tempMsg = {
+                        chatId: currentChatId,
+                        sender: 'admin',
+                        text: text,
+                        mediaPath: null,
+                        timestamp: new Date().toISOString()
+                    };
+                    const historyContainer = document.getElementById('messageHistory');
+                    historyContainer.prepend(createMessageBubble(tempMsg));
+                    historyContainer.scrollTop = 0;
+                } else {
+                    console.error("Failed to send message:", response.error);
                 }
             });
+        }
 
 
-            // **LOGIC: Admin ပြန်ပို့ပြီးပါက Chat List ကို အပေါ်သို့ ရွှေ့ရန်**
-            const userToUpdate = activeChats.find(c => c.telegramId === currentChatId);
-            if (userToUpdate) {
-                // lastMessageTime ကို လက်ရှိအချိန်ဖြင့် update လုပ်ပါ
-                userToUpdate.lastMessageTime = tempMessage.timestamp; 
-                
-                // စာရင်းထဲမှ အပေါ်သို့ ရွှေ့ပြီး list ကို render ပြန်လုပ်ပါ (De-duplication logic ပါဝင်သည်)
-                moveChatEntryToTop(currentChatId, userToUpdate, 'admin-outgoing'); 
-            }
+        // ------------------------------------------------------------------
+        // CORE FIX: Handling Real-time Updates (Socket.io)
+        // ------------------------------------------------------------------
 
-            // Input များကို ရှင်းလင်းခြင်း
-            replyText.value = '';
-            clearFileSelection();
-        };
-
-        // ------------------------------------
-        // Socket.io Real-time Handling
-        // ------------------------------------
-        
-        // Telegram Bot မှ message အသစ် ရောက်လာသောအခါ
         socket.on('new_message', (data) => {
-            const { chatId, message, user } = data;
+            const chatId = data.chatId;
+            const user = data.user;
+            const message = data.message;
             
-            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
-            moveChatEntryToTop(chatId, user, message.sender); 
+            // 1. Find the chat list container
+            const chatList = document.getElementById('chatList');
             
-            // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
-            if (chatId === currentChatId) {
+            // 2. FIND AND REMOVE THE OLD/DUPLICATE ENTRY (THE FIX!)
+            const existingChatElement = document.getElementById(`chat-${chatId}`);
+            if (existingChatElement) {
+                existingChatElement.remove();
+            }
+
+            // 3. Create the new, updated list item
+            // Note: The server sends the `user` object with the latest details.
+            // We temporarily add an unreadCount of 1 for the new notification.
+            user.unreadCount = 1; 
+            const newChatElement = createChatListItem(user);
+            
+            // 4. Insert the new entry at the top (prepended for correct chronological sort)
+            chatList.prepend(newChatElement);
+
+            // 5. If the current chat is the one receiving the message, display the new message immediately
+            if (currentChatId === String(chatId)) {
+                const historyContainer = document.getElementById('messageHistory');
+                historyContainer.prepend(createMessageBubble(message));
+                historyContainer.scrollTop = 0; // Scroll to bottom
                 
-                // **FIX 2: Server မှ ပြန်လာသော Admin Message ကို လုံးဝ ပိတ်ဆို့ခြင်း**
-                // Admin ကိုယ်တိုင်ပို့သော message သည် Local Echo လုပ်ပြီးသားဖြစ်သောကြောင့် Server မှ ပြန်လာလျှင် ထပ်မပြရ။
-                if (message.sender === 'admin') {
-                    // console.log("Skipping admin self-echo message from server broadcast.");
-                    return; 
-                }
-                
-                // User Message (အသုံးပြုသူမှ ပို့သောစာ) ဖြစ်မှသာ ပြသမည်
-                if (message.sender === 'user') {
-                    renderMessage(message);
-                    chatWindow.scrollTop = chatWindow.scrollHeight;
-                }
+                // Since the admin is viewing it, clear the unread badge immediately
+                user.unreadCount = 0;
+                newChatElement.querySelector('.bg-red-600')?.remove();
+            } else {
+                // Flash the new chat item (optional visual feedback)
+                newChatElement.classList.add('bg-yellow-500/30');
+                setTimeout(() => {
+                    newChatElement.classList.remove('bg-yellow-500/30');
+                }, 1000);
             }
         });
 
-        // Server မှ အမှားအယွင်းများ (ဥပမာ: Telegram ပို့မရခြင်း)
-        socket.on('error', (err) => {
-            console.error("Socket Error:", err);
-            // Custom notification ပြသခြင်း
-            const header = document.getElementById('chat-header');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = "bg-red-500 text-white p-2 text-center text-sm sticky top-0 z-50";
-            errorDiv.textContent = `🚫 Message ပို့ရန် အဆင်မပြေပါ။ ${err.message}`;
-            header.insertAdjacentElement('afterend', errorDiv);
-            setTimeout(() => errorDiv.remove(), 5000); 
-            
-            // Input များကို ပြန်ဖွင့်ပေးရန်
-            sendButton.disabled = false;
-            replyText.disabled = false;
-            attachButton.disabled = false;
-            emojiButton.disabled = false;
-        });
 
-        // ------------------------------------
+        // ------------------------------------------------------------------
         // Initialization
-        // ------------------------------------
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Load Chat View by default
-            switchView('chat'); 
-        });
+        // ------------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', fetchChats);
 
     </script>
 </body>
