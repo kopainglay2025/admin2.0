@@ -22,8 +22,6 @@
             color: #E2E8F0; /* Light text */
         }
         
-        /* --- General UI Styles (Admin Portal & Auth View) --- */
-        
         /* Sidebar: Base for the dark, futuristic look */
         .sidebar {
             background-color: #121021; /* Slightly darker than body for depth */
@@ -55,59 +53,7 @@
             color: var(--primary-neon) !important;
         }
 
-        /* --- Auth UI Specific Styles --- */
-
-        /* Custom message box for non-alert messages */
-        #message-box {
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-            opacity: 0;
-            transform: translateY(-10px);
-            z-index: 1000;
-        }
-        .message-show {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-        }
-
-        /* Input field focus glow for Auth forms */
-        .auth-input:focus {
-            outline: none;
-            border-color: var(--primary-neon) !important;
-            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
-        }
-
-        /* Toggle Button Group style (Kept for UI consistency) */
-        .toggle-group button {
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 10;
-        }
-
-        .toggle-group .active-toggle {
-            background-color: var(--primary-neon);
-            color: var(--dark-bg);
-            font-weight: 700;
-            box-shadow: 0 0 15px rgba(0, 224, 255, 0.7);
-        }
-        
-        /* Hidden Forms for Sliding Transition */
-        .auth-form {
-            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
-            position: absolute;
-            width: 100%;
-            top: 0;
-            padding: 0;
-        }
-        #signUpForm {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-        #signInForm {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        /* --- Chat Specific Styles --- */
+        /* Chat Item Styling */
         .chat-item {
             background-color: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -124,7 +70,7 @@
         
         /* Active Chat Item - Secondary Neon Accent */
         .chat-item.active {
-            background-color: #581c87; 
+            background-color: #581c87; /* Deep Purple Accent */
             color: white !important; 
             border: 2px solid var(--secondary-neon);
             box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
@@ -139,6 +85,7 @@
 
         /* Message History container */
         .chat-messages {
+            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
             display: flex;
@@ -166,12 +113,12 @@
 
         /* Message Bubbles */
         .admin-bubble {
-            background-color: #312e81; 
+            background-color: #312e81; /* Indigo-700 */
             color: white;
             border-bottom-right-radius: 8px !important;
         }
         .user-bubble {
-            background-color: #374151; 
+            background-color: #374151; /* Slate-700 */
             color: #F9FAFB; 
             border-bottom-left-radius: 8px !important;
         }
@@ -199,7 +146,7 @@
         }
 
         /* Input/Textarea Focus Glow */
-        input:not(.auth-input):focus, textarea:focus {
+        input:focus, textarea:focus {
             box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
             border-color: var(--primary-neon) !important;
         }
@@ -216,521 +163,344 @@
              box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
              background-color: #00ffff;
         }
+
     </style>
 </head>
-<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex flex-col sm:flex-row">
+<!-- Main container uses the very dark background -->
+<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
 
-    <!-- Custom Message Box UI -->
-    <div id="message-box" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 p-4 rounded-xl shadow-2xl transition duration-300 transform" 
-         style="min-width: 300px; background-color: #2D3748; border-left: 5px solid var(--primary-neon);">
-        <p id="message-text" class="text-sm font-medium"></p>
-    </div>
-
-    <!-- === Authentication View (Initial state) === -->
-    <div id="auth-view" class="flex-grow flex items-center justify-center p-4">
-        <!-- Auth Card -->
-        <div class="w-full max-w-md bg-[var(--card-bg)] rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-700/50">
-            
-            <!-- Header -->
-            <h1 class="text-4xl font-extrabold text-center text-[var(--primary-neon)] tracking-wider">
-                QUANTUM ACCESS
-            </h1>
-            <p id="auth-status" class="text-center text-sm text-gray-400">
-                Initializing connection to Firebase Auth...
-            </p>
-            
-            <!-- Toggle Button Group -->
-            <div class="flex bg-gray-700/50 p-1 rounded-xl toggle-group">
-                <!-- Removed inline onclick handlers -->
-                <button id="signInTab" data-form-type="signin"
-                        class="flex-1 py-2 rounded-lg text-sm active-toggle">
-                    Sign In (Simulated)
-                </button>
-                <button id="signUpTab" data-form-type="signup"
-                        class="flex-1 py-2 rounded-lg text-sm text-gray-400">
-                    Sign Up (Simulated)
-                </button>
-            </div>
-
-            <!-- Form Container (Relative positioning for absolute children) -->
-            <div id="form-container" class="relative h-[250px] overflow-hidden">
-                
-                <!-- Sign In Form -->
-                <!-- Removed inline onsubmit handler -->
-                <form id="signInForm" class="auth-form space-y-4 pt-4">
-                    <div>
-                        <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Username/Email)</label>
-                        <!-- Pre-filled with user's specific credentials -->
-                        <input type="text" id="signin-email" required value="admin"
-                               class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
-                    </div>
-                    <div>
-                        <label for="signin-password" class="block text-sm font-medium mb-2 text-gray-300">Password</label>
-                        <!-- Pre-filled with user's specific credentials -->
-                        <input type="password" id="signin-password" required value="Paing@123"
-                               class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
-                    </div>
-                    
-                    <button type="submit" id="signInBtn"
-                            class="w-full py-3 mt-6 bg-[var(--primary-neon)] text-primary-bg font-bold rounded-xl shadow-lg transition duration-300 hover:opacity-90 transform hover:scale-[1.01] shadow-[0_0_15px_rgba(0,224,255,0.5)] flex items-center justify-center">
-                        Attempt Canvas Token Access
-                    </button>
-                    <p class="text-xs text-center text-gray-500 mt-2">
-                        Note: Authentication uses the secure Canvas token. Input fields are for UI demonstration.
-                    </p>
-                </form>
-
-                <!-- Sign Up Form -->
-                <!-- Removed inline onsubmit handler -->
-                <form id="signUpForm" class="auth-form space-y-4 pt-4">
-                    <div>
-                        <label for="signup-username" class="block text-sm font-medium mb-2 text-gray-300">Username</label>
-                        <input type="text" id="signup-username" required
-                               class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
-                    </div>
-                    <div>
-                        <label for="signup-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Email)</label>
-                        <input type="email" id="signup-email" required
-                               class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
-                    </div>
-                    <div>
-                        <label for="signup-password" class="block text-sm font-medium mb-2 text-gray-300">Create Password</label>
-                        <input type="password" id="signup-password" required
-                               class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
-                    </div>
-                    
-                    <button type="submit" id="signUpBtn"
-                            class="w-full py-3 mt-6 bg-gray-500 text-gray-900 font-bold rounded-xl shadow-lg transition duration-300 hover:opacity-90 transform hover:scale-[1.01]">
-                        Register New Node (Not Functional)
-                    </button>
-                     <p class="text-xs text-center text-red-400 mt-2">
-                        Sign Up is disabled. Only Sign In with Canvas Token is supported.
-                    </p>
-                </form>
-                
-            </div>
-            
+    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
+    <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
+        <!-- Logo/Title: Neon Emphasis -->
+        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
+            <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
+            <span class="tracking-widest">QUANTUM</span>
         </div>
-    </div>
 
-    <!-- === Admin Portal View (Hidden until authenticated) === -->
-    <div id="admin-portal" class="hidden w-full h-full flex flex-col sm:flex-row">
+        <!-- Navigation Menu with Neon Indicators -->
+        <nav id="mainNav" class="p-4 space-y-2 flex-grow">
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                <span class="font-medium">Chats</span>
+            </a>
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+                <span class="font-medium">Broadcast</span>
+            </a>
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="font-medium">Settings</span>
+            </a>
+        </nav>
         
-        <!-- 1. Full Sidebar (w-64) -->
-        <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
-            <!-- Logo/Title -->
-            <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
-                <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-                <span class="tracking-widest">QUANTUM</span>
-            </div>
+        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
+        <div class="p-6 border-t border-gray-700/30">
+             <button id="darkModeToggle" onclick="toggleDarkMode()" 
+                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
+                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Default to Sun icon as the theme is fixed dark -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
+            </button>
+        </div>
+    </div>
 
-            <!-- Navigation Menu -->
-            <nav id="mainNav" class="p-4 space-y-2 flex-grow">
-                
-                <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
-                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-                
-                <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
-                    <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    <span class="font-medium">Chats</span>
-                </a>
-                
-                <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
-                    <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                    <span class="font-medium">Broadcast</span>
-                </a>
-                
-                <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
-                    <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span class="font-medium">Settings</span>
-                </a>
-                
-                <!-- Replaced inline onclick with programmatic listener -->
-                <a href="#" id="logoutButton" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-red-400 mt-auto">
-                    <svg class="w-6 h-6 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="font-medium text-red-400">Logout</span>
-                </a>
-            </nav>
+    <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
+    <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
+        <!-- Chat List Header -->
+        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
+            Conversations Log
+        </div>
+
+        <!-- Chat List Search Input -->
+        <div class="p-4 border-b border-gray-700/30">
+            <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
+                   onkeyup="filterChatList(this.value)"
+                   class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+        </div>
+
+        <!-- Chat List Container -->
+        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
+            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
+        </div>
+    </div>
+
+    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
+    <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
+        
+        <!-- === SECTION: Dashboard === -->
+        <div id="section-dashboard" class="main-section flex-grow p-8">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
+                🚀 Dashboard | Nexus View
+            </h1>
+            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
+                Real-time metrics and system status reports.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 (Neon Blue Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">1,245</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
+                </div>
+                <!-- Card 2 (Neon Green Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">25</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
+                </div>
+                <!-- Card 3 (Neon Magenta/Red Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">156</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
+                </div>
+            </div>
             
-            <!-- User ID Display -->
-            <div class="p-4 border-t border-gray-700/30 text-xs text-gray-500 break-words">
-                <p>Authenticated User ID:</p>
-                <p id="userIdDisplay" class="text-[var(--primary-neon)] font-mono text-sm mt-1 truncate">N/A</p>
+            <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
+                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
+                <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
+                <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
+                    [Holographic Data Display Placeholder]
+                </div>
             </div>
         </div>
 
-        <!-- 2. Chat List Panel (w-80) -->
-        <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
-            <!-- Chat List Header -->
-            <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
-                Conversations Log
-            </div>
-
-            <!-- Chat List Search Input -->
-            <div class="p-4 border-b border-gray-700/30">
-                <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
-                       onkeyup="filterChatList(this.value)"
+        <!-- === SECTION: Chat (Existing Chat Logic) === -->
+        <div id="section-chat" class="main-section flex-grow flex-col hidden">
+            <!-- Chat Header - Sleek, borderless look -->
+            <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
+                <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
+            </header>
+            
+            <!-- Chat History Search Input -->
+            <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
+                <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
+                       onkeyup="filterChatHistory(this.value)"
                        class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
             </div>
 
-            <!-- Chat List Container -->
-            <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-                <div class="text-center p-4 text-gray-500 text-sm">Awaiting Firebase connection...</div>
-            </div>
-        </div>
-
-        <!-- 3. Main Content Area (flex-grow) -->
-        <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
-            
-            <!-- === SECTION: Dashboard === -->
-            <div id="section-dashboard" class="main-section flex-grow p-8">
-                <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
-                    🚀 Dashboard | Nexus View
-                </h1>
-                <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
-                    Real-time metrics and system status reports.
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Card 1 (Neon Blue Gradient) -->
-                    <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
-                        <div class="text-6xl font-black" id="totalUsersCount">0</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Total Chats / Entities</div>
-                    </div>
-                    <!-- Card 2 (Neon Green Gradient) -->
-                    <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
-                        <div class="text-6xl font-black">25</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions (Simulated)</div>
-                    </div>
-                    <!-- Card 3 (Neon Magenta/Red Gradient) -->
-                    <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
-                        <div class="text-6xl font-black" id="unreadMessagesCount">0</div>
-                        <div class="text-sm mt-3 opacity-90 tracking-wider">Unread Messages</div>
-                    </div>
-                </div>
-                
-                <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
-                    <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
-                    <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
-                    <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
-                        [Holographic Data Display Placeholder]
-                    </div>
-                </div>
+            <!-- Message History -->
+            <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
+                <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
             </div>
 
-            <!-- === SECTION: Chat === -->
-            <div id="section-chat" class="main-section flex-grow flex-col hidden">
-                <!-- Chat Header -->
-                <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                    <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
-                </header>
+            <!-- Message Input - Floating effect -->
+            <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
                 
-                <!-- Chat History Search Input -->
-                <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
-                    <input type="text" id="chatHistorySearch" placeholder="Search Messages in History (Client-Side)..."
-                           onkeyup="filterChatHistory(this.value)"
-                           class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+                <!-- File/Image Preview Area -->
+                <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
+                            <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
+                            <span id="fileSize" class="text-xs text-gray-500"></span>
+                        </div>
+                        <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Message History -->
-                <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
-                    <div class="text-center text-gray-600">No chat selected yet. Select an entity from the left.</div>
-                </div>
-
-                <!-- Message Input -->
-                <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
+                <div class="flex space-x-2">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="fileInput" class="hidden" 
+                           onchange="handleFileSelect(event)" 
+                           accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                           
+                    <!-- Attach Button -->
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                    </button>
                     
-                    <!-- File/Image Preview Area (File sending is simulated/placeholder) -->
-                    <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
-                         <div class="text-sm text-gray-400">File sending is a placeholder for this environment.</div>
-                    </div>
-
-                    <div class="flex space-x-2">
-                        <!-- Hidden File Input (Disabled for simplicity) -->
-                        <button disabled 
-                                class="text-gray-600 p-4 rounded-xl flex items-center justify-center opacity-50 cursor-not-allowed">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        </button>
-                        
-                        <!-- Input field -->
-                        <!-- The Enter key handler (onkeypress) remains inline as it calls the module-scoped sendReply, but we must ensure sendReply is hoisted or accessible. In a module, this is usually fine if sendReply is global, but in a type="module" script, it is not. However, since the error was on switchForm/handleAuth, and fixing those by programmatic linking is better, let's leave this one small onkeypress and see if it works, otherwise, it will also need programmatic binding. sendReply is not defined globally. I will attach it programmatically as well. -->
-                        <input type="text" id="replyText" placeholder="Transmit data packet (Powered by Firestore)..."
-                               class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200">
-                               
-                        <!-- Send button -->
-                        <!-- Removed inline onclick and attached listener programmatically -->
-                        <button id="sendButton" 
-                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
-                    </div>
+                    <!-- Input field with neon focus style -->
+                    <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
+                           class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
+                           onkeypress="if(event.key === 'Enter') sendReply()">
+                           
+                    <!-- Send button with vibrant glow -->
+                    <button id="sendButton" onclick="sendReply()"
+                            class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
                 </div>
             </div>
-
-            <!-- === SECTION: Broadcast / Settings (Placeholder) === -->
-             <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-                <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <p class="text-xl text-gray-300">This feature is pending integration with the Gemini API for bulk communication.</p>
-                </div>
-            </div>
-
-            <div id="section-settings" class="main-section flex-grow p-8 hidden">
-                <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Firebase Status</h3>
-                    <p class="text-sm text-gray-400 mb-4">
-                        Status: <span id="firebaseStatus" class="font-bold text-green-400">Connected</span>
-                    </p>
-                    <p class="text-sm text-gray-400">
-                        App ID: <span class="font-mono text-[var(--primary-neon)]" id="appIdDisplay">N/A</span>
-                    </p>
-                </div>
-            </div>
-
         </div>
+
+        <!-- === SECTION: Broadcast === -->
+        <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
+            <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                <p class="mb-6 text-gray-400">
+                    Send high-priority messages to target user segments.
+                </p>
+                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
+                <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
+                    <span class="flex items-center space-x-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+                        <span>Initiate Broadcast</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- === SECTION: Settings === -->
+        <div id="section-settings" class="main-section flex-grow p-8 hidden">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
+            <div class="space-y-8">
+                <!-- Setting Card 1 -->
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
+                    <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
+                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
+                </div>
+                <!-- Setting Card 2 -->
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer" checked>
+                            <!-- Toggle switch with vibrant colors -->
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- 4. Firebase and JavaScript Logic -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, addDoc, onSnapshot, collection, query, orderBy, limit, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
-        // setLogLevel('debug'); // Uncomment to see Firebase logs
-
+    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
         // --- Client-side State Management ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-quantum-admin';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        let db, auth;
-        let userId = null;
-        let isAuthReady = false; 
+        const apiKey = ""; 
+        const BASE_URL = ''; 
+        let socket;
         
         let currentChatId = null;
-        let unsubscribeChatHistory = null;
-        let allChats = []; 
         let unreadCounts = {}; 
+        let allChats = []; 
+        const htmlElement = document.documentElement;
 
-        // UI Elements
-        const authView = document.getElementById('auth-view');
-        const adminPortal = document.getElementById('admin-portal');
-        const authStatus = document.getElementById('auth-status');
-        const userIdDisplay = document.getElementById('userIdDisplay');
-        const chatListElement = document.getElementById('chatList');
-        const historyContainer = document.getElementById('messageHistory');
-        const totalUsersCount = document.getElementById('totalUsersCount');
-        const unreadMessagesCount = document.getElementById('unreadMessagesCount');
-        const signInForm = document.getElementById('signInForm');
-        const signUpForm = document.getElementById('signUpForm');
-        const formContainer = document.getElementById('form-container');
-        const messageBox = document.getElementById('message-box');
-        const messageText = document.getElementById('message-text');
+        // --- File State Variables ---
+        let selectedFile = null;
+        let mediaPath = null;
+        let mediaType = null;
+        let filename = null;
 
+        // --- Utility Functions ---
 
-        // --- Firestore Paths ---
-        // Public collection for shared chat data (all users can read/write)
-        function getChatCollectionRef() {
-            return collection(db, `/artifacts/${appId}/public/data/chats`);
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
         
-        function getMessageCollectionRef(chatId) {
-            return collection(db, `/artifacts/${appId}/public/data/chats/${chatId}/messages`);
-        }
-        
-        // --- Utility Functions (same as previous version, stripped of unused file logic) ---
-
-        /**
-         * Utility to display custom UI messages instead of alerts.
-         */
-        function showMessage(message, type = 'info') {
-            const colors = {
-                success: { background: '#15803d', border: '#4ade80' }, 
-                error: { background: '#b91c1c', border: '#f87171' }, 
-                info: { background: '#2D3748', border: getComputedStyle(document.documentElement).getPropertyValue('--primary-neon') } 
-            };
-
-            const style = colors[type] || colors.info;
-
-            messageBox.style.backgroundColor = style.background;
-            messageBox.style.borderLeftColor = style.border;
-            messageText.textContent = message;
-            
-            messageBox.classList.add('message-show');
-            
-            setTimeout(() => {
-                messageBox.classList.remove('message-show');
-            }, 3000); 
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.includes('pdf')) return '📄';
+            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+            return '📎';
         }
 
-        function updateFormContainerHeight(formElement) {
-            formElement.style.position = 'static';
-            formElement.style.opacity = '1';
-            formElement.style.transform = 'none';
-            
-            const height = formElement.offsetHeight + 40; 
-            formContainer.style.height = `${height}px`;
 
-            formElement.style.position = 'absolute';
-            if (formElement.id === 'signInForm') {
-                formElement.style.opacity = '1';
-                formElement.style.transform = 'translateX(0)';
-            } else {
-                 formElement.style.opacity = '0';
-                 formElement.style.transform = 'translateX(100%)';
-            }
+        // --- Dark Mode Functions (The theme is fixed dark now, this button can toggle a subtle effect or future mode) ---
+        function toggleDarkMode() {
+            // Since the theme is fixed dark, this can trigger a special effect or log a message.
+            console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
+            alert("Theme is locked to Quantum Dark Mode.");
         }
 
-        /**
-         * FIX: This function is now called programmatically via event listeners.
-         */
-        function switchForm(type) {
-            const signInTab = document.getElementById('signInTab');
-            const signUpTab = document.getElementById('signUpTab');
-
-            if (type === 'signin') {
-                signInForm.style.transform = 'translateX(0)';
-                signInForm.style.opacity = '1';
-                signUpForm.style.transform = 'translateX(100%)';
-                signUpForm.style.opacity = '0';
-                
-                signInTab.classList.add('active-toggle');
-                signUpTab.classList.remove('active-toggle');
-                signUpTab.classList.add('text-gray-400');
-                signInTab.classList.remove('text-gray-400');
-                
-                updateFormContainerHeight(signInForm);
-            } else if (type === 'signup') {
-                signInForm.style.transform = 'translateX(-100%)';
-                signInForm.style.opacity = '0';
-                signUpForm.style.transform = 'translateX(0)';
-                signUpForm.style.opacity = '1';
-
-                signUpTab.classList.add('active-toggle');
-                signInTab.classList.remove('active-toggle');
-                signInTab.classList.add('text-gray-400');
-                signUpTab.classList.remove('text-gray-400');
-
-                updateFormContainerHeight(signUpForm);
-            }
+        function updateThemeIcon() {
+            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
         }
-        
-        // --- Firebase/Auth Functions ---
 
-        /**
-         * Attempts to log in using the custom Canvas token or anonymously.
-         * FIX: This function is now called programmatically via event listeners.
-         */
-        async function handleAuth(event, type) {
-            event.preventDefault();
-            
-            if (type === 'signup') {
-                showMessage("Sign Up is disabled. Please use the Canvas environment's authentication token.", 'error');
-                return;
-            }
+        function loadDarkModePreference() {
+            htmlElement.classList.add('dark'); // Force dark mode
+            updateThemeIcon();
+        }
 
-            const button = document.getElementById('signInBtn');
-            const originalText = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
+        // --- Navigation Functions ---
+        function showSection(sectionId) {
+            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
 
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    // onAuthStateChanged listener handles the rest
+            const targetSection = document.getElementById(`section-${sectionId}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                if (sectionId === 'chat') {
+                     targetSection.classList.add('flex-col');
+                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
                 } else {
-                    await signInAnonymously(auth);
-                    // onAuthStateChanged listener handles the rest
+                     targetSection.classList.remove('flex-col');
                 }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                showMessage(`Authentication failed: ${error.message}`, 'error');
-            } finally {
-                button.disabled = false;
-                button.innerHTML = originalText;
             }
-        }
 
-        /**
-         * Switches the view to the Admin Portal.
-         */
-        function login(user) {
-            userId = user.uid;
-            userIdDisplay.textContent = userId;
-            
-            authView.classList.add('hidden');
-            adminPortal.classList.remove('hidden');
-            showMessage(`[ACCESS GRANTED] Connected as ${user.isAnonymous ? 'Anonymous' : 'Authenticated'} user.`, 'success');
-            
-            // Start listening to the chat list once authenticated
-            fetchChats();
-            // Ensure first section is shown
-            showSection('dashboard');
-        }
+            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active-nav');
+            }
 
-        /**
-         * Switches the view back to the Authentication Portal.
-         */
-        async function logout() {
-            try {
-                await signOut(auth);
-                adminPortal.classList.add('hidden');
-                authView.classList.remove('hidden');
-                historyContainer.innerHTML = '<div class="text-center text-gray-600">No chat selected yet. Select an entity from the left.</div>';
-                
-                // Clear state
-                userId = null;
-                isAuthReady = false;
-                userIdDisplay.textContent = 'N/A';
-                allChats = [];
-                unreadCounts = {};
-                if (unsubscribeChatHistory) unsubscribeChatHistory();
-                currentChatId = null;
-                
-                showMessage('[SESSION TERMINATED] Access revoked. Please sign in again.', 'info');
-            } catch (error) {
-                console.error("Logout failed:", error);
-                showMessage(`Logout failed: ${error.message}`, 'error');
+            const chatListPanel = document.getElementById('chatListPanel');
+            if (sectionId === 'chat') {
+                chatListPanel.classList.remove('hidden');
+                if (allChats.length === 0) {
+                    fetchChats();
+                } else {
+                    filterChatList(document.getElementById('chatListSearch').value);
+                }
+            } else {
+                chatListPanel.classList.add('hidden');
+                currentChatId = null; 
+                document.getElementById('chatHistorySearch').value = ''; 
+                clearFileSelection(); 
             }
         }
 
 
-        // --- Chat UI Helpers (Minimal Changes) ---
+        // --- Chat Specific Functions ---
 
         function createChatListItem(chat) {
-            const chatId = chat.id;
+            const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            // Use 'name' or fallback to a shortened ID
-            const username = chat.name || `Chat Entity ${displayId}`;
-            const count = unreadCounts[chatId] || 0; 
+            const username = chat.username || 'Unknown Entity';
+            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            // Use data-name for filtering
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl cursor-pointer';
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
             chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-name', username.toLowerCase());
+            chatElement.setAttribute('data-username', username.toLowerCase());
 
             const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
 
+            // Avatar SVG Placeholder - Futuristic style
             const avatar = `
                 <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
             `;
-            // Display only the last message text, not media info
-            const lastMessageText = chat.lastMessage?.text || chat.lastMessage?.mediaType || '[No recent communication]';
 
             chatElement.innerHTML = `
                 ${avatar}
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
                     <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-400 truncate mt-1">${lastMessageText}</p>
+                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -742,19 +512,77 @@
             return chatElement;
         }
 
+        function filterChatList(query) {
+            const chatListElement = document.getElementById('chatList');
+            const lowerCaseQuery = query.toLowerCase().trim();
+            
+            chatListElement.innerHTML = ''; 
+
+            const filteredChats = allChats.filter(chat => {
+                const username = (chat.username || '').toLowerCase();
+                const chatId = String(chat.telegramId);
+                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+            });
+            
+            if (filteredChats.length > 0) {
+                filteredChats.forEach(chat => {
+                    chatListElement.appendChild(createChatListItem(chat));
+                });
+            } else {
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
+            }
+        }
+
+        /**
+         * Renders a single message bubble.
+         */
         function createMessageBubble(msg) {
-            // Note: In a real system, 'sender' would be checked against the logged-in user ID.
-            // Here, we simulate 'user' (external) and 'admin' (this user) based on the 'senderId' field.
-            const isUser = msg.senderId !== userId;
+            const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
             const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
             
             const messageElement = document.createElement('div');
             messageElement.className = `message-bubble flex ${alignment} mb-3`;
             
-            const timeString = new Date(msg.timestamp.toDate ? msg.timestamp.toDate() : msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            let mediaContent = ''; // Placeholder for media
+            let mediaContent = '';
+            
+            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
+            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
+            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
+
+            if (isUserMedia) {
+                // User sent media (image/file from Telegram, displayed via API)
+                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
+                mediaContent = `
+                    <img src="${imageUrl}" 
+                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
+                         onclick="window.open('${imageUrl}', '_blank')" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
+                         alt="Chat Media"/>
+                `;
+            } else if (isAdminMedia) {
+                 // Admin sent media (Base64 data URL, directly displayed)
+                 if (msg.mediaPath.startsWith('data:image/')) {
+                     // Image display
+                     mediaContent = `
+                        <img src="${msg.mediaPath}" 
+                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
+                            onclick="window.open('${msg.mediaPath}', '_blank')" 
+                            alt="Admin Image"/>
+                     `;
+                 } else {
+                    // Document/File display (using icon and name)
+                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
+                    mediaContent = `
+                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
+                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
+                            <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
+                        </div>
+                    `;
+                 }
+            }
 
             messageElement.innerHTML = `
                 <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
@@ -767,219 +595,172 @@
             `;
             return messageElement;
         }
-
-        // --- Navigation Functions ---
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
-
-            const targetSection = document.getElementById(`section-${sectionId}`);
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-            }
-
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active-nav');
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                targetSection.classList.add('flex-col');
-                document.getElementById('chatHistorySearchArea').classList.remove('hidden'); 
-            } else {
-                chatListPanel.classList.add('hidden');
-                // Ensure chat listeners are removed when leaving chat section
-                if (unsubscribeChatHistory) {
-                    unsubscribeChatHistory();
-                    unsubscribeChatHistory = null;
-                }
-                currentChatId = null;
-            }
-            
-            // Update Dashboard metrics if switching to dashboard
-            if (sectionId === 'dashboard') {
-                totalUsersCount.textContent = allChats.length;
-                unreadMessagesCount.textContent = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
-            }
-        }
-
-        // --- Firestore Chat Logic ---
-
-        /**
-         * Listens for real-time updates on the list of active chats/users.
-         */
-        function fetchChats() {
-            if (!isAuthReady) return;
-
-            const chatsRef = getChatCollectionRef();
-            const q = query(chatsRef, limit(50)); // Limit to 50 active chats
-
-            onSnapshot(q, (snapshot) => {
-                const updatedChats = [];
-                let newUnreadCounts = {};
-                
-                snapshot.docChanges().forEach(change => {
-                    const chatData = { id: change.doc.id, ...change.doc.data() };
-
-                    // Recalculate unread counts based on last admin read status
-                    const lastReadTime = chatData.lastReadByAdmin?.toDate ? chatData.lastReadByAdmin.toDate().getTime() : 0;
-                    const lastMessageTime = chatData.lastMessage?.timestamp?.toDate ? chatData.lastMessage.timestamp.toDate().getTime() : 0;
-                    
-                    // Simple heuristic: if last message time is after last read time, mark as potentially unread (1)
-                    // In a production app, we would query the messages collection for a proper unread count.
-                    const isUnread = lastMessageTime > lastReadTime;
-                    newUnreadCounts[chatData.id] = isUnread ? 1 : 0; 
-
-                    if (change.type === 'added' || change.type === 'modified') {
-                         updatedChats.push(chatData);
-                    } else if (change.type === 'removed') {
-                        // Remove from list
-                    }
-                });
-
-                allChats = updatedChats.sort((a, b) => {
-                    const timeA = a.lastMessage?.timestamp?.toDate ? a.lastMessage.timestamp.toDate() : new Date(0);
-                    const timeB = b.lastMessage?.timestamp?.toDate ? b.lastMessage.toDate() : new Date(0);
-                    return timeB - timeA; // Sort by most recent message first
-                });
-                
-                unreadCounts = newUnreadCounts;
-                renderChatList();
-            }, (error) => {
-                console.error("Error fetching chats:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error fetching chats: ${error.message}</div>`;
-            });
-        }
         
-        function renderChatList() {
-            chatListElement.innerHTML = '';
-             if (allChats.length === 0) {
-                chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
-                return;
-            }
-            
-            filterChatList(document.getElementById('chatListSearch').value || '');
-
-            // Update dashboard counts
-            totalUsersCount.textContent = allChats.length;
-            unreadMessagesCount.textContent = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
-        }
-
-        function filterChatList(query) {
+        function filterChatHistory(query) {
             const lowerCaseQuery = query.toLowerCase().trim();
-            chatListElement.innerHTML = ''; 
+            const messages = document.querySelectorAll('#messageHistory .message-bubble');
+            let foundCount = 0;
 
-            const filteredChats = allChats.filter(chat => {
-                const name = (chat.name || '').toLowerCase();
-                const chatId = String(chat.id);
-                return name.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+            messages.forEach(messageDiv => {
+                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
+                
+                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
+                    messageDiv.classList.remove('hidden');
+                    foundCount++;
+                } else {
+                    messageDiv.classList.add('hidden');
+                }
             });
             
-            if (filteredChats.length > 0) {
-                filteredChats.forEach(chat => {
+            const noResultMessage = document.getElementById('noHistoryResults');
+            if (noResultMessage) noResultMessage.remove();
+
+            if (lowerCaseQuery !== '' && foundCount === 0) {
+                 const feedback = document.createElement('div');
+                 feedback.id = 'noHistoryResults';
+                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
+                 feedback.textContent = `No data packets found for query: "${query}"`;
+                 document.getElementById('messageHistory').appendChild(feedback);
+            }
+        }
+
+
+        async function fetchChats() {
+            const chatListElement = document.getElementById('chatList');
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
+            unreadCounts = {}; 
+            allChats = []; 
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
+                if (!response.ok) throw new Error('Authentication failure or offline');
+                const chats = await response.json();
+
+                allChats = chats; 
+                chatListElement.innerHTML = '';
+                
+                if (chats.length === 0) {
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                    return;
+                }
+                
+                chats.forEach(chat => {
+                    unreadCounts[chat.telegramId] = 0; 
                     chatListElement.appendChild(createChatListItem(chat));
                 });
-            } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
-            }
 
-            // Re-apply active class
-            if (currentChatId) {
-                const activeChatElement = document.getElementById(`chat-${currentChatId}`);
-                if (activeChatElement) activeChatElement.classList.add('active');
+            } catch (error) {
+                console.error("Error fetching chat list:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
             }
         }
 
-
-        /**
-         * Selects a chat, updates the UI, and sets up a new Firestore listener for messages.
-         */
-        function selectChat(chatId, username) {
-            if (unsubscribeChatHistory) {
-                unsubscribeChatHistory(); // Unsubscribe from the previous chat's history
-            }
+        async function selectChat(chatId, username) {
             currentChatId = chatId;
-
+            
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Live Feed</span>
+                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
+            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
+            document.getElementById('chatHistorySearch').value = ''; 
             
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
-                // Clear unread count locally and update Firestore status
                 unreadCounts[chatId] = 0;
                 const badge = activeChatElement.querySelector('.badge-style');
                 if (badge) badge.remove();
-                
-                // Update Firestore document to mark as read
-                const chatDocRef = doc(getChatCollectionRef(), chatId);
-                updateDoc(chatDocRef, {
-                    lastReadByAdmin: new Date(), 
-                    unreadCount: 0 // Optional, if we tracked count
-                }).catch(e => console.error("Error marking chat as read:", e));
             }
             
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Establishing real-time data link...</div>';
+            clearFileSelection(); 
 
-            const messagesRef = getMessageCollectionRef(chatId);
-            // Query messages: ordered by timestamp, last 50 messages
-            const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(50));
-            
-            // Set up new listener
-            unsubscribeChatHistory = onSnapshot(q, (snapshot) => {
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
+                if (!response.ok) throw new Error('Failed to load history');
+                const history = await response.json();
+
                 historyContainer.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    historyContainer.innerHTML = '<div class="text-center text-gray-600">No communication history found for this entity.</div>';
-                    return;
-                }
-                
-                // Use a document fragment for performance
-                const fragment = document.createDocumentFragment();
-                // Since we query by 'desc' (most recent first), we must append the items in reverse 
-                // order to maintain the correct display order (oldest at top of view, newest at bottom).
-                
-                const messages = [];
-                snapshot.forEach(doc => {
-                    messages.push({ id: doc.id, ...doc.data() });
+                history.forEach(msg => {
+                    historyContainer.prepend(createMessageBubble(msg));
                 });
+                
+                historyContainer.scrollTop = 0; 
 
-                messages.reverse().forEach(msg => { // Process from oldest to newest
-                    fragment.appendChild(createMessageBubble(msg));
-                });
-                
-                historyContainer.appendChild(fragment);
-                historyContainer.scrollTop = 0; // Scroll to the top (most recent message)
-                
-            }, (error) => {
+            } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets: ${error.message}</div>`;
-            });
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+            }
+        }
+        
+        /**
+         * Clears all file-related state and UI elements.
+         */
+        function clearFileSelection() {
+            selectedFile = null;
+            mediaPath = null;
+            mediaType = null;
+            filename = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+        }
+
+        /**
+         * Handles file selection, converts to Base64, and updates the preview.
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Max file size 5MB
+            if (file.size > 5 * 1024 * 1024) {
+                 alert("File size exceeds 5MB transmission limit.");
+                 event.target.value = ''; 
+                 return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                mediaPath = e.target.result; // Base64 Data URL
+                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
+                filename = file.name;
+                
+                // Update Preview UI
+                document.getElementById('fileName').textContent = filename;
+                document.getElementById('fileSize').textContent = formatBytes(file.size);
+                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
+                document.getElementById('filePreview').classList.remove('hidden');
+                
+                if (mediaType === 'photo') {
+                    // Optional: Show actual image preview
+                }
+            };
+            reader.onerror = (e) => {
+                console.error("File reading error:", e);
+                clearFileSelection();
+            };
+            reader.readAsDataURL(file);
         }
 
 
         /**
-         * Sends a reply by adding a new message document to the Firestore subcollection.
+         * Sends admin reply to the server via Socket.io.
          */
-        async function sendReply() {
-            if (!currentChatId || !userId) {
-                showMessage("System not ready or no chat selected.", 'error');
-                return;
-            }
+        function sendReply() {
+            if (!currentChatId || !socket) return;
 
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
 
-            if (!text) {
-                showMessage("Transmission aborted: Empty data packet.", 'info');
+            if (!text && !mediaPath) {
+                console.warn("Transmission aborted: Empty data packet.");
                 return;
             }
 
@@ -987,123 +768,132 @@
             sendButton.disabled = true;
             sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
 
-            try {
-                const newMessage = {
-                    senderId: userId, // The admin's user ID
-                    text: text,
-                    timestamp: new Date(),
-                    read: false, // Mark for the external user to read
-                    type: 'text'
-                };
-                
-                const messagesRef = getMessageCollectionRef(currentChatId);
-                await addDoc(messagesRef, newMessage);
+            const data = {
+                chatId: currentChatId,
+                text: text,
+                mediaPath: mediaPath, 
+                mediaType: mediaType, 
+                filename: filename 
+            };
 
-                // Update the parent chat document with the last message summary
-                const chatDocRef = doc(getChatCollectionRef(), currentChatId);
-                await updateDoc(chatDocRef, {
-                    lastMessage: {
-                        text: text,
-                        timestamp: newMessage.timestamp,
-                        senderId: userId
-                    },
-                    lastReadByAdmin: newMessage.timestamp, // Mark as read by admin instantly
-                });
-
-                replyInput.value = '';
-                showMessage("Data packet transmitted successfully.", 'success');
-
-            } catch (error) {
-                console.error("Error transmitting data packet:", error);
-                showMessage(`Transmission failed: ${error.message}`, 'error');
-            } finally {
+            socket.emit('admin_reply', data, (response) => {
                 sendButton.disabled = false;
                 sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+                
+                if (response.success) {
+                    // Local Echo
+                    const tempMsg = {
+                        chatId: currentChatId,
+                        sender: 'admin',
+                        text: text,
+                        mediaPath: mediaPath, 
+                        filename: filename,
+                        timestamp: new Date().toISOString()
+                    };
+                    const historyContainer = document.getElementById('messageHistory');
+                    historyContainer.prepend(createMessageBubble(tempMsg));
+                    historyContainer.scrollTop = 0;
+                    
+                    // Clear state after successful send
+                    replyInput.value = '';
+                    clearFileSelection();
+
+                } else {
+                    console.error("Failed to transmit data packet:", response.error);
+                }
+            });
+        }
+
+
+        // ------------------------------------------------------------------
+        // CORE FIX: Handling Real-time Updates (Socket.io)
+        // ------------------------------------------------------------------
+
+        function setupSocketListeners() {
+            if (typeof io !== 'function') {
+                console.error("Socket.io library not found.");
+                return;
             }
+            socket = io();
+            
+            socket.on('new_message', (data) => {
+                const chatId = String(data.chatId);
+                const user = data.user;
+                const message = data.message;
+                
+                const chatList = document.getElementById('chatList');
+                
+                // 1. Find and REMOVE the old entry to prevent duplicates
+                const existingChatElement = document.getElementById(`chat-${chatId}`);
+                if (existingChatElement) {
+                    existingChatElement.remove();
+                }
+
+                // 2. Update allChats data array for search functionality
+                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
+                if (chatIndex !== -1) {
+                    allChats.splice(chatIndex, 1);
+                }
+                user.lastMessageText = message.text;
+                user.lastMessageTime = message.timestamp;
+                allChats.unshift(user);
+
+                // 3. Update Unread Count state
+                if (currentChatId !== chatId) {
+                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                } else {
+                    unreadCounts[chatId] = 0;
+                }
+                
+                // 4. Update the chat list display
+                if (document.getElementById('chatListSearch').value.trim() === '') {
+                    user.unreadCount = unreadCounts[chatId]; 
+                    const newChatElement = createChatListItem(user);
+                    chatList.prepend(newChatElement);
+
+                    // 5. If it's the current chat, display the new message immediately
+                    if (currentChatId === chatId) {
+                        const historyContainer = document.getElementById('messageHistory');
+                        historyContainer.prepend(createMessageBubble(message));
+                        historyContainer.scrollTop = 0; 
+                        newChatElement.classList.add('active'); 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                    } else {
+                        // Add a temporary subtle glow effect for new messages in the list
+                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
+                        setTimeout(() => {
+                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
+                        }, 1000);
+                    }
+                } else {
+                    filterChatList(document.getElementById('chatListSearch').value);
+                    if (currentChatId === chatId) {
+                        const historyContainer = document.getElementById('messageHistory');
+                        historyContainer.prepend(createMessageBubble(message));
+                        historyContainer.scrollTop = 0; 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                    }
+                }
+
+            });
         }
 
 
         // ------------------------------------------------------------------
         // Initialization
         // ------------------------------------------------------------------
-
-        function initializeFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Set session persistence (optional, but good practice)
-                setPersistence(auth, browserSessionPersistence);
-
-                // Listener for authentication state change
-                onAuthStateChanged(auth, (user) => {
-                    isAuthReady = true;
-                    if (user) {
-                        authStatus.textContent = 'Connection established.';
-                        login(user);
-                    } else {
-                        // If auth failed or user logged out, display auth view
-                        authView.classList.remove('hidden');
-                        adminPortal.classList.add('hidden');
-                        authStatus.textContent = 'Ready to establish connection.';
-                    }
-                });
-
-                // Display App ID in settings
-                document.getElementById('appIdDisplay').textContent = appId;
-                
-            } catch (error) {
-                console.error("Firebase initialization error:", error);
-                authStatus.textContent = `Error: ${error.message}`;
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            // Hide the admin portal initially until auth confirms
-            adminPortal.classList.add('hidden');
-            authView.classList.remove('hidden');
+            loadDarkModePreference();
+            setupSocketListeners();
             
-            // --- FIX: Programmatically attach event listeners to replace inline handlers ---
-            
-            // 1. Auth form tab switching
-            document.getElementById('signInTab').addEventListener('click', () => switchForm('signin'));
-            document.getElementById('signUpTab').addEventListener('click', () => switchForm('signup'));
-
-            // 2. Auth form submission
-            document.getElementById('signInForm').addEventListener('submit', (event) => handleAuth(event, 'signin'));
-            document.getElementById('signUpForm').addEventListener('submit', (event) => handleAuth(event, 'signup'));
-            
-            // 3. Chat input and send button
-            const replyInput = document.getElementById('replyText');
-            replyInput.addEventListener('keypress', (event) => {
-                if(event.key === 'Enter') {
-                    event.preventDefault(); // Prevent default form submission if input was inside a form
-                    sendReply();
-                }
-            });
-            document.getElementById('sendButton').addEventListener('click', sendReply);
-            
-            // 4. Navigation and Logout button
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
-                    
-                    // Check if it's the Logout button by ID
-                    if (item.id === 'logoutButton') {
-                        logout();
-                    } else if (item.getAttribute('data-section')) {
-                        showSection(item.getAttribute('data-section'));
-                    }
+                    showSection(item.getAttribute('data-section'));
                 });
             });
-            // --- END FIX ---
 
-
-            initializeFirebase();
-            
-            // Set initial height for sign in form
-            updateFormContainerHeight(signInForm);
+            showSection('dashboard');
         });
 
     </script>
