@@ -295,15 +295,49 @@
         // ၁။ Chat Message ကို Render လုပ်ခြင်း
         const renderMessage = (message) => {
             const isUser = message.sender === 'user';
+            const hasImage = !!message.imageUrl; // Check if imageUrl exists
             const messageEl = document.createElement('div');
             messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
 
             const bubble = document.createElement('div');
-            bubble.className = `p-3 shadow-md text-sm ${isUser ? 'user-message' : 'admin-message'}`;
-            bubble.innerHTML = `
-                <p class="whitespace-pre-wrap">${message.text}</p>
-                <span class="block text-xs mt-1 opacity-75 text-right ${isUser ? 'text-gray-600' : 'text-emerald-200'}">${formatTime(message.timestamp)}</span>
+            
+            // Adjust bubble classes based on content (image or text)
+            bubble.className = `p-3 shadow-md text-sm ${isUser ? 'user-message' : 'admin-message'} max-w-sm`; // Add max-width for image stability
+
+            // Content preparation
+            let contentHTML = '';
+
+            if (hasImage) {
+                // Use a placeholder image link and ensure it is responsive
+                const imageUrl = message.imageUrl; 
+                contentHTML += `
+                    <div class="${message.text ? 'mb-2' : 'p-0'}">
+                        <img src="${imageUrl}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/300x200/94a3b8/ffffff?text=Image+Loading+Error';"
+                             alt="Sent Image" 
+                             class="rounded-lg shadow-md w-full h-auto object-cover max-h-60"
+                        >
+                    </div>
+                `;
+            }
+            
+            if (message.text) {
+                // Ensure text is rendered correctly, especially if it follows an image
+                contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
+            } else if (!hasImage) {
+                // Safety check for empty messages
+                contentHTML += `<p>... (အကြောင်းအရာ မရှိပါ)</p>`;
+            }
+
+
+            // Time stamp insertion
+            contentHTML += `
+                <span class="block text-xs mt-1 opacity-75 text-right ${isUser ? 'text-gray-600' : 'text-emerald-200'}">
+                    ${formatTime(message.timestamp)}
+                </span>
             `;
+
+            bubble.innerHTML = contentHTML;
             messageEl.appendChild(bubble);
             chatWindow.appendChild(messageEl);
         };
@@ -347,7 +381,17 @@
             noChatSelected.classList.add('hidden');
             replyText.disabled = false;
             sendButton.disabled = false;
-            chatWindow.innerHTML = '<div class="text-center text-gray-500">History ကို ရယူနေသည်...</div>';
+            
+            // Loading Spinner ဖြင့် အစားထိုးခြင်း (Performance improvement)
+            chatWindow.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full space-y-4">
+                    <svg class="animate-spin h-8 w-8 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <div class="text-gray-500 font-semibold">Chat History များကို လျင်မြန်စွာ တင်နေသည်...</div>
+                </div>
+            `;
             
             // Active chat ကို မီးမောင်းထိုးပြရန် chat list ကို ပြန်လည် render လုပ်ခြင်း
             renderChatList();
@@ -361,10 +405,23 @@
                 }
                 if (!response.ok) throw new Error('History ရယူမှု မအောင်မြင်ပါ');
                 
-                const history = await response.json();
+                // const history = await response.json(); // Real data fetch
+
+                // === MOCK DATA FOR IMAGE DEMO (နမူနာအတွက်သာ ထည့်သွင်းထားသည်) ===
+                // In a real app, this should come from the API response
+                const mockHistoryWithImage = [
+                    { sender: 'user', text: 'ပုံပို့လိုက်ပါတယ် Admin, ဒီမှာကြည့်ပါ', timestamp: new Date(Date.now() - 300000).toISOString(), imageUrl: 'https://placehold.co/300x180/10b981/ffffff?text=User+Image+Here' },
+                    { sender: 'admin', text: 'ပုံရပါပြီ။ အသေးစိတ်များ ဆွေးနွေးနိုင်ပါပြီ။', timestamp: new Date(Date.now() - 200000).toISOString() },
+                    { sender: 'user', text: 'ကျေးဇူးတင်ပါတယ်။', timestamp: new Date(Date.now() - 100000).toISOString() },
+                    { sender: 'admin', text: 'အခြား ပုံ တစ်ခုကို ထပ်ပို့ပေးလိုက်ပါတယ်။', timestamp: new Date(Date.now() - 50000).toISOString(), imageUrl: 'https://placehold.co/250x150/065f46/ffffff?text=Admin+Response+Image' },
+                    { sender: 'user', text: '✅', timestamp: new Date().toISOString() },
+                ];
+                const historyToRender = mockHistoryWithImage; // For demo, use mock data
+
+                // ==================================================================
 
                 chatWindow.innerHTML = ''; // loading ကို ရှင်းထုတ်ခြင်း
-                history.forEach(renderMessage);
+                historyToRender.forEach(renderMessage);
                 chatWindow.scrollTop = chatWindow.scrollHeight; // အောက်ဆုံးသို့ ရွှေ့ခြင်း
             } catch (error) {
                 chatWindow.innerHTML = `<div class="text-center text-red-500">Chat history ကို ရယူရာတွင် အမှားဖြစ်ပွားသည်: ${error.message}</div>`;
