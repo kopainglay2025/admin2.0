@@ -10,7 +10,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
         body { font-family: 'Padauk', sans-serif; }
-
         
         /* Messenger Style */
         .user-message {
@@ -510,7 +509,7 @@
             downloadLink.href = src;
             
             // Base64 image များကို download လုပ်ရာတွင် filename ပါရန်
-            if (src.startsWith('data:')) {
+            if (src.startsWith('data:') || src.includes('api/get-media')) {
                 downloadLink.setAttribute('download', 'image.png');
             } else {
                 downloadLink.removeAttribute('download');
@@ -529,9 +528,34 @@
         // UI Rendering Functions
         // ------------------------------------
 
+        // Helper function to determine the correct image source URL
+        const getImageSource = (message) => {
+            // 1. Admin reply local echo/Base64 from history
+            if (message.imageUrl) {
+                return message.imageUrl;
+            }
+            
+            // 2. User message (or admin message with Telegram file_id)
+            if (message.mediaPath) {
+                // Assuming mediaPath holds the Telegram file_id or Base64
+                if (message.mediaPath.startsWith('data:')) {
+                    // It's a Base64 string (from admin reply)
+                    return message.mediaPath;
+                } else {
+                    // Assume it's a file_id and use API endpoint to fetch the image
+                    return `${apiBaseUrl}/api/get-media?file_id=${message.mediaPath}`;
+                }
+            }
+
+            return null;
+        };
+
+
         // ၁။ Chat Message ကို Render လုပ်ခြင်း
         const renderMessage = (message, prepend = false) => {
             const isUser = message.sender === 'user';
+            const imageSrc = getImageSource(message); // Unified image source determination
+
             const messageEl = document.createElement('div');
             messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
 
@@ -541,52 +565,24 @@
             let contentHTML = '';
             
             // ဓာတ်ပုံပါရှိလျှင် ပြသခြင်း + Modal ဖွင့်နိုင်ရန် `onclick` ထည့်သွင်းခြင်း
-            if (message.mediaPath && !message.text) {
-                // Note: mediaPath can be a Telegram file ID or a Base64 string.
-                // For client-side rendering of admin reply (local echo or real-time update), we use message.imageUrl (Base64).
-                // For user messages (real-time or history fetch), we use message.mediaPath (Telegram ID).
-                // Since this function is used for both, we need a unified property or logic.
-                // Assuming message.imageUrl exists only for client-side local echo (Base64) or the full Base64 from admin_reply.
-                const imageSrc = message.imageUrl || message.mediaPath; 
-                if (imageSrc) {
-                   contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                    `;
-                }
-            } else if (message.mediaPath && message.text) {
-                 // For user messages (Telegram ID) with caption
-                 const imageSrc = message.mediaPath;
-                 contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                 `;
+            if (imageSrc) {
+               contentHTML += `
+                    <img src="${imageSrc}" 
+                         class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
+                         alt="Image attachment" loading="lazy"
+                         onerror="this.onerror=null; this.src='https://placehold.co/200x200/cccccc/333333?text=Image+Load+Fail'"
+                         onclick="openImageModal(event, '${imageSrc}')">
+                `;
             }
-             // For Admin reply (Base64) with caption (mediaPath will contain Base64)
-             else if (message.imageUrl) {
-                 const imageSrc = message.imageUrl;
-                 contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                 `;
-             }
             
-            
-
             // စာသားပါရှိလျှင် ပြသခြင်း
             if (message.text && message.text.trim().length > 0) {
                  // **မှတ်ချက်:** whitespace-pre-wrap သည် စာကြောင်းအသစ် (newline) နှင့် Emojis များကို မှန်ကန်စွာ ပြသနိုင်ရန် ကူညီပေးသည်။
                  contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
-            } else if (!message.mediaPath && !message.imageUrl) {
-                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း (This path should rarely happen with current logic)
+            } else if (!imageSrc) {
+                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း
                  contentHTML += `<p class="italic opacity-80">${isUser ? 'စာသားမပါသော မက်ဆေ့ခ်ျ' : 'Admin မှ စာသားမပါဘဲ ပို့ထားသည်'}</p>`;
-            } else if ((message.mediaPath || message.imageUrl) && !message.text) {
+            } else if (imageSrc && !message.text) {
                  // ဓာတ်ပုံသာ ပါရှိလျှင် placeholder ထည့်ခြင်း
                  contentHTML += `<p class="italic opacity-80">${isUser ? 'ပုံတစ်ပုံ ပို့ထားသည်' : 'Admin မှ ဓာတ်ပုံပို့ထားသည်'}</p>`;
             }
@@ -599,8 +595,7 @@
             messageEl.appendChild(bubble);
 
             if (prepend) {
-                // Load More အတွက် အပေါ်မှ ထည့်ခြင်း
-                // Load More ခလုတ်အောက်တွင် ထည့်ရန်
+                // Load More အတွက် အပေါ်မှ ထည့်ခြင်း (Load More Button ပြီးနောက်)
                 const loadMoreBtn = document.getElementById('load-more-btn');
                 if (loadMoreBtn) {
                      chatWindow.insertBefore(messageEl, loadMoreBtn.nextSibling); 
@@ -705,13 +700,19 @@
                 if (history.length < limit) {
                     allHistoryLoaded = true;
                 }
+                
+                // Load More အတွက် Scroll Position ကို မှတ်ထားခြင်း
+                const scrollHeightBefore = chatWindow.scrollHeight;
 
                 if (isInitialLoad) {
                     chatWindow.innerHTML = '';
                     history.forEach(msg => renderMessage(msg, false));
-                    chatWindow.scrollTop = chatWindow.scrollHeight; 
+                    chatWindow.scrollTop = chatWindow.scrollHeight; // အောက်ဆုံးသို့ ရွှေ့ခြင်း
                 } else {
                     history.reverse().forEach(msg => renderMessage(msg, true));
+                    // Scroll Position ကို ချိန်ညှိခြင်း
+                    const scrollHeightAfter = chatWindow.scrollHeight;
+                    chatWindow.scrollTop = scrollHeightAfter - scrollHeightBefore;
                 }
 
                 const loadingEl = document.getElementById('initial-loading');
@@ -725,6 +726,7 @@
                         btn.textContent = 'ယခင်စာများ ထပ်ယူရန်...';
                         btn.className = 'w-full p-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg transition duration-150 shadow-sm sticky top-0';
                         btn.onclick = () => loadChatHistory(chatId, MESSAGE_LIMIT, currentChatOffset);
+                        // Button ကို အပေါ်ဆုံးတွင် ထည့်ခြင်း
                         chatWindow.insertBefore(btn, chatWindow.firstChild);
                     } else {
                         existingBtn.disabled = false;
@@ -741,10 +743,7 @@
                 
                 currentChatOffset += history.length;
 
-                if (!isInitialLoad && history.length > 0) {
-                     // Loading လုပ်ပြီးနောက် Scrollbar ကို အပေါ်သို့ ညွှန်ပြရန်
-                     chatWindow.scrollTop = 10;
-                }
+                // For load more, scroll is handled above. For initial load, scroll is at the end.
 
             } catch (error) {
                 console.error("Fetch history error:", error);
@@ -846,7 +845,7 @@
             const messagePayload = {
                 chatId: currentChatId,
                 text: text,
-                mediaPath: selectedFileBase64 // server က mediaPath ကို မျှော်လင့်ထားသည်
+                mediaPath: selectedFileBase64 // server က mediaPath ကို မျှော်လင့်ထားသည် (Base64)
             };
 
             // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
