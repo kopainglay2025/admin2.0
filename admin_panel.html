@@ -7,14 +7,25 @@
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        /* Apply smooth transition for dark mode */
+        html.dark {
+            color-scheme: dark;
+        }
+        body { 
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s;
+        }
         /* Style for the active chat and the chat list */
         .chat-item {
             cursor: pointer;
             transition: background-color 0.15s ease;
         }
+        /* Dark mode colors for chat list items */
+        .dark .chat-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
         .chat-item:hover {
-            background-color: rgba(255, 255, 255, 0.05); /* Lighter hover for dark background */
+            background-color: rgba(0, 0, 0, 0.05); /* Lighter hover for light background */
         }
         .chat-item.active {
             background-color: #10B981; /* Green color for active chat */
@@ -27,7 +38,10 @@
         }
         /* Custom scrollbar for aesthetics */
         .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { background-color: #3B82F6; border-radius: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { 
+            background-color: #3B82F6; 
+            border-radius: 4px;
+        }
         .badge-style {
             position: absolute; 
             top: 8px; 
@@ -45,46 +59,80 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 h-screen overflow-hidden flex">
+<!-- Apply responsive dark mode classes to the body -->
+<body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex transition-colors duration-300">
 
-    <!-- 1. Sidebar (Chat List) -->
-    <div class="w-80 bg-[#1e293b] text-white flex flex-col">
-        <div class="p-6 text-xl font-bold border-b border-gray-700">Admin Portal</div>
+    <!-- 1. Narrow Menu Bar (w-20) -->
+    <div class="w-20 bg-[#1e293b] text-white flex flex-col flex-shrink-0">
+        <!-- Logo/Title Placeholder (Icon) -->
+        <div class="p-4 text-xl font-bold border-b border-gray-700 flex items-center justify-center h-20">
+            <span title="Admin Portal">AP</span>
+        </div>
 
-        <!-- Navigation Placeholder -->
-        <nav class="p-4 space-y-2 text-sm">
-            <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-700 bg-gray-700/50">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                Chat
+        <!-- Navigation Menu (Icon-only) -->
+        <nav class="p-2 space-y-4 flex-grow">
+            <!-- Dashboard -->
+            <a href="#" class="block p-3 rounded-lg hover:bg-gray-700 text-center" title="Dashboard">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             </a>
-            <!-- Other Nav Items -->
+            <!-- Chat (Active Section) -->
+            <a href="#" class="block p-3 rounded-lg hover:bg-gray-700 bg-gray-700/50 text-center" title="Chat">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            </a>
+            <!-- Broadcast -->
+            <a href="#" class="block p-3 rounded-lg hover:bg-gray-700 text-center" title="Broadcast">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+            </a>
+            <!-- Settings -->
+            <a href="#" class="block p-3 rounded-lg hover:bg-gray-700 text-center" title="Settings">
+                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </a>
         </nav>
-
-        <!-- Chat List Container -->
-        <div id="chatList" class="flex-grow overflow-y-auto px-2">
-            <!-- Chat items will be dynamically inserted here -->
-            <div class="text-center p-4 text-gray-500">Loading chats...</div>
+        
+        <!-- Dark Mode Toggle Button (at the bottom) -->
+        <div class="p-4 border-t border-gray-700">
+            <button id="darkModeToggle" onclick="toggleDarkMode()" 
+                    class="p-2 rounded-full hover:bg-gray-700 transition duration-150 w-full flex justify-center">
+                <!-- Icon will be set by JS (Moon or Sun) -->
+                <svg id="themeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
         </div>
     </div>
 
-    <!-- 2. Main Chat Area -->
-    <div class="flex-grow flex flex-col bg-white">
+    <!-- 2. Chat List Panel (w-64) - Next to Menu -->
+    <div class="w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col flex-shrink-0 transition-colors duration-300">
+        <!-- Chat List Header -->
+        <div class="p-4 text-lg font-semibold border-b dark:border-gray-700 text-gray-800 dark:text-white h-20 flex items-center">
+            Conversations
+        </div>
+
+        <!-- Chat List Container -->
+        <div id="chatList" class="flex-grow overflow-y-auto px-2 py-2">
+            <!-- Chat items will be dynamically inserted here -->
+            <div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">Loading chats...</div>
+        </div>
+    </div>
+
+    <!-- 3. Main Chat Area (flex-grow) -->
+    <div class="flex-grow flex flex-col bg-white dark:bg-gray-900 transition-colors duration-300">
         <!-- Chat Header -->
-        <header id="chatHeader" class="p-4 border-b shadow-sm bg-white flex items-center justify-between z-10">
-            <span class="text-xl font-semibold text-gray-700">Select a chat</span>
+        <header id="chatHeader" class="p-4 border-b shadow-sm bg-white dark:bg-gray-800 flex items-center justify-between z-10 transition-colors duration-300 h-20">
+            <span class="text-xl font-semibold text-gray-700 dark:text-gray-100">Select a chat</span>
         </header>
 
         <!-- Message History -->
-        <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50">
+        <div id="messageHistory" class="flex-grow p-6 space-y-4 chat-messages bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <!-- Messages will appear here -->
-            <div class="text-center text-gray-500">No chat selected.</div>
+            <div class="text-center text-gray-500 dark:text-gray-400">No chat selected.</div>
         </div>
 
         <!-- Message Input -->
-        <div id="chatInputArea" class="p-4 border-t bg-white hidden">
+        <div id="chatInputArea" class="p-4 border-t bg-white dark:bg-gray-800 transition-colors duration-300 hidden">
             <div class="flex space-x-3">
                 <input type="text" id="replyText" placeholder="Write a reply..."
-                       class="flex-grow border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                       class="flex-grow border border-gray-300 dark:border-gray-600 rounded-lg p-3 dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                        onkeypress="if(event.key === 'Enter') sendReply()">
                 <button id="sendButton" onclick="sendReply()"
                         class="bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center justify-center shadow-md">
@@ -94,7 +142,7 @@
         </div>
     </div>
 
-    <!-- 3. Socket.io and JavaScript Logic -->
+    <!-- 4. Socket.io and JavaScript Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // --- Client-side State Management ---
@@ -102,8 +150,54 @@
         const BASE_URL = ''; 
         const socket = io();
         let currentChatId = null;
-        // Key FIX: Client-side state to track unread messages
         let unreadCounts = {}; 
+        const htmlElement = document.documentElement;
+
+        // --- Dark Mode Functions ---
+        /**
+         * Toggles the dark mode setting and saves preference to localStorage.
+         */
+        function toggleDarkMode() {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+        }
+
+        /**
+         * Updates the icon in the toggle button (Sun for Light, Moon for Dark).
+         */
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('themeIcon');
+            if (!themeIcon) return;
+
+            if (htmlElement.classList.contains('dark')) {
+                // Sun icon (Light mode available)
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+            } else {
+                // Moon icon (Dark mode available)
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9 9.003 9.003 0 008.354-5.646z"></path>';
+            }
+        }
+
+        /**
+         * Loads the dark mode preference on page load.
+         */
+        function loadDarkModePreference() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                htmlElement.classList.add('dark');
+            } else if (savedTheme === 'light') {
+                htmlElement.classList.remove('dark');
+            }
+            updateThemeIcon();
+        }
 
 
         /**
@@ -113,11 +207,12 @@
          */
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
-            const count = chat.unreadCount || unreadCounts[chatId] || 0; // Use the provided count or the state count
+            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative';
+            // Use classes that work in both light and dark mode for the chat list
+            chatElement.className = 'chat-item flex items-center p-3 rounded-lg relative text-gray-800 dark:text-gray-200';
             chatElement.setAttribute('data-chat-id', chatId);
 
             const lastMessageTime = new Date(chat.lastMessageTime || chat.timestamp);
@@ -129,8 +224,8 @@
             chatElement.innerHTML = `
                 <div class="flex-grow min-w-0">
                     <p class="font-semibold truncate text-sm">${chat.username || chatId}</p>
-                    <p class="text-xs text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
-                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'No text'}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${lastMessageTime.toLocaleDateString()} ${timeString}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessageText || 'No text'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -148,7 +243,8 @@
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'bg-gray-200 text-gray-800' : 'bg-blue-600 text-white';
+            // User message bubble: Gray in light mode, Darker Gray in dark mode
+            const bubbleClass = isUser ? 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100' : 'bg-blue-600 text-white';
 
             const messageElement = document.createElement('div');
             messageElement.className = `flex ${alignment}`;
@@ -180,7 +276,7 @@
          */
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500">Loading chats...</div>';
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">Loading chats...</div>';
             unreadCounts = {}; // Reset counts on initial load
 
             try {
@@ -190,7 +286,7 @@
 
                 chatListElement.innerHTML = '';
                 if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500">No active chats found.</div>';
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">No active chats found.</div>';
                     return;
                 }
                 
@@ -203,7 +299,7 @@
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500">Failed to load chats. Error: ${error.message}</div>`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Failed to load chats. Error: ${error.message}</div>`;
             }
         }
 
@@ -214,7 +310,7 @@
             currentChatId = chatId;
             
             // 1. Update UI state (Header and Input)
-            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700">${username}</span>`;
+            document.getElementById('chatHeader').innerHTML = `<span class="text-xl font-semibold text-gray-700 dark:text-gray-100">${username}</span>`;
             document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
@@ -231,7 +327,7 @@
 
             // 3. Fetch history
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-500">Loading history...</div>';
+            historyContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400">Loading history...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -357,7 +453,10 @@
         // ------------------------------------------------------------------
         // Initialization
         // ------------------------------------------------------------------
-        document.addEventListener('DOMContentLoaded', fetchChats);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDarkModePreference();
+            fetchChats();
+        });
 
     </script>
 </body>
