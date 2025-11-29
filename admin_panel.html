@@ -260,13 +260,15 @@
                 <!-- Sign In Form -->
                 <form id="signInForm" onsubmit="handleAuth(event, 'signin')" class="auth-form space-y-4 pt-4">
                     <div>
-                        <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Email)</label>
-                        <input type="email" id="signin-email" required value="admin@quant.com"
+                        <label for="signin-email" class="block text-sm font-medium mb-2 text-gray-300">User ID (Username/Email)</label>
+                        <!-- Updated default value for sign-in email -->
+                        <input type="text" id="signin-email" required value="admin"
                                class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
                     </div>
                     <div>
                         <label for="signin-password" class="block text-sm font-medium mb-2 text-gray-300">Password</label>
-                        <input type="password" id="signin-password" required value="123456"
+                        <!-- Updated default value for sign-in password -->
+                        <input type="password" id="signin-password" required value="Paing@123"
                                class="auth-input w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-500 transition duration-300">
                     </div>
                     
@@ -685,10 +687,15 @@
                     const email = document.getElementById('signin-email').value;
                     const password = document.getElementById('signin-password').value;
                     
-                    if (email === 'admin@quant.com' && password === '123456') {
+                    // --- UPDATED CREDENTIAL CHECK ---
+                    const ADMIN_USERNAME = "admin";
+                    const ADMIN_PASSWORD = "Paing@123";
+
+                    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
                         showMessage(`[ACCESS GRANTED] Welcome back, Administrator.`, 'success');
                         login(); // Proceed to main app
                     } else {
+                        // Show error message with red border
                         showMessage(`[ACCESS DENIED] Invalid credentials. Retry matrix connection.`, 'error');
                     }
                     
@@ -937,11 +944,6 @@
             allChats = []; 
 
             try {
-                // Using a simulated empty array since API key is blank.
-                // const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
-                // if (!response.ok) throw new Error('Authentication failure or offline');
-                // const chats = await response.json();
-                
                 // Simulate some chats
                 const chats = [
                     { telegramId: '1234567890', username: 'Agent Smith', lastMessageText: 'Confirming uplink established.', lastMessageTime: Date.now() - 3600000, unreadCount: 3 },
@@ -997,11 +999,7 @@
             historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
 
             try {
-                // Using a simulated history since API key is blank.
-                // const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
-                // if (!response.ok) throw new Error('Failed to load history');
-                // const history = await response.json();
-                
+                // Simulate a chat history
                 const history = [
                     { sender: 'user', text: 'Target data transfer failed. Check firewall logs.', mediaPath: '', timestamp: Date.now() - 60000 },
                     { sender: 'admin', text: 'Firewall is clean. Retrying transfer via quantum tunnel...', mediaPath: '', timestamp: Date.now() - 120000 },
@@ -1190,11 +1188,6 @@
                     showSection(item.getAttribute('data-section'));
                 });
             });
-
-            // Initial view is Auth
-            // We can pre-fill credentials for easy testing:
-            // document.getElementById('signin-email').value = 'admin@quant.com';
-            // document.getElementById('signin-password').value = '123456';
         });
 
     </script>
