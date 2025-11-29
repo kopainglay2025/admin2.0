@@ -15,7 +15,7 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN', '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR
 # Admin Panel ကို ဝင်ရောက်ရန် Password ကို ဤနေရာတွင် ထည့်ပါ။
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin130718')
 # Webhook URL (သင့် VPS ရဲ့ Public URL/webhook)
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'https://tpfootball.live/webhook')
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'http://178.62.215.102:4210/webhook')
 # -----------------------------------
 
 app = Flask(__name__)
