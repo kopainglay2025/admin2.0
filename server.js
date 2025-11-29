@@ -21,6 +21,8 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Paing@123';
 // =========================================================
 
+
+
 // Express App နှင့် HTTP Server ဖန်တီးခြင်း
 const app = express();
 const server = http.createServer(app);
@@ -174,7 +176,8 @@ io.on('connection', (socket) => {
 
     // ၃။ Admin မှ Message ပြန်ပို့ခြင်း (Image Handling နှင့် Last Message Time Update)
     socket.on('admin_reply', async (data) => {
-        const { chatId, text, mediaPath } = data; 
+        const { chatId: chatIdStr, text, mediaPath } = data; // chatId ကို string အနေဖြင့် ရယူခြင်း
+        const chatId = parseInt(chatIdStr); // Number သို့ သေချာပြောင်းလဲခြင်း (Telegram အတွက် FIX)
 
         if (!chatId || (!text && !mediaPath)) {
             console.error("Chat ID သို့မဟုတ် စာသား/ပုံ မပါဝင်ပါ");
@@ -187,7 +190,7 @@ io.on('connection', (socket) => {
                 const base64Data = mediaPath.split(';base64,').pop();
                 const imageBuffer = Buffer.from(base64Data, 'base64');
                 
-                await bot.sendPhoto(chatId, imageBuffer, {
+                await bot.sendPhoto(chatId, imageBuffer, { // FIX: Number chatId ကို အသုံးပြု
                     caption: text,
                     disable_notification: true,
                     filename: 'admin_reply.png',
@@ -195,7 +198,7 @@ io.on('connection', (socket) => {
                 });
 
             } else if (text) {
-                await bot.sendMessage(chatId, text);
+                await bot.sendMessage(chatId, text); // FIX: Number chatId ကို အသုံးပြု
             }
 
             // ၂။ Message ကို database တွင် သိမ်းဆည်းခြင်း
