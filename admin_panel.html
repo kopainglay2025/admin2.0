@@ -228,7 +228,7 @@
                                 id="attach-button" disabled>
                             <!-- SVG Paperclip Icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 0 1011 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 2 0111 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
                             </svg>
                         </button>
 
@@ -608,19 +608,25 @@
             }
         };
 
-        // **Helper Function အသစ်:** Chat Entry ကို စာရင်းအပေါ်ဆုံးသို့ ရွှေ့ပြီး List ကို ပြန်ဆွဲခြင်း
+        // **ပြင်ဆင်ထားသော Function:** Chat Entry ကို စာရင်းအပေါ်ဆုံးသို့ ရွှေ့ပြီး List ကို ပြန်ဆွဲခြင်း (De-duplication Logic ပါဝင်သည်)
         const moveChatEntryToTop = (chatId, updatedUser, messageSender) => {
-            const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
             
-            // 1. Array Update: Move/Update the chat entry
-            if (existingIndex > -1) {
-                // ရှိပြီးသား entry ကို စာရင်းထဲက ဖယ်ထုတ်ခြင်း
-                activeChats.splice(existingIndex, 1); 
-            }
-            // အပ်ဒိတ်လုပ်ထားသော user data (latest time ပါဝင်သည်) ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းခြင်း
-            activeChats.unshift(updatedUser); 
+            // 1. Array Update: Remove ALL existing entries for this chatId (Strong De-duplication)
+            // chatId တူညီသည့် entry အားလုံးကို ဖယ်ရှားပြီး filteredChats အသစ်ကို ရယူခြင်း။
+            const filteredChats = activeChats.filter(c => c.telegramId !== chatId);
+
+            // 2. Add the updated user data to the front
+            // အပ်ဒိတ်လုပ်ထားသော user data ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းရန် Entry အသစ်ဖန်တီးခြင်း
+            const newChatEntry = {
+                ...updatedUser,
+                telegramId: chatId, // Ensure telegramId is correctly set
+                lastMessageTime: updatedUser.lastMessageTime || new Date().toISOString(),
+            };
             
-            // 2. Unread Counts Logic: ဝင်လာသော message (user) အတွက်သာ count တိုးခြင်း
+            // filtered chats အပေါ်တွင် entry အသစ်ကို ထည့်ခြင်းဖြင့် စာရင်း၏ အပေါ်ဆုံးသို့ ရောက်စေခြင်း
+            activeChats = [newChatEntry, ...filteredChats]; 
+
+            // 3. Unread Counts Logic: ဝင်လာသော message (user) အတွက်သာ count တိုးခြင်း
             if (messageSender === 'user' && chatId !== currentChatId) {
                 unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                 saveUnreadCounts(); 
@@ -630,7 +636,7 @@
                 saveUnreadCounts();
             }
 
-            // 3. Re-render the UI only if the user is in the chat view
+            // 4. Re-render the UI
             if (currentView === 'chat') {
                 renderChatList(); 
             }
@@ -809,7 +815,7 @@
 
                 activeChats = await response.json();
                 
-                // **NEW LOGIC: telegramId ကို အခြေခံပြီး ထပ်နေသော Chat များကို စစ်ထုတ်ခြင်း (De-duplication)**
+                // **DE-DUPLICATION LOGIC 1: Initial Load မှာ ထပ်နေသော Chat များကို စစ်ထုတ်ခြင်း**
                 const uniqueChatMap = new Map();
                 activeChats.forEach(chat => {
                     // ၎င်း user ၏ မက်ဆေ့ခ်ျ အချိန်အသစ်ဆုံးကို ယူခြင်း
@@ -926,10 +932,11 @@
             // **LOGIC: Admin ပြန်ပို့ပြီးပါက Chat List ကို အပေါ်သို့ ရွှေ့ရန်**
             const userToUpdate = activeChats.find(c => c.telegramId === currentChatId);
             if (userToUpdate) {
-                // lastMessageTime ကို လက်ရှိအချိန်ဖြင့် update လုပ်ပါ။
+                // lastMessageTime ကို လက်ရှိအချိန်ဖြင့် update လုပ်ပါ
                 userToUpdate.lastMessageTime = tempMessage.timestamp; 
                 
-                // စာရင်းထဲမှ အပေါ်သို့ ရွှေ့ပြီး list ကို render ပြန်လုပ်ပါ (Unread count ကို ပြောင်းလဲရန်မလိုပါ)
+                // စာရင်းထဲမှ အပေါ်သို့ ရွှေ့ပြီး list ကို render ပြန်လုပ်ပါ (De-duplication logic ပါဝင်သည်)
+                // note: 'admin-outgoing' ကို messageSender အဖြစ်သုံးပြီး count မတိုးစေရန်
                 moveChatEntryToTop(currentChatId, userToUpdate, 'admin-outgoing'); 
             }
 
@@ -948,6 +955,7 @@
             
             // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
             // User data ကို အပ်ဒိတ်လုပ်ပြီး list အပေါ်ဆုံးသို့ ရွှေ့ကာ render ပြန်လုပ်သည်
+            // Note: message.sender က 'user' ဖြစ်ပါက unread count တိုးမည်
             moveChatEntryToTop(chatId, user, message.sender); 
             
             // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
