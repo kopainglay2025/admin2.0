@@ -183,9 +183,14 @@ app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
     } catch (error) {
         console.error("Error fetching chat list:", error.message); // Log error message
         // CRITICAL: Log the full error to understand the issue, likely a missing Firestore index.
-        console.error(error); // Log the full error object for index URL or other details.
+        console.error(error); // <--- ဒီနေရာမှာ Index ဖန်တီးဖို့ လင့်ခ်ပါတဲ့ Error အပြည့်အစုံကို တွေ့ရပါလိမ့်မယ်။
+        
         if (error.code === 16) {
              console.error("Firestore Error Code 16: UNAUTHENTICATED. Check service account credentials parsing in server.js!");
+        } else if (error.code === 7) {
+             console.error("Firestore Error Code 7: SERVICE_DISABLED. Check if Cloud Firestore API is enabled in your Google Cloud project.");
+        } else if (error.code === 9) {
+             console.error("Firestore Error Code 9: FAILED_PRECONDITION (Missing Index). Check the full error message above for the index creation URL!");
         }
         res.status(500).json({ error: 'Failed to retrieve chat list.' });
     }
@@ -207,7 +212,7 @@ app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
         if (offset > 0) {
             // Firestore does not natively support offset with limit unless using startAfter/endBefore
             // A more robust solution would be to use Cursor-based pagination (startAfter)
-            // For simplicity with offset, we use array slicing or fetch more than needed (inefficient). 
+            // For simplicity with offset, we rely on the Firestore library's hidden implementation or client-side manipulation.
             // We will fetch `offset + limit` and slice if necessary, or just use the limit on Firestore side 
             // which requires sorting the whole collection.
 
