@@ -262,7 +262,11 @@
         const MESSAGE_LIMIT = 30; // တစ်ကြိမ်လျှင် မက်ဆေ့ချ် ၃၀ သာ တင်ရန်
         
         let activeChats = [];
-        let unreadCounts = {}; // မဖတ်ရသေးသော စာရေတွက်စနစ် { chatId: count }
+        
+        // **SessionStorage မှ Unread Count ကို စတင်ရယူခြင်း**
+        // Page Reload လိုက်သောအခါ count မပျက်စေရန် session storage ကို အသုံးပြုထားသည်။
+        let unreadCounts = JSON.parse(sessionStorage.getItem('unreadCounts') || '{}');
+        
         let currentChatId = null;
         let currentChatOffset = 0; // Pagination အတွက်
         let allHistoryLoaded = false;
@@ -300,6 +304,11 @@
         const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('my-MM', {
             hour: '2-digit', minute: '2-digit', hour12: true
         });
+        
+        // **Helper: Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း**
+        const saveUnreadCounts = () => {
+             sessionStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+        };
 
         // ------------------------------------
         // Menu Navigation Function
@@ -479,9 +488,10 @@
         const selectChat = async (chatId) => {
             if (currentChatId === chatId) return; 
 
-            // Unread Count ကို ရှင်းလင်းခြင်း
+            // Unread Count ကို ရှင်းလင်းခြင်းနှင့် Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း
             if (unreadCounts[chatId] > 0) {
                 unreadCounts[chatId] = 0;
+                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
             }
 
             currentChatId = chatId;
@@ -700,7 +710,7 @@
         socket.on('new_message', (data) => {
             const { chatId, message, user } = data;
             
-            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း
+            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
             const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
             
             if (existingIndex > -1) {
@@ -717,6 +727,7 @@
             // User message ဖြစ်ပြီး လက်ရှိ chat မဟုတ်ပါက count တိုးခြင်း
             if (message.sender === 'user' && chatId !== currentChatId) {
                 unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
             } else if (chatId === currentChatId) {
                 // လက်ရှိ chat ဖြစ်ပါက count ကို 0 ပြန်ထားခြင်း (safety)
                 unreadCounts[chatId] = 0;
