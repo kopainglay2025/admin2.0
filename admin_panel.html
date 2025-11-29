@@ -85,35 +85,19 @@
         #image-modal {
             transition: opacity 0.3s ease-in-out;
         }
-        
-        /* Emoji Picker Custom Styles */
-        #emoji-picker-container {
-            position: absolute;
-            bottom: 100%; /* input bar ရဲ့ အပေါ်မှာ ရှိစေရန် */
-            right: 0;
-            width: 100%; /* input area width အတိုင်း ထားရန် */
-            max-height: 300px; 
-            overflow-y: auto;
-            z-index: 20; /* input bar (z-index: 10) ထက် ပိုမြင့်စေရန် */
-            padding: 10px;
-            border-radius: 0.75rem 0.75rem 0 0;
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -2px rgba(0, 0, 0, 0.06);
+
+        /* Essential for positioning the emoji panel */
+        #message-input-area {
+            position: relative; 
         }
 
-        .emoji-button {
-            font-size: 1.5rem;
-            width: 40px;
-            height: 40px;
-            padding: 2px;
-            border-radius: 0.5rem;
-            transition: transform 0.1s ease-out;
+        /* Emoji item styling for interaction */
+        .emoji-item {
+            transition: transform 0.1s;
         }
-
-        .emoji-button:hover {
-            background-color: #e5e7eb; /* Gray-200 */
-            transform: scale(1.1);
+        .emoji-item:hover {
+            transform: scale(1.2);
         }
-
     </style>
 </head>
 <body class="bg-gray-100 h-screen flex antialiased p-6">
@@ -200,11 +184,13 @@
                 </div>
 
                 <!-- Message Input (Sleek design) -->
-                <div id="message-input-area" class="p-4 border-t border-gray-200 bg-white shadow-inner relative">
-                    
-                    <!-- EMOJI PICKER CONTAINER (New Element) -->
-                    <div id="emoji-picker-container" class="bg-white border border-gray-200 hidden">
-                        <!-- Content rendered by JS -->
+                <div id="message-input-area" class="p-4 border-t border-gray-200 bg-white shadow-inner">
+                    <!-- Emoji Picker Panel (New) -->
+                    <div id="emoji-panel" class="absolute bottom-full mb-2 right-4 w-80 h-64 bg-white border border-gray-200 rounded-xl shadow-2xl p-3 z-20 hidden overflow-y-auto">
+                        <p class="text-xs text-gray-500 mb-2 font-semibold border-b pb-1">Emojis ရွေးချယ်ပါ</p>
+                        <div id="emoji-container" class="flex flex-wrap gap-1 justify-start">
+                            <!-- Emojis will be rendered here -->
+                        </div>
                     </div>
 
                     <!-- File Preview Area -->
@@ -232,17 +218,17 @@
                             </svg>
                         </button>
 
-                        <!-- Emoji Button (New) -->
-                        <button type="button" onclick="toggleEmojiPicker(event)"
+                         <!-- Emoji Button (NEW) -->
+                        <button type="button" onclick="toggleEmojiPanel()"
                                 class="bg-gray-200 text-gray-600 p-3 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition duration-150 shadow-md"
                                 id="emoji-button" disabled>
-                            <!-- SVG Smiley Icon -->
+                            <!-- SVG Smile Icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </button>
 
-                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ... (Emoji များပါ ရိုက်ထည့်နိုင်သည်)"
+                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ..."
                                class="flex-grow p-3 border-t border-b border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
                                disabled required>
                         <button type="submit" id="send-button"
@@ -334,7 +320,6 @@
         const replyText = document.getElementById('reply-text');
         const sendButton = document.getElementById('send-button');
         const attachButton = document.getElementById('attach-button');
-        const emojiButton = document.getElementById('emoji-button'); // New
         const fileInput = document.getElementById('file-input');
         const filePreviewArea = document.getElementById('file-preview-area');
         const fileNameSpan = document.getElementById('file-name');
@@ -344,11 +329,12 @@
         const imageModal = document.getElementById('image-modal');
         const modalImageContent = document.getElementById('modal-image-content');
         const downloadLink = document.getElementById('download-link');
+
+        // Emoji Elements (NEW)
+        const emojiPanel = document.getElementById('emoji-panel');
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiContainer = document.getElementById('emoji-container');
         
-        // Emoji Picker Elements (New)
-        const emojiPickerContainer = document.getElementById('emoji-picker-container');
-
-
         // Helper function to format time
         const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('my-MM', {
             hour: '2-digit', minute: '2-digit', hour12: true
@@ -358,76 +344,6 @@
         const saveUnreadCounts = () => {
              sessionStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
         };
-        
-        // ------------------------------------
-        // Emoji Data and Logic (New)
-        // ------------------------------------
-        const emojiList = {
-            'ရယ်မောခြင်း & လူများ': ['😀', '😂', '🤣', '😊', '😍', '😎', '🤩', '😘', '😗', '😋', '🤫', '🤔', '🙌', '🙏', '👍', '👎', '👏', '💯'],
-            'အစားအသောက် & သောက်စရာ': ['🍕', '🍔', '🍟', '🍣', '🍰', '🍩', '☕', '🍹', '🍺', '🍎', '🍉', '🍇', '🍊', '🍓'],
-            'တိရစ္ဆာန် & သဘာဝ': ['🐶', '🐱', '🐻', '🐼', '🦊', '🐯', '🦁', '🦋', '🌱', '🌷', '🌹', '🌞', '🌙', '⭐', '✨'],
-            'လှုပ်ရှားမှုများ': ['⚽', '🏀', '🏈', '🎮', '🎤', '🎧', '🎨', '🎬', '🎯', '🏅', '🏆', '🎉', '🎁', '🎈'],
-            'အရာဝတ္ထုများ': ['📱', '💻', '📚', '💰', '💸', '🔑', '💡', '🔔', '✉️', '📎', '📌', '🗓️'],
-            'သင်္ကေတများ': ['❤️', '💔', '❓', '❗', '✅', '❌', '⭕', '⚠️', '🅿️', '🔝', '🆕', '🆓']
-        };
-
-        const renderEmojiPicker = () => {
-            if (emojiPickerContainer.innerHTML) return; // တစ်ကြိမ်သာ render လုပ်ရန်
-
-            for (const category in emojiList) {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'mb-4';
-                categoryDiv.innerHTML = `<h3 class="text-sm font-semibold text-gray-700 mb-2">${category}</h3>`;
-
-                const emojiGrid = document.createElement('div');
-                emojiGrid.className = 'flex flex-wrap gap-2';
-                
-                emojiList[category].forEach(emoji => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'emoji-button';
-                    button.textContent = emoji;
-                    button.title = emoji;
-                    button.onclick = (e) => {
-                        e.preventDefault();
-                        insertEmoji(emoji);
-                    };
-                    emojiGrid.appendChild(button);
-                });
-                categoryDiv.appendChild(emojiGrid);
-                emojiPickerContainer.appendChild(categoryDiv);
-            }
-        };
-
-        const toggleEmojiPicker = (event) => {
-            event.preventDefault();
-            renderEmojiPicker(); // ဖွင့်သည့်အခါမှသာ render လုပ်ရန်
-            emojiPickerContainer.classList.toggle('hidden');
-        };
-
-        const insertEmoji = (emoji) => {
-            const start = replyText.selectionStart;
-            const end = replyText.selectionEnd;
-            const value = replyText.value;
-            
-            // Emoji ကို cursor တည်နေရာတွင် ထည့်သွင်းခြင်း
-            replyText.value = value.substring(0, start) + emoji + value.substring(end);
-            
-            // cursor ကို emoji နောက်သို့ ရွှေ့ခြင်း
-            replyText.selectionStart = replyText.selectionEnd = start + emoji.length;
-            replyText.focus();
-        };
-        
-        // မျက်နှာပြင်ပေါ်ရှိ တခြားနေရာကို နှိပ်လျှင် Picker ကို ပိတ်ရန်
-        document.addEventListener('click', (e) => {
-            const isEmojiButton = emojiButton.contains(e.target);
-            const isInsidePicker = emojiPickerContainer.contains(e.target);
-            
-            if (!isEmojiButton && !isInsidePicker && !emojiPickerContainer.classList.contains('hidden')) {
-                emojiPickerContainer.classList.add('hidden');
-            }
-        });
-
 
         // ------------------------------------
         // Menu Navigation Function
@@ -436,9 +352,6 @@
         const switchView = (viewId) => {
             currentView = viewId;
             const isChatView = viewId === 'chat';
-            
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
 
             // ၁။ Navigation Item များကို အပ်ဒိတ်လုပ်ခြင်း
             navItems.forEach(item => {
@@ -525,6 +438,64 @@
 
 
         // ------------------------------------
+        // Emoji Picker Functions (NEW)
+        // ------------------------------------
+
+        const commonEmojis = [
+            '👍', '❤️', '😂', '🔥', '🙏', '💯', '😊', '🥳', '🥲', '🤩',
+            '😍', '🥺', '😭', '🤯', '😴', '😥', '😇', '😋', '😎', '😜',
+            '😢', '😡', '😱', '🤪', '😖', '🤔', '🤑', '🤫', '😶', '😬',
+            '👋', '👆', '👇', '👉', '👈', '👏', '🙌', '🙏', '✌️', '💪',
+            '🍎', '🍌', '🍕', '🍔', '🍟', '🍣', '🍰', '☕', '🍺', '🎁',
+            '💰', '💡', '🔔', '📣', '💬', '🏠', '🚗', '✈️', '☀️', '☔'
+        ];
+
+        // Function to render emojis in the panel
+        const renderEmojis = () => {
+            emojiContainer.innerHTML = commonEmojis.map(emoji => 
+                `<span class="emoji-item text-2xl cursor-pointer p-1.5 hover:bg-gray-100 rounded-md" onclick="insertEmoji('${emoji}')">${emoji}</span>`
+            ).join('');
+        };
+
+        // Function to toggle emoji panel visibility
+        const toggleEmojiPanel = () => {
+            if (emojiPanel.classList.contains('hidden')) {
+                emojiPanel.classList.remove('hidden');
+                // Panel ကို ဖွင့်ပြီးနောက် outside click event listener ထည့်
+                document.addEventListener('click', closeEmojiPanelOnClickOutside);
+            } else {
+                emojiPanel.classList.add('hidden');
+                // Panel ကို ပိတ်ပြီးနောက် outside click event listener ကို ဖယ်ရှား
+                document.removeEventListener('click', closeEmojiPanelOnClickOutside);
+            }
+        };
+
+        // Function to close panel when clicking outside
+        const closeEmojiPanelOnClickOutside = (event) => {
+            // panel နှင့် button ကို နှိပ်ရင် မပိတ်
+            if (!emojiPanel.contains(event.target) && event.target !== emojiButton && !emojiButton.contains(event.target)) {
+                emojiPanel.classList.add('hidden');
+                document.removeEventListener('click', closeEmojiPanelOnClickOutside);
+            }
+        };
+
+        // Function to insert emoji into the text input
+        const insertEmoji = (emoji) => {
+            const input = replyText;
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+
+            // Insert the emoji at the cursor position
+            input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+
+            // Move cursor after the inserted emoji
+            const newCursorPosition = start + emoji.length;
+            input.focus();
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
+        };
+
+
+        // ------------------------------------
         // UI Rendering Functions
         // ------------------------------------
 
@@ -540,53 +511,21 @@
             let contentHTML = '';
             
             // ဓာတ်ပုံပါရှိလျှင် ပြသခြင်း + Modal ဖွင့်နိုင်ရန် `onclick` ထည့်သွင်းခြင်း
-            if (message.mediaPath && !message.text) {
-                // Note: mediaPath can be a Telegram file ID or a Base64 string.
-                // For client-side rendering of admin reply (local echo or real-time update), we use message.imageUrl (Base64).
-                // For user messages (real-time or history fetch), we use message.mediaPath (Telegram ID).
-                // Since this function is used for both, we need a unified property or logic.
-                // Assuming message.imageUrl exists only for client-side local echo (Base64) or the full Base64 from admin_reply.
-                const imageSrc = message.imageUrl || message.mediaPath; 
-                if (imageSrc) {
-                   contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                    `;
-                }
-            } else if (message.mediaPath && message.text) {
-                 // For user messages (Telegram ID) with caption
-                 const imageSrc = message.mediaPath;
-                 contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                 `;
+            if (message.imageUrl) {
+                // Base64 data (admin outgoing) သို့မဟုတ် URL (user incoming)
+                contentHTML += `
+                    <img src="${message.imageUrl}" 
+                         class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
+                         alt="Image attachment" loading="lazy"
+                         onclick="openImageModal(event, '${message.imageUrl}')">
+                `;
             }
-             // For Admin reply (Base64) with caption (mediaPath will contain Base64)
-             else if (message.imageUrl) {
-                 const imageSrc = message.imageUrl;
-                 contentHTML += `
-                        <img src="${imageSrc}" 
-                             class="message-image cursor-pointer hover:opacity-90 transition duration-150" 
-                             alt="Image attachment" loading="lazy"
-                             onclick="openImageModal(event, '${imageSrc}')">
-                 `;
-             }
-            
-            
 
             // စာသားပါရှိလျှင် ပြသခြင်း
             if (message.text && message.text.trim().length > 0) {
-                 // **မှတ်ချက်:** whitespace-pre-wrap သည် စာကြောင်းအသစ် (newline) နှင့် Emojis များကို မှန်ကန်စွာ ပြသနိုင်ရန် ကူညီပေးသည်။
                  contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
-            } else if (!message.mediaPath && !message.imageUrl) {
-                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း (This path should rarely happen with current logic)
-                 contentHTML += `<p class="italic opacity-80">${isUser ? 'စာသားမပါသော မက်ဆေ့ခ်ျ' : 'Admin မှ စာသားမပါဘဲ ပို့ထားသည်'}</p>`;
-            } else if ((message.mediaPath || message.imageUrl) && !message.text) {
-                 // ဓာတ်ပုံသာ ပါရှိလျှင် placeholder ထည့်ခြင်း
+            } else if (!message.imageUrl) {
+                 // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း
                  contentHTML += `<p class="italic opacity-80">${isUser ? 'ပုံတစ်ပုံ ပို့ထားသည်' : 'Admin မှ ဓာတ်ပုံပို့ထားသည်'}</p>`;
             }
 
@@ -604,7 +543,7 @@
                 if (loadMoreBtn) {
                      chatWindow.insertBefore(messageEl, loadMoreBtn.nextSibling); 
                 } else {
-                     chatWindow.insertBefore(messageEl, chatWindow.firstChild);
+                     chatWindow.prepend(messageEl); // Load More မရှိရင် ထိပ်ဆုံး
                 }
             } else {
                 // မက်ဆေ့ချ်အသစ် သို့မဟုတ် စတင်တင်သည့်အခါ အောက်မှ ထည့်ခြင်း
@@ -627,8 +566,6 @@
 
                 chatItem.className = `chat-list-item p-4 border-b border-slate-700 text-white cursor-pointer transition duration-150 ${isActive ? 'active' : ''}`;
 
-                // Sorting သည် lastMessageTime ဖြင့် Server မှ လုပ်ထားပြီးသား ဖြစ်သော်လည်း 
-                // display အတွက် lastMessageTime ကို သုံးခြင်း
                 const lastMsgTime = chat.lastMessageTime ? new Date(chat.lastMessageTime) : new Date(chat.createdAt);
                 const timeString = lastMsgTime.toLocaleDateString('my-MM', { month: 'short', day: 'numeric' }) + ' ' + lastMsgTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
 
@@ -645,13 +582,33 @@
             });
             userListContainer.appendChild(fragment);
         };
+        
+        // ၃။ Chat ကို ထိပ်ဆုံးသို့ ရွှေ့ပြီး List ကို ပြန်ဆွဲခြင်း
+        const moveChatToTop = (chatId, lastMessageTime) => {
+            const index = activeChats.findIndex(chat => chat.telegramId === chatId);
 
-        // ၃။ Chat ကို ရွေးချယ်ပြီး Pagination ဖြင့် စတင် History တင်ခြင်း
+            if (index !== -1) {
+                // 1. Chat ကို အစဉ်လိုက်မှ ဖယ်ထုတ်
+                const [chatToMove] = activeChats.splice(index, 1);
+                
+                // 2. နောက်ဆုံး message အချိန်ကို အပ်ဒိတ်လုပ်
+                chatToMove.lastMessageTime = lastMessageTime; 
+                
+                // 3. စာရင်း၏ ထိပ်ဆုံးသို့ ပြန်ထည့်
+                activeChats.unshift(chatToMove);
+                
+                // 4. Chat list ကို ပြန်ဆွဲ
+                renderChatList();
+            } else {
+                 // Chat list ထဲမှာ မရှိသေးရင် အသစ်တစ်ခု ထပ်ထည့်ရန် logic
+                 fetchChats();
+            }
+        };
+
+
+        // ၄။ Chat ကို ရွေးချယ်ပြီး Pagination ဖြင့် စတင် History တင်ခြင်း
         const selectChat = async (chatId) => {
             if (currentChatId === chatId) return; 
-
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
 
             // Unread Count ကို ရှင်းလင်းခြင်းနှင့် Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း
             if (unreadCounts[chatId] > 0) {
@@ -673,7 +630,7 @@
             replyText.disabled = false;
             sendButton.disabled = false;
             attachButton.disabled = false;
-            emojiButton.disabled = false; // New: Emoji Button ကို ဖွင့်ပေးခြင်း
+            emojiButton.disabled = false; // Emoji Button ကို ဖွင့်ပေးခြင်း (NEW)
             
             chatWindow.innerHTML = '<div class="text-center text-gray-500 py-4" id="initial-loading">History ကို ရယူနေသည်...</div>';
             
@@ -683,7 +640,7 @@
             await loadChatHistory(chatId, MESSAGE_LIMIT, currentChatOffset, true);
         };
 
-        // ၄။ Chat History ကို Limit/Offset ဖြင့် ရယူခြင်း (Pagination)
+        // ၅။ Chat History ကို Limit/Offset ဖြင့် ရယူခြင်း (Pagination)
         const loadChatHistory = async (chatId, limit, offset, isInitialLoad = false) => {
             if (allHistoryLoaded && !isInitialLoad) {
                 document.getElementById('load-more-btn')?.remove();
@@ -704,12 +661,16 @@
                 if (history.length < limit) {
                     allHistoryLoaded = true;
                 }
+                
+                // Pagination အတွက် offset ကို အပ်ဒိတ်လုပ်ခြင်း
+                currentChatOffset += history.length;
 
                 if (isInitialLoad) {
                     chatWindow.innerHTML = '';
                     history.forEach(msg => renderMessage(msg, false));
                     chatWindow.scrollTop = chatWindow.scrollHeight; 
                 } else {
+                    // Load More: messages များကို reverse ပြုလုပ်ပြီး ထိပ်မှ ထည့်သည်
                     history.reverse().forEach(msg => renderMessage(msg, true));
                 }
 
@@ -724,26 +685,25 @@
                         btn.textContent = 'ယခင်စာများ ထပ်ယူရန်...';
                         btn.className = 'w-full p-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg transition duration-150 shadow-sm sticky top-0';
                         btn.onclick = () => loadChatHistory(chatId, MESSAGE_LIMIT, currentChatOffset);
-                        chatWindow.insertBefore(btn, chatWindow.firstChild);
+                        chatWindow.prepend(btn); // အမြဲတမ်း ထိပ်ဆုံးမှ ထည့်ရန်
                     } else {
                         existingBtn.disabled = false;
+                        // Load More ကို နှိပ်ပြီးနောက် Scroll position ကို အပေါ်သို့ ချိန်ညှိရန်
+                        if (!isInitialLoad && history.length > 0) {
+                             chatWindow.scrollTop = 10;
+                        }
                     }
                 } else {
+                    // History အားလုံး တင်ပြီးပါက Load More ခလုတ်ကို ဖယ်ရှား
                     document.getElementById('load-more-btn')?.remove();
                     if(isInitialLoad) {
                          const endMsg = document.createElement('div');
                          endMsg.textContent = '--- စကားပြောဆိုမှု အစမှ အဆုံး ---';
                          endMsg.className = 'text-center text-xs text-gray-400 py-2';
-                         chatWindow.insertBefore(endMsg, chatWindow.firstChild);
+                         chatWindow.prepend(endMsg);
                     }
                 }
                 
-                currentChatOffset += history.length;
-
-                if (!isInitialLoad && history.length > 0) {
-                     // Loading လုပ်ပြီးနောက် Scrollbar ကို အပေါ်သို့ ညွှန်ပြရန်
-                     chatWindow.scrollTop = 10;
-                }
 
             } catch (error) {
                 console.error("Fetch history error:", error);
@@ -763,7 +723,7 @@
         };
 
 
-        // ၅။ အသုံးပြုသူ စာရင်းကို API မှ ရယူခြင်း
+        // ၆။ အသုံးပြုသူ စာရင်းကို API မှ ရယူခြင်း
         const fetchChats = async () => {
             const loadingEl = document.getElementById('loading-chats');
             loadingEl.classList.remove('hidden');
@@ -824,15 +784,12 @@
         // Event Handlers
         // ------------------------------------
 
-        // Admin မှ Message ပြန်ပို့ခြင်း
-        const handleReply = (event) => {
+        // Admin မှ Message ပြန်ပို့ခြင်း (Logic ဖြည့်စွက်ပြီး)
+        const handleReply = async (event) => {
             event.preventDefault();
             const text = replyText.value.trim();
-            
-            // Emoji Picker ကို ပိတ်ခြင်း
-            emojiPickerContainer.classList.add('hidden');
 
-            if (!text && !selectedFileBase64 || !currentChatId) {
+            if ((!text && !selectedFileBase64) || !currentChatId) {
                 return;
             }
 
@@ -840,108 +797,157 @@
             sendButton.disabled = true;
             replyText.disabled = true;
             attachButton.disabled = true;
-            emojiButton.disabled = true;
+            emojiButton.disabled = true; // Emoji Button ကို ပိတ်ခြင်း
+            closeEmojiPanelOnClickOutside(new Event('click')); // Panel ကို ပိတ်
+
+            const originalText = replyText.value.trim();
+            const tempFileBase64 = selectedFileBase64;
 
             const messagePayload = {
                 chatId: currentChatId,
-                text: text,
-                mediaPath: selectedFileBase64 // server က mediaPath ကို မျှော်လင့်ထားသည်
+                text: originalText,
+                imageUrl: tempFileBase64 ? tempFileBase64 : null, // Admin outgoing image data
             };
-
-            // Socket.io မှတစ်ဆင့် Server ကို message ပို့ခြင်း
-            socket.emit('admin_reply', messagePayload, () => {
-                // Post-send cleanup
-                sendButton.disabled = false;
-                replyText.disabled = false;
-                attachButton.disabled = false;
-                emojiButton.disabled = false;
-            });
-
-            // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
-            const tempMessage = {
-                chatId: currentChatId,
+            
+            // Optimistically render the message before sending (Good UX)
+            const tempTimestamp = new Date().toISOString();
+            renderMessage({
                 sender: 'admin',
-                text: text,
-                imageUrl: selectedFileBase64, // local echo အတွက် imageUrl ကို သုံးသည်။
-                timestamp: new Date().toISOString()
-            };
-            renderMessage(tempMessage);
+                text: originalText,
+                imageUrl: tempFileBase64,
+                timestamp: tempTimestamp
+            }, false); 
             chatWindow.scrollTop = chatWindow.scrollHeight;
-
-            // Input များကို ရှင်းလင်းခြင်း
+            
+            // Input များကို ချက်ချင်း ရှင်းလင်းခြင်း
             replyText.value = '';
             clearFileSelection();
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/send-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(messagePayload)
+                });
+
+                if (response.status === 401) throw new Error('Authentication လိုအပ်ပါသည် (Login စစ်ဆေးပါ)');
+                if (!response.ok) throw new Error('Message ပို့မှု မအောင်မြင်ပါ');
+                
+                const result = await response.json();
+                
+                // **SUCCESS HANDLING**
+                
+                // 1. Chat list ကို အပ်ဒိတ်လုပ်ပြီး ထိပ်ဆုံးသို့ ရွှေ့ခြင်း
+                // Server မှ ပို့လိုက်သော အချိန်ကို သုံးခြင်း (သို့) optimistic time ကို သုံးခြင်း
+                moveChatToTop(currentChatId, result.messageSentTime || tempTimestamp);
+
+                // 2. Send button များကို ပြန်ဖွင့်
+                replyText.disabled = false;
+                sendButton.disabled = false;
+                attachButton.disabled = false;
+                emojiButton.disabled = false;
+
+            } catch (error) {
+                console.error("Reply error:", error);
+                
+                // Error ပြပါက UI ကို ပြန်ဖွင့်ပေးခြင်း
+                const errorEl = document.createElement('div');
+                errorEl.className = 'text-red-500 text-sm text-center italic mt-2';
+                errorEl.textContent = `❌ မပို့နိုင်ပါ: ${error.message}. ပြန်ကြိုးစားပါ။`;
+                chatWindow.appendChild(errorEl);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                
+                // Input များကို ပြန်ဖွင့်ပေးခြင်း
+                replyText.disabled = false;
+                sendButton.disabled = false;
+                attachButton.disabled = false;
+                emojiButton.disabled = false;
+                
+                // စာသားကို ပြန်ထည့်ပေးခြင်း
+                if (originalText) replyText.value = originalText;
+                
+                // **မှတ်ချက်:** file selection ကို ပြန်ထားရန် ခက်ခဲသောကြောင့် file ပျက်သွားပါက ပြန်ရွေးရန် လိုအပ်ပါသည်။
+            }
         };
 
-        // ------------------------------------
-        // Socket.io Real-time Handling
-        // ------------------------------------
-        
-        // Telegram Bot မှ message အသစ် ရောက်လာသောအခါ
-        socket.on('new_message', (data) => {
-            const { chatId, message, user } = data;
-            
-            // ၁။ Chat List ကို အပ်ဒိတ်လုပ်ခြင်း (အရှေ့ဆုံးသို့ ရွှေ့ခြင်း)
-            const existingIndex = activeChats.findIndex(c => c.telegramId === chatId);
-            
-            // --- FIX: Server မှပို့လိုက်သော အချိန်အသစ်ပါသည့် User object ကိုသာ အသုံးပြုခြင်း ---
-            if (existingIndex > -1) {
-                // ရှိပြီးသား user ဖြစ်ပါက စာရင်းအဟောင်းကို ဖယ်ရှားခြင်း
-                activeChats.splice(existingIndex, 1); 
-            }
-            // အပ်ဒိတ်လုပ်ထားသော user (server မှ ပို့ပေးသည်) ကို စာရင်းအရှေ့ဆုံးသို့ ထည့်သွင်းခြင်း
-            activeChats.unshift(user);
-            // ---------------------------------------------------------------------------------
-            
-            // ၂။ မဖတ်ရသေးသော စာရေတွက်စနစ် (Unread Counts) ကို အပ်ဒိတ်လုပ်ခြင်း
-            // User message ဖြစ်ပြီး လက်ရှိ chat မဟုတ်ပါက count တိုးခြင်း
-            if (message.sender === 'user' && chatId !== currentChatId) {
-                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                saveUnreadCounts(); // Counts ကို Session Storage သို့ သိမ်းသည်။
-            } else if (chatId === currentChatId) {
-                // လက်ရှိ chat ဖြစ်ပါက count ကို 0 ပြန်ထားခြင်း (safety)
-                unreadCounts[chatId] = 0;
-            }
 
+        // ------------------------------------
+        // WebSocket (Socket.io) Handling
+        // ------------------------------------
 
+        socket.on('connect', () => {
+            console.log('Socket.IO သို့ ချိတ်ဆက်ပြီးပါပြီ');
+            // စတင် loading လုပ်ရန်
             if (currentView === 'chat') {
-                renderChatList(); // Chat list ၏ အစဉ်လိုက်နှင့် badge များကို ပြန်လည်ပြသခြင်း
+                fetchChats();
             }
+        });
 
-            // ၃။ လက်ရှိ chat window တွင် ရှိနေပါက message ကို ပြသခြင်း
-            if (chatId === currentChatId) {
-                if (message.sender === 'user' || message.sender === 'admin') {
-                    renderMessage(message);
-                    chatWindow.scrollTop = chatWindow.scrollHeight;
+        socket.on('new_message', (message) => {
+            // message ဥပမာ: { chatId: '12345', text: 'Hello Admin', sender: 'user', timestamp: 'ISO Date', imageUrl: 'base64 or url' }
+            const incomingChatId = message.chatId;
+
+            // 1. Chat List ကို အပ်ဒိတ်လုပ်ပြီး ထိပ်ဆုံးသို့ ရွှေ့ခြင်း
+            moveChatToTop(incomingChatId, message.timestamp);
+
+            // 2. Unread Count ကို စီမံခန့်ခွဲခြင်း
+            if (incomingChatId !== currentChatId) {
+                // Chat ပိတ်ထားပါက Unread Count တိုးခြင်း
+                unreadCounts[incomingChatId] = (unreadCounts[incomingChatId] || 0) + 1;
+                saveUnreadCounts(); 
+                
+                // Chat list ကို ပြန်ဆွဲပြီး badge ကို ပြသခြင်း
+                renderChatList(); 
+            } else {
+                // Chat ဖွင့်ထားပါက Message ကို ချက်ချင်း ပြသခြင်း
+                renderMessage(message, false);
+                
+                // Scroll ကို အောက်ဆုံးသို့ ရွှေ့ခြင်း (အသုံးပြုသူ အောက်ဆုံးတွင် ရှိနေမှသာ ရွှေ့သင့်သည်)
+                const isScrolledToBottom = chatWindow.scrollHeight - chatWindow.clientHeight <= chatWindow.scrollTop + 1;
+                if (isScrolledToBottom) {
+                   chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+                
+                // ဖွင့်ထားသော chat အတွက် count သည် 0 ဖြစ်ကြောင်း သေချာစေရန်
+                if (unreadCounts[incomingChatId] > 0) {
+                     unreadCounts[incomingChatId] = 0;
+                     saveUnreadCounts();
+                     renderChatList(); // Badge ကို ဖယ်ရှားရန်
                 }
             }
         });
 
-        // Server မှ အမှားအယွင်းများ (ဥပမာ: Telegram ပို့မရခြင်း)
-        socket.on('error', (err) => {
-            console.error("Socket Error:", err);
-            // Custom notification ပြသခြင်း
-            const header = document.getElementById('chat-header');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = "bg-red-500 text-white p-2 text-center text-sm sticky top-0 z-50";
-            errorDiv.textContent = `🚫 Message ပို့ရန် အဆင်မပြေပါ။ ${err.message}`;
-            header.insertAdjacentElement('afterend', errorDiv);
-            setTimeout(() => errorDiv.remove(), 5000); 
-            
-            // Input များကို ပြန်ဖွင့်ပေးရန်
-            sendButton.disabled = false;
-            replyText.disabled = false;
-            attachButton.disabled = false;
-            emojiButton.disabled = false;
+        socket.on('disconnect', () => {
+            console.warn('Socket.IO မှ ချိတ်ဆက်မှု ပြတ်တောက်သွားသည်');
         });
 
         // ------------------------------------
-        // Initialization
+        // Initial Setup
         // ------------------------------------
-
-        document.addEventListener('DOMContentLoaded', () => {
-            switchView('chat'); 
+        
+        // Chat Window Scroll Event Listener (Pagination အတွက်)
+        chatWindow.addEventListener('scroll', () => {
+            if (currentChatId && chatWindow.scrollTop === 0 && !allHistoryLoaded) {
+                 const loadMoreBtn = document.getElementById('load-more-btn');
+                 if (loadMoreBtn && !loadMoreBtn.disabled) {
+                     loadChatHistory(currentChatId, MESSAGE_LIMIT, currentChatOffset);
+                 }
+            }
         });
+
+        window.onload = () => {
+            renderEmojis(); // Emoji များကို စတင် render လုပ်ခြင်း (NEW)
+            switchView(currentView);
+        };
+        
+        // Expose functions globally for HTML onclick
+        window.openImageModal = openImageModal;
+        window.closeImageModal = closeImageModal;
+        window.clearFileSelection = clearFileSelection;
+        window.handleReply = handleReply;
+        window.selectChat = selectChat;
+        window.toggleEmojiPanel = toggleEmojiPanel; // NEW
+        window.insertEmoji = insertEmoji; // NEW
 
     </script>
 </body>
