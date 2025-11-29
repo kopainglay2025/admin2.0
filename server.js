@@ -181,8 +181,9 @@ app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
 
         res.json(chats);
     } catch (error) {
-        console.error("Error fetching chat list:", error);
-        // CRITICAL: Log the full error to understand the UNAUTHENTICATED issue if it persists
+        console.error("Error fetching chat list:", error.message); // Log error message
+        // CRITICAL: Log the full error to understand the issue, likely a missing Firestore index.
+        console.error(error); // Log the full error object for index URL or other details.
         if (error.code === 16) {
              console.error("Firestore Error Code 16: UNAUTHENTICATED. Check service account credentials parsing in server.js!");
         }
