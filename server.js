@@ -9,8 +9,8 @@ const path = require('path');
 // =========================================================
 // --- စိတ်ကြိုက်ပြင်ဆင်ရန်လိုအပ်သော အချက်အလက်များ (Environment Variables ဖြင့် အသုံးပြုရန်) ---
 // လုံခြုံရေးအရ ဤနေရာတွင် တန်ဖိုးများ တိုက်ရိုက်မထည့်သွင်းဘဲ Environment Variables များကို အသုံးပြုပါ။
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
-const MONGODB_URI = process.env.MONGODB_URI || 'YOUR_MONGODB_URI_HERE';
+const TELEGRAM_BOT_TOKEN = '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k'; // သင့် Telegram Bot Token ထည့်ပါ။
+const MONGODB_URI = 'mongodb+srv://painglay123:painglay123@cluster0.b3rucy3.mongodb.net/?appName=Cluster0/telegram_admin_chat'; // သင့် MongoDB URI ထည့်ပါ။
 const PORT = process.env.PORT || 80;
 
 // Admin Login အချက်အလက်များ (လုံခြုံရေးအတွက် Environment Variable ကိုသာ အမြဲသုံးပါ)
