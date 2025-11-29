@@ -76,11 +76,11 @@
             border-bottom-right-radius: 4px;
         }
 
-        /* FIX: Remove max-height and rely on flex-grow for full height scrolling */
+        /* FIX 1: Removed column-reverse to use standard top-to-bottom scroll order */
         .chat-messages {
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; 
+            flex-direction: column; /* Changed from column-reverse to standard */
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
         }
 
@@ -168,7 +168,7 @@
     <!-- 3. Main Content Area (flex-grow) -->
     <div class="flex-grow flex flex-col p-8">
         
-        <!-- Main Content Wrapper Card - ADDED h-full to fix chat layout height -->
+        <!-- Main Content Wrapper Card - h-full is essential for proper chat layout -->
         <div class="bg-white rounded-2xl shadow-xl flex-grow flex flex-col overflow-hidden p-6 h-full">
 
             <!-- === SECTION: Dashboard === -->
@@ -197,7 +197,6 @@
             </div>
 
             <!-- === SECTION: Chat (Layout FIXED with h-full) === -->
-            <!-- Ensure h-full is applied here to enable proper flex growth of children -->
             <div id="section-chat" class="main-section flex-grow flex-col hidden h-full"> 
                 <!-- Chat Header (flex-shrink-0 ensures fixed height) -->
                 <header id="chatHeader" class="p-4 border-b border-gray-100 bg-white flex items-center justify-between z-10 h-20 text-gray-700 shadow-sm flex-shrink-0">
@@ -210,6 +209,7 @@
                 </div>
 
                 <!-- Message Input area (flex-shrink-0 ensures it stays at the bottom) -->
+                <!-- The 'hidden' class will be removed in selectChat() -->
                 <div id="chatInputArea" class="p-4 border-t border-gray-100 bg-white flex-shrink-0 hidden">
                     <div class="flex space-x-3">
                         <!-- Input field with smooth focus effect -->
@@ -278,7 +278,7 @@
         const socket = io();
         let currentChatId = null;
         let unreadCounts = {}; 
-        let allChatElements = []; // Store all chat elements for client-side filtering
+        let allChatElements = []; 
 
         // --- Navigation Functions (unchanged) ---
         
@@ -459,7 +459,7 @@
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm">Chats များကို ဆွဲယူနေပါသည်...</div>';
             unreadCounts = {}; 
-            allChatElements = []; // Reset stored elements
+            allChatElements = []; 
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
@@ -475,7 +475,7 @@
                 chats.forEach(chat => {
                     unreadCounts[chat.telegramId] = 0; 
                     const chatElement = createChatListItem(chat);
-                    allChatElements.push(chatElement); // Store for filtering
+                    allChatElements.push(chatElement); 
                     chatListElement.appendChild(chatElement);
                 });
 
@@ -483,6 +483,15 @@
                 console.error("Error fetching chat list:", error);
                 chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Chats များ ဆွဲယူရာတွင် အမှားဖြစ်ပွားသည်။ Error: ${error.message}</div>`;
             }
+        }
+
+        /**
+         * Scrolls the message history to the bottom (latest message).
+         */
+        function scrollToBottom() {
+            const historyContainer = document.getElementById('messageHistory');
+            // FIX 2: Scroll to the bottom using scrollHeight for standard column order
+            historyContainer.scrollTop = historyContainer.scrollHeight;
         }
 
         /**
@@ -501,6 +510,7 @@
                     </div>
                 </div>
             `;
+            // FIX 1: Ensure Reply Input Area is visible
             document.getElementById('chatInputArea').classList.remove('hidden');
             
             // 2. Highlight active chat in the sidebar and RESET UNREAD COUNT
@@ -526,10 +536,12 @@
                 // Clear and render messages
                 historyContainer.innerHTML = '';
                 history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
+                    // FIX 2: Use appendChild for standard (top-to-bottom) order
+                    historyContainer.appendChild(createMessageBubble(msg));
                 });
                 
-                historyContainer.scrollTop = 0; 
+                // FIX 2: Scroll to bottom after rendering
+                scrollToBottom();
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
@@ -538,7 +550,7 @@
         }
 
         /**
-         * Sends admin reply to the server via Socket.io. (Logic remains the same)
+         * Sends admin reply to the server via Socket.io.
          */
         function sendReply() {
             if (!currentChatId) return;
@@ -576,8 +588,9 @@
                         timestamp: new Date().toISOString()
                     };
                     const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
+                    // FIX 2: Use appendChild for standard (top-to-bottom) order
+                    historyContainer.appendChild(createMessageBubble(tempMsg)); 
+                    scrollToBottom();
                 } else {
                     console.error("Failed to send message:", response.error);
                 }
@@ -600,7 +613,6 @@
             const existingChatElement = document.getElementById(`chat-${chatId}`);
             if (existingChatElement) {
                 existingChatElement.remove();
-                // Also remove from our array
                 allChatElements = allChatElements.filter(el => el.getAttribute('data-chat-id') !== chatId);
             }
 
@@ -617,13 +629,14 @@
             
             // 4. Insert the new entry at the top (prepended for correct chronological sort)
             chatList.prepend(newChatElement);
-            allChatElements.unshift(newChatElement); // Add to the start of the array
+            allChatElements.unshift(newChatElement); 
 
             // 5. If it's the current chat, display the new message immediately
             if (currentChatId === chatId) {
                 const historyContainer = document.getElementById('messageHistory');
-                historyContainer.prepend(createMessageBubble(message));
-                historyContainer.scrollTop = 0; 
+                // FIX 2: Use appendChild for standard (top-to-bottom) order
+                historyContainer.appendChild(createMessageBubble(message)); 
+                scrollToBottom();
             } else {
                 // Flash the new chat item for notification
                 newChatElement.classList.add('bg-blue-200');
