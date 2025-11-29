@@ -197,7 +197,7 @@
                             </svg>
                         </button>
 
-                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ..."
+                        <input type="text" id="reply-text" placeholder="Admin အနေဖြင့် ပြန်လည်ဖြေကြားရန် စာရိုက်ပါ... (Emoji များပါ ရိုက်ထည့်နိုင်သည်)"
                                class="flex-grow p-3 border-t border-b border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
                                disabled required>
                         <button type="submit" id="send-button"
@@ -458,6 +458,7 @@
 
             // စာသားပါရှိလျှင် ပြသခြင်း
             if (message.text && message.text.trim().length > 0) {
+                 // **မှတ်ချက်:** whitespace-pre-wrap သည် စာကြောင်းအသစ် (newline) နှင့် Emojis များကို မှန်ကန်စွာ ပြသနိုင်ရန် ကူညီပေးသည်။
                  contentHTML += `<p class="whitespace-pre-wrap">${message.text}</p>`;
             } else if (!message.mediaPath && !message.imageUrl) {
                  // ဓာတ်ပုံမပါဘဲ စာသားမရှိပါက placeholder ထည့်ခြင်း (This path should rarely happen with current logic)
