@@ -85,6 +85,35 @@
         #image-modal {
             transition: opacity 0.3s ease-in-out;
         }
+        
+        /* Emoji Picker Custom Styles */
+        #emoji-picker-container {
+            position: absolute;
+            bottom: 100%; /* input bar ရဲ့ အပေါ်မှာ ရှိစေရန် */
+            right: 0;
+            width: 100%; /* input area width အတိုင်း ထားရန် */
+            max-height: 300px; 
+            overflow-y: auto;
+            z-index: 20; /* input bar (z-index: 10) ထက် ပိုမြင့်စေရန် */
+            padding: 10px;
+            border-radius: 0.75rem 0.75rem 0 0;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+
+        .emoji-button {
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            padding: 2px;
+            border-radius: 0.5rem;
+            transition: transform 0.1s ease-out;
+        }
+
+        .emoji-button:hover {
+            background-color: #e5e7eb; /* Gray-200 */
+            transform: scale(1.1);
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 h-screen flex antialiased p-6">
@@ -171,7 +200,13 @@
                 </div>
 
                 <!-- Message Input (Sleek design) -->
-                <div id="message-input-area" class="p-4 border-t border-gray-200 bg-white shadow-inner">
+                <div id="message-input-area" class="p-4 border-t border-gray-200 bg-white shadow-inner relative">
+                    
+                    <!-- EMOJI PICKER CONTAINER (New Element) -->
+                    <div id="emoji-picker-container" class="bg-white border border-gray-200 hidden">
+                        <!-- Content rendered by JS -->
+                    </div>
+
                     <!-- File Preview Area -->
                     <div id="file-preview-area" class="flex items-center p-2 mb-2 border border-gray-300 rounded-lg hidden bg-gray-100">
                         <span id="file-name" class="text-sm text-gray-700 truncate flex-grow"></span>
@@ -194,6 +229,16 @@
                             <!-- SVG Paperclip Icon -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.574 6.574A2 2 0 1011 16.586l6.574-6.574a4 4 0 10-5.656-5.656L5 14.5" />
+                            </svg>
+                        </button>
+
+                        <!-- Emoji Button (New) -->
+                        <button type="button" onclick="toggleEmojiPicker(event)"
+                                class="bg-gray-200 text-gray-600 p-3 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 transition duration-150 shadow-md"
+                                id="emoji-button" disabled>
+                            <!-- SVG Smiley Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </button>
 
@@ -289,6 +334,7 @@
         const replyText = document.getElementById('reply-text');
         const sendButton = document.getElementById('send-button');
         const attachButton = document.getElementById('attach-button');
+        const emojiButton = document.getElementById('emoji-button'); // New
         const fileInput = document.getElementById('file-input');
         const filePreviewArea = document.getElementById('file-preview-area');
         const fileNameSpan = document.getElementById('file-name');
@@ -298,6 +344,9 @@
         const imageModal = document.getElementById('image-modal');
         const modalImageContent = document.getElementById('modal-image-content');
         const downloadLink = document.getElementById('download-link');
+        
+        // Emoji Picker Elements (New)
+        const emojiPickerContainer = document.getElementById('emoji-picker-container');
 
 
         // Helper function to format time
@@ -309,6 +358,76 @@
         const saveUnreadCounts = () => {
              sessionStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
         };
+        
+        // ------------------------------------
+        // Emoji Data and Logic (New)
+        // ------------------------------------
+        const emojiList = {
+            'ရယ်မောခြင်း & လူများ': ['😀', '😂', '🤣', '😊', '😍', '😎', '🤩', '😘', '😗', '😋', '🤫', '🤔', '🙌', '🙏', '👍', '👎', '👏', '💯'],
+            'အစားအသောက် & သောက်စရာ': ['🍕', '🍔', '🍟', '🍣', '🍰', '🍩', '☕', '🍹', '🍺', '🍎', '🍉', '🍇', '🍊', '🍓'],
+            'တိရစ္ဆာန် & သဘာဝ': ['🐶', '🐱', '🐻', '🐼', '🦊', '🐯', '🦁', '🦋', '🌱', '🌷', '🌹', '🌞', '🌙', '⭐', '✨'],
+            'လှုပ်ရှားမှုများ': ['⚽', '🏀', '🏈', '🎮', '🎤', '🎧', '🎨', '🎬', '🎯', '🏅', '🏆', '🎉', '🎁', '🎈'],
+            'အရာဝတ္ထုများ': ['📱', '💻', '📚', '💰', '💸', '🔑', '💡', '🔔', '✉️', '📎', '📌', '🗓️'],
+            'သင်္ကေတများ': ['❤️', '💔', '❓', '❗', '✅', '❌', '⭕', '⚠️', '🅿️', '🔝', '🆕', '🆓']
+        };
+
+        const renderEmojiPicker = () => {
+            if (emojiPickerContainer.innerHTML) return; // တစ်ကြိမ်သာ render လုပ်ရန်
+
+            for (const category in emojiList) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'mb-4';
+                categoryDiv.innerHTML = `<h3 class="text-sm font-semibold text-gray-700 mb-2">${category}</h3>`;
+
+                const emojiGrid = document.createElement('div');
+                emojiGrid.className = 'flex flex-wrap gap-2';
+                
+                emojiList[category].forEach(emoji => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'emoji-button';
+                    button.textContent = emoji;
+                    button.title = emoji;
+                    button.onclick = (e) => {
+                        e.preventDefault();
+                        insertEmoji(emoji);
+                    };
+                    emojiGrid.appendChild(button);
+                });
+                categoryDiv.appendChild(emojiGrid);
+                emojiPickerContainer.appendChild(categoryDiv);
+            }
+        };
+
+        const toggleEmojiPicker = (event) => {
+            event.preventDefault();
+            renderEmojiPicker(); // ဖွင့်သည့်အခါမှသာ render လုပ်ရန်
+            emojiPickerContainer.classList.toggle('hidden');
+        };
+
+        const insertEmoji = (emoji) => {
+            const start = replyText.selectionStart;
+            const end = replyText.selectionEnd;
+            const value = replyText.value;
+            
+            // Emoji ကို cursor တည်နေရာတွင် ထည့်သွင်းခြင်း
+            replyText.value = value.substring(0, start) + emoji + value.substring(end);
+            
+            // cursor ကို emoji နောက်သို့ ရွှေ့ခြင်း
+            replyText.selectionStart = replyText.selectionEnd = start + emoji.length;
+            replyText.focus();
+        };
+        
+        // မျက်နှာပြင်ပေါ်ရှိ တခြားနေရာကို နှိပ်လျှင် Picker ကို ပိတ်ရန်
+        document.addEventListener('click', (e) => {
+            const isEmojiButton = emojiButton.contains(e.target);
+            const isInsidePicker = emojiPickerContainer.contains(e.target);
+            
+            if (!isEmojiButton && !isInsidePicker && !emojiPickerContainer.classList.contains('hidden')) {
+                emojiPickerContainer.classList.add('hidden');
+            }
+        });
+
 
         // ------------------------------------
         // Menu Navigation Function
@@ -317,6 +436,9 @@
         const switchView = (viewId) => {
             currentView = viewId;
             const isChatView = viewId === 'chat';
+            
+            // Emoji Picker ကို ပိတ်ခြင်း
+            emojiPickerContainer.classList.add('hidden');
 
             // ၁။ Navigation Item များကို အပ်ဒိတ်လုပ်ခြင်း
             navItems.forEach(item => {
@@ -528,6 +650,9 @@
         const selectChat = async (chatId) => {
             if (currentChatId === chatId) return; 
 
+            // Emoji Picker ကို ပိတ်ခြင်း
+            emojiPickerContainer.classList.add('hidden');
+
             // Unread Count ကို ရှင်းလင်းခြင်းနှင့် Session Storage ကို အပ်ဒိတ်လုပ်ခြင်း
             if (unreadCounts[chatId] > 0) {
                 unreadCounts[chatId] = 0;
@@ -548,6 +673,7 @@
             replyText.disabled = false;
             sendButton.disabled = false;
             attachButton.disabled = false;
+            emojiButton.disabled = false; // New: Emoji Button ကို ဖွင့်ပေးခြင်း
             
             chatWindow.innerHTML = '<div class="text-center text-gray-500 py-4" id="initial-loading">History ကို ရယူနေသည်...</div>';
             
@@ -702,6 +828,9 @@
         const handleReply = (event) => {
             event.preventDefault();
             const text = replyText.value.trim();
+            
+            // Emoji Picker ကို ပိတ်ခြင်း
+            emojiPickerContainer.classList.add('hidden');
 
             if (!text && !selectedFileBase64 || !currentChatId) {
                 return;
@@ -711,6 +840,7 @@
             sendButton.disabled = true;
             replyText.disabled = true;
             attachButton.disabled = true;
+            emojiButton.disabled = true;
 
             const messagePayload = {
                 chatId: currentChatId,
@@ -724,6 +854,7 @@
                 sendButton.disabled = false;
                 replyText.disabled = false;
                 attachButton.disabled = false;
+                emojiButton.disabled = false;
             });
 
             // UI တွင် ချက်ချင်း ပြသခြင်း (Local Echo)
@@ -801,6 +932,7 @@
             sendButton.disabled = false;
             replyText.disabled = false;
             attachButton.disabled = false;
+            emojiButton.disabled = false;
         });
 
         // ------------------------------------
