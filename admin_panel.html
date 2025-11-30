@@ -400,13 +400,20 @@
                 <p class="mb-6 text-gray-600 dark:text-gray-400">
                     Send high-priority messages to target user segments.
                 </p>
-                <textarea class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-fuchsia-500 dark:focus:ring-[var(--secondary-neon)] focus:border-fuchsia-500 dark:focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
-                <button class="mt-4 bg-fuchsia-600 dark:bg-[var(--secondary-neon)] text-white dark:text-gray-900 p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
+                <!-- Added ID for access in JS -->
+                <textarea id="broadcastMessageTextarea" class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-fuchsia-500 dark:focus:ring-[var(--secondary-neon)] focus:border-fuchsia-500 dark:focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
+                
+                <!-- Added ID and onclick handler for the JS function -->
+                <button id="broadcastButton" onclick="handleBroadcast()"
+                        class="mt-4 bg-fuchsia-600 dark:bg-[var(--secondary-neon)] text-white dark:text-gray-900 p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
                     <span class="flex items-center space-x-2">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
                         <span>Initiate Broadcast</span>
                     </span>
                 </button>
+                
+                <!-- Status Message Area -->
+                <div id="broadcastStatus" class="mt-4 text-sm font-medium"></div>
             </div>
         </div>
 
@@ -576,6 +583,15 @@
                 currentChatId = null; 
                 document.getElementById('chatHistorySearch').value = ''; 
                 clearFileSelection(); 
+            }
+            
+            // Clear broadcast status when leaving the broadcast page
+            if (sectionId !== 'broadcast') {
+                 const statusDiv = document.getElementById('broadcastStatus');
+                 if (statusDiv) {
+                    statusDiv.textContent = '';
+                    statusDiv.className = "mt-4 text-sm font-medium";
+                 }
             }
         }
 
@@ -920,6 +936,55 @@
                     console.error("Failed to transmit data packet:", response.error);
                 }
             });
+        }
+        
+        /**
+         * Sends a global broadcast message to all users via the server API.
+         */
+        async function handleBroadcast() {
+            const textarea = document.getElementById('broadcastMessageTextarea');
+            const message = textarea.value.trim();
+            const broadcastButton = document.getElementById('broadcastButton');
+            const statusDiv = document.getElementById('broadcastStatus');
+
+            if (!message) {
+                statusDiv.textContent = "Error: Broadcast message cannot be empty.";
+                statusDiv.className = "mt-4 text-sm text-red-500 font-semibold";
+                return;
+            }
+
+            // UI Feedback: Start Loading
+            broadcastButton.disabled = true;
+            broadcastButton.innerHTML = `<span class="flex items-center space-x-2"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div><span>Broadcasting...</span></span>`;
+            statusDiv.textContent = "Initiating global transmission...";
+            statusDiv.className = "mt-4 text-sm text-blue-500 dark:text-[var(--primary-neon)] font-semibold";
+
+            try {
+                // Ensure the API key is passed securely or via headers depending on server implementation
+                const response = await fetch(`${BASE_URL}/api/broadcast?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    statusDiv.textContent = `Success! Broadcast sent to ${result.usersAffected || 'all'} users.`;
+                    statusDiv.className = "mt-4 text-sm text-green-500 font-semibold";
+                    textarea.value = ''; // Clear message on success
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Server rejected broadcast request.');
+                }
+            } catch (error) {
+                console.error("Broadcast failed:", error);
+                statusDiv.textContent = `Failure: ${error.message}`;
+                statusDiv.className = "mt-4 text-sm text-red-500 font-semibold";
+            } finally {
+                // UI Feedback: Reset Button
+                broadcastButton.disabled = false;
+                broadcastButton.innerHTML = `<span class="flex items-center space-x-2"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg><span>Initiate Broadcast</span></span>`;
+            }
         }
 
 
