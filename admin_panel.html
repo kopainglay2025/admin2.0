@@ -1,901 +1,1146 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Plan</title>
+    <title>Inbox - Bot Management (Firestore Live)</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Load Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp, setLogLevel, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Initialize Firebase and export services
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        setLogLevel('debug'); // Enable debug logging for Firebase
+
+        // Expose necessary variables globally for the main script block
+        window.firebaseServices = { 
+            db, 
+            auth, 
+            appId, 
+            initialAuthToken,
+            onAuthStateChanged,
+            collection, query, orderBy, limit, onSnapshot, 
+            addDoc, serverTimestamp, where
+        };
+    </script>
+
+    <!-- Configure Tailwind to enable dark mode based on the 'dark' class -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        /* Configuration for the futuristic dark theme */
-        :root {
-            --primary-neon: #00e0ff; /* Electric Cyan */
-            --secondary-neon: #ff00ff; /* Fuchsia */
-            --dark-bg: #0d0c1d; /* Very deep indigo/slate */
-            --card-bg: #1a192b; /* Slightly lighter card background */
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.5s, color 0.5s;
-            background-color: var(--dark-bg);
-            color: #E2E8F0; /* Light text */
-        }
-        
-        /* Sidebar: Base for the dark, futuristic look */
-        .sidebar {
-            background-color: #121021; /* Slightly darker than body for depth */
-            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* Nav Item Styling */
-        .nav-item {
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 14px; /* Aggressive rounding */
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--primary-neon);
-            transform: scale(1.02);
-        }
-
-        /* Active Nav Item - Neon Glow Effect */
-        .active-nav {
-            background-color: var(--card-bg) !important;
-            color: var(--primary-neon) !important;
-            border: 1px solid var(--primary-neon);
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); /* Subtle glow */
-        }
-        .active-nav svg {
-            color: var(--primary-neon) !important;
-        }
-
-        /* Chat Item Styling */
-        .chat-item {
-            background-color: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.3s;
-            border-radius: 12px;
-        }
-        
-        .chat-item:hover {
-            background-color: rgba(26, 25, 43, 0.8);
-            border-color: var(--primary-neon);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
-        }
-        
-        /* Active Chat Item - Secondary Neon Accent */
-        .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
-            color: white !important; 
-            border: 2px solid var(--secondary-neon);
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
-        }
-        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
-            color: white !important; 
-            opacity: 1;
-        }
-        .chat-item.active .avatar-placeholder {
-             background-color: var(--primary-neon) !important; 
-        }
-
-        /* Message History container */
-        .chat-messages {
-            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
-            max-height: calc(100vh - 230px); 
-            overflow-y: auto;
+        /* --- BASE STYLES --- */
+        .nav-link {
             display: flex;
-            flex-direction: column-reverse; 
-            padding: 1rem;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 150ms ease-in-out;
+            color: #6B7280;
+            text-decoration: none;
         }
 
-        /* Custom Scrollbar - Neon look */
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: var(--primary-neon); 
-            border-radius: 4px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-             background-color: var(--card-bg);
-        }
-        
-        /* Unread Badge - Sharp and secondary neon */
-        .badge-style {
-            background-color: var(--secondary-neon); 
-            color: var(--dark-bg); 
-            font-weight: 900; 
-            box-shadow: 0 0 8px var(--secondary-neon);
+        .nav-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
 
-        /* Message Bubbles */
-        .admin-bubble {
-            background-color: #312e81; /* Indigo-700 */
-            color: white;
-            border-bottom-right-radius: 8px !important;
+        .nav-link.active {
+            background-color: #F3F4F6;
+            color: #1F2937;
+            font-weight: 600;
         }
-        .user-bubble {
-            background-color: #374151; /* Slate-700 */
-            color: #F9FAFB; 
-            border-bottom-left-radius: 8px !important;
+
+        .dark .nav-link.active {
+            background-color: #374151;
+            color: #F9FAFB;
+        }
+
+        .dark .nav-link {
+            color: #9CA3AF;
+        }
+
+        .dark .nav-link:hover {
+            background-color: #1F2937;
+            color: #F9FAFB;
         }
         
-        /* Card Styles for Dashboard */
-        .stat-card {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
-            border-radius: 16px;
-            overflow: hidden;
+        /* Custom scrollbar for chat */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .dark ::-webkit-scrollbar-track { background: #374151; }
+        .dark ::-webkit-scrollbar-thumb { background: #6B7280; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+        /* --- INBOX SPECIFIC STYLES --- */
+        .message-bubble {
+            max-width: 75%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            word-wrap: break-word;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
-        }
-        .stat-card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
+            display: inline-block;
+            overflow: hidden;
+            margin-bottom: 2px;
         }
 
-        /* Input/Textarea Focus Glow */
-        input:focus, textarea:focus {
-            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
-            border-color: var(--primary-neon) !important;
+        .message-bubble:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Light Mode Bubbles */
+        .user-message { background-color: #0088cc; color: white; align-self: flex-start; border-radius: 1rem 1rem 1rem 0.25rem; }
+        .admin-message { background-color: #34B7F1; color: white; align-self: flex-end; border-radius: 1rem 1rem 0.25rem 1rem; }
+        
+        /* Dark Mode Bubbles (slightly muted colors) */
+        .dark .user-message { background-color: #1E40AF; color: #E5E7EB; } /* Darker blue */
+        .dark .admin-message { background-color: #06B6D4; color: #E5E7EB; } /* Darker cyan */
+
+        /* Timestamp Styling */
+        .message-timestamp {
+            font-size: 0.7rem;
+            color: #9CA3AF; /* Light gray */
+            margin-top: 1px;
+            margin-bottom: 5px;
+            padding: 0 0.5rem;
+        }
+        
+        .dark .message-timestamp {
+            color: #6B7280; /* Darker gray for dark mode */
         }
 
-        /* Send Button Glow */
-        #sendButton {
-            background-color: var(--primary-neon);
-            color: var(--dark-bg);
-            font-weight: 700;
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
-            transition: all 0.2s;
-        }
-        #sendButton:hover {
-             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
-             background-color: #00ffff;
+
+        .emoji-picker { display: none; position: absolute; bottom: 60px; right: 10px; background:white; border:1px solid #ddd; border-radius: 10px; padding: 10px; max-width: 300px; max-height: 250px; overflow-y:auto; z-index:50; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+        .dark .emoji-picker { background: #374151; border-color: #4B5563; }
+
+        .emoji-picker span { cursor:pointer; font-size: 24px; margin:2px; transition: transform 0.1s; display: inline-block; }
+        .emoji-picker span:hover { transform: scale(1.2); }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #22C55E; /* Changed to green for a better notification feel */
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 999;
         }
 
+        .toast.show { opacity:1; transform: translateY(0); }
     </style>
 </head>
-<!-- Main container uses the very dark background -->
-<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
+<body class="bg-gray-50 dark:bg-gray-900 font-sans min-h-screen transition-colors duration-300">
 
-    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
-    <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
-        <!-- Logo/Title: Neon Emphasis -->
-        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
-            <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-            <span class="tracking-widest">Admin Plan</span>
-        </div>
+    <!-- Mobile Menu Overlay (Click to close menu) -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 
-        <!-- Navigation Menu with Neon Indicators -->
-        <nav id="mainNav" class="p-4 space-y-2 flex-grow">
+    <div id="app-container" class="flex">
+        <!-- Sidebar Navigation (Responsive: Hidden on mobile by default, shown via toggle) -->
+        <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-xl transition-transform duration-300 p-4 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 flex flex-col z-50">
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
-                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-medium">Dashboard</span>
-            </a>
-            
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="font-medium">Chats</span>
-            </a>
-            
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span class="font-medium">Broadcast</span>
-            </a>
-            
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="font-medium">Settings</span>
-            </a>
-        </nav>
-        
-        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
-        <div class="p-6 border-t border-gray-700/30">
-             <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
-                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Default to Sun icon as the theme is fixed dark -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
-    <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
-        <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
-            Conversations Log
-        </div>
-
-        <!-- Chat List Search Input -->
-        <div class="p-4 border-b border-gray-700/30">
-            <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
-                   onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
-        </div>
-
-        <!-- Chat List Container -->
-        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
-        </div>
-    </div>
-
-    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
-        
-        <!-- === SECTION: Dashboard === -->
-        <div id="section-dashboard" class="main-section flex-grow p-8">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
-                🚀 Dashboard | Nexus View
-            </h1>
-            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
-                Real-time metrics and system status reports.
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Card 1 (Neon Blue Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">1,245</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
-                </div>
-                <!-- Card 2 (Neon Green Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">25</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
-                </div>
-                <!-- Card 3 (Neon Magenta/Red Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">156</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
-                </div>
-            </div>
-            
-            <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
-                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
-                <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
-                <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
-                    [Holographic Data Display Placeholder]
-                </div>
-            </div>
-        </div>
-
-        <!-- === SECTION: Chat (Existing Chat Logic) === -->
-        <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat Header - Sleek, borderless look -->
-            <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
-            </header>
-            
-            <!-- Chat History Search Input -->
-            <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
-                <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
-                       onkeyup="filterChatHistory(this.value)"
-                       class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
-            </div>
-
-            <!-- Message History -->
-            <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
-                <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
-            </div>
-
-            <!-- Message Input - Floating effect -->
-            <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
-                
-                <!-- File/Image Preview Area -->
-                <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
-                            <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
-                            <span id="fileSize" class="text-xs text-gray-500"></span>
-                        </div>
-                        <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex space-x-2">
-                    <!-- Hidden File Input -->
-                    <input type="file" id="fileInput" class="hidden" 
-                           onchange="handleFileSelect(event)" 
-                           accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                           
-                    <!-- Attach Button -->
-                    <button onclick="document.getElementById('fileInput').click()" 
-                            class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                    </button>
-                    
-                    <!-- Input field with neon focus style -->
-                    <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
-                           class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
-                           onkeypress="if(event.key === 'Enter') sendReply()">
-                           
-                    <!-- Send button with vibrant glow -->
-                    <button id="sendButton" onclick="sendReply()"
-                            class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <!-- Top Section: Logo and Main Nav -->
+            <div class="flex-grow">
+                <div class="p-4 border-b dark:border-gray-700 mb-6 flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                    <!-- Close button for mobile -->
+                    <button id="close-menu-btn" class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- === SECTION: Broadcast === -->
-        <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
-            <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                <p class="mb-6 text-gray-400">
-                    Send high-priority messages to target user segments.
-                </p>
-                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
-                <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
-                    <span class="flex items-center space-x-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span>Initiate Broadcast</span>
-                    </span>
+                <!-- Navigation Links -->
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="#/dashboard" class="nav-link" data-path="/dashboard">
+                                <i class="fas fa-home w-5 text-indigo-500"></i><span class="ml-3">Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#/inbox" class="nav-link" data-path="/inbox">
+                                <i class="fas fa-inbox w-5 text-green-500"></i><span class="ml-3">Inbox</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#/broadcast" class="nav-link" data-path="/broadcast">
+                                <i class="fas fa-bullhorn w-5 text-yellow-500"></i><span class="ml-3">Broadcast</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#/users" class="nav-link" data-path="/users">
+                                <i class="fas fa-users w-5 text-red-500"></i><span class="ml-3">Users</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#/integrations" class="nav-link" data-path="/integrations">
+                                <i class="fas fa-plug w-5 text-purple-500"></i><span class="ml-3">Integrations (APIs)</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            
+            <!-- Bottom Section: Logout Link -->
+            <div class="mt-4 pt-4 border-t dark:border-gray-700">
+                <a href="#/logout" class="nav-link group transition-colors duration-200" data-path="/logout">
+                    <i class="fas fa-sign-out-alt w-5 text-gray-500 group-hover:text-red-500 dark:text-gray-400 dark:group-hover:text-red-400"></i>
+                    <span class="ml-3 font-semibold text-gray-700 dark:text-gray-300 group-hover:text-red-500 dark:group-hover:text-red-400">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="flex-1 p-4 md:p-8 min-h-screen">
+            <!-- Mobile Menu Toggle, Dark Mode Toggle & Header Simulation -->
+            <header class="flex justify-between items-center mb-4 md:mb-8">
+                <!-- Mobile Menu Toggle Button (Visible only on mobile) -->
+                <button id="menu-toggle-btn" class="p-3 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white shadow-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 md:hidden" title="Open Menu">
+                    <i class="fas fa-bars"></i>
                 </button>
-            </div>
-        </div>
+                
+                <!-- Spacer/Title Placeholder for mobile alignment -->
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white md:hidden" id="mobile-page-title"></h2>
 
-        <!-- === SECTION: Settings === -->
-        <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
-            <div class="space-y-8">
-                <!-- Setting Card 1 -->
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
-                    <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
-                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
-                </div>
-                <!-- Setting Card 2 -->
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" value="" class="sr-only peer" checked>
-                            <!-- Toggle switch with vibrant colors -->
-                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
-                        </label>
-                    </div>
+                <!-- Dark Mode Toggle -->
+                <button id="theme-toggle" class="p-3 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white shadow-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200" title="Toggle Dark/Light Mode">
+                    <i id="theme-icon" class="fas fa-sun"></i>
+                </button>
+            </header>
+
+            <!-- Content Container (This will be dynamically populated) -->
+            <div id="content-container" class="transition-colors duration-300 max-w-7xl mx-auto">
+                <div class="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-spinner fa-spin mr-3 text-3xl"></i>
+                    Firebase သို့ ချိတ်ဆက်နေပါသည်...
                 </div>
             </div>
-        </div>
-
+        </main>
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
-    <script src="/socket.io/socket.io.js"></script>
+    <div id="toast" class="toast"></div>
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 dark:text-white"></h3>
+            <p id="modal-message" class="mb-6 dark:text-gray-300"></p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">ဖျက်သိမ်း</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">အတည်ပြု</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
-        // --- Client-side State Management ---
-        const apiKey = ""; 
-        const BASE_URL = ''; 
-        let socket;
+        // --- FIREBASE GLOBALS ---
+        let db, auth, appId, initialAuthToken, onAuthStateChanged, collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp, where;
+        let isAuthReady = false;
+        let userId = null;
         
-        let currentChatId = null;
-        let unreadCounts = {}; 
-        let allChats = []; 
+        // --- APP STATE ---
+        let conversations = [];
+        let activeUserId = null;
+        let unsubscribeMessages = null; // Listener for active chat messages
+        let unsubscribeConversations = null; // Listener for conversation list
+        let fileToSend = null; 
+        
+        // Emojis for the picker
+        const emojis = [
+            '😀', '😁', '😂', '🤣', '😅', '😆', '😉', '😊', '😍', '😘',
+            '🤔', '🤨', '😐', '🤗', '🤩', '🥳', '😎', '😩', '😭', '🤯',
+            '👋', '👍', '👎', '👏', '🙏', '❤️', '🔥', '💯', '✅', '❌',
+            '🍎', '🍌', '🍕', '☕', '🚀', '💡', '💰', '🔑', '🏠', '💻'
+        ];
+
+
+        // --- GLOBAL DOM ELEMENTS ---
         const htmlElement = document.documentElement;
+        const toggleButton = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentContainer = document.getElementById('content-container');
+        const toast = document.getElementById('toast');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggleBtn = document.getElementById('menu-toggle-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const mobilePageTitle = document.getElementById('mobile-page-title');
 
-        // --- File State Variables ---
-        let selectedFile = null;
-        let mediaPath = null;
-        let mediaType = null;
-        let filename = null;
 
-        // --- Utility Functions ---
+        // --- HELPER FUNCTIONS ---
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        function formatTime(timestamp) {
+            if (!timestamp) return '...';
+            // Firestore timestamp object needs to be converted to Date
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp * 1000); 
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // --- SIDEBAR TOGGLE LOGIC ---
+        function toggleSidebar(isOpen) {
+            const isMobile = window.innerWidth < 768;
+            if (!isMobile) return;
+
+            if (isOpen === undefined) {
+                isOpen = sidebar.classList.contains('-translate-x-full');
+            }
+
+            if (isOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                menuOverlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('-translate-x-full');
+                menuOverlay.classList.add('hidden');
+            }
         }
         
-        function getFileIcon(mimeType) {
-            if (mimeType.startsWith('image/')) return '🖼️';
-            if (mimeType.includes('pdf')) return '📄';
-            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
-            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-            return '📎';
+        // --- DARK MODE LOGIC ---
+
+        function enableDarkMode() {
+            htmlElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+            themeIcon.classList.replace('fa-sun', 'fa-moon');
         }
 
-
-        // --- Dark Mode Functions (The theme is fixed dark now, this button can toggle a subtle effect or future mode) ---
-        function toggleDarkMode() {
-            // Since the theme is fixed dark, this can trigger a special effect or log a message.
-            console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
-            alert("Theme is locked to Quantum Dark Mode.");
+        function disableDarkMode() {
+            htmlElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
         }
 
-        function updateThemeIcon() {
-            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
-        }
-
-        function loadDarkModePreference() {
-            htmlElement.classList.add('dark'); // Force dark mode
-            updateThemeIcon();
-        }
-
-        // --- Navigation Functions ---
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
-
-            const targetSection = document.getElementById(`section-${sectionId}`);
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                if (sectionId === 'chat') {
-                     targetSection.classList.add('flex-col');
-                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
-                } else {
-                     targetSection.classList.remove('flex-col');
-                }
-            }
-
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active-nav');
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                if (allChats.length === 0) {
-                    fetchChats();
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                }
+        function initializeTheme() {
+            const preferredTheme = localStorage.getItem('color-theme');
+            const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (preferredTheme === 'dark' || (!preferredTheme && systemPreference)) {
+                enableDarkMode();
             } else {
-                chatListPanel.classList.add('hidden');
-                currentChatId = null; 
-                document.getElementById('chatHistorySearch').value = ''; 
-                clearFileSelection(); 
+                disableDarkMode();
             }
         }
 
+        // --- TOAST NOTIFICATION ---
 
-        // --- Chat Specific Functions ---
-
-        function createChatListItem(chat) {
-            const chatId = chat.telegramId;
-            const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || 'Unknown Entity';
-            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
-
-            const chatElement = document.createElement('div');
-            chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
-            chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', username.toLowerCase());
-
-            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
-
-            // Avatar SVG Placeholder - Futuristic style
-            const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
-                </div>
-            `;
-
-            chatElement.innerHTML = `
-                ${avatar}
-                <div class="flex-grow min-w-0">
-                    <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
-                </div>
-                ${unreadBadge}
-            `;
-
-            chatElement.addEventListener('click', () => {
-                selectChat(chatId, username);
-            });
-
-            return chatElement;
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        function filterChatList(query) {
-            const chatListElement = document.getElementById('chatList');
-            const lowerCaseQuery = query.toLowerCase().trim();
-            
-            chatListElement.innerHTML = ''; 
+        // --- INBOX MESSAGE DISPLAY LOGIC ---
 
-            const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || '').toLowerCase();
-                const chatId = String(chat.telegramId);
-                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
-            });
+        function displayTextMessage(msg, sender) {
+            const container = document.getElementById('messages-container');
+            if (!container) return;
             
-            if (filteredChats.length > 0) {
-                filteredChats.forEach(chat => {
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
-            } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
-            }
-        }
-
-        /**
-         * Renders a single message bubble.
-         */
-        function createMessageBubble(msg) {
-            const isUser = msg.sender === 'user';
-            const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('flex', 'flex-col', sender === 'user' ? 'items-start' : 'items-end');
             
-            const messageElement = document.createElement('div');
-            messageElement.className = `message-bubble flex ${alignment} mb-3`;
-            
-            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // 1. Message Bubble
+            const bubble = document.createElement('div');
+            bubble.classList.add('message-bubble', sender === 'user' ? 'user-message' : 'admin-message');
+            bubble.textContent = msg.content; 
 
-            let mediaContent = '';
-            
-            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
-            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
-            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
+            // 2. Timestamp Element
+            const timeEl = document.createElement('span');
+            timeEl.classList.add('message-timestamp', sender === 'user' ? 'ml-0' : 'mr-0'); 
+            timeEl.textContent = formatTime(msg.timestamp);
 
-            if (isUserMedia) {
-                // User sent media (image/file from Telegram, displayed via API)
-                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
-                mediaContent = `
-                    <img src="${imageUrl}" 
-                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
-                         onclick="window.open('${imageUrl}', '_blank')" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
-                         alt="Chat Media"/>
-                `;
-            } else if (isAdminMedia) {
-                 // Admin sent media (Base64 data URL, directly displayed)
-                 if (msg.mediaPath.startsWith('data:image/')) {
-                     // Image display
-                     mediaContent = `
-                        <img src="${msg.mediaPath}" 
-                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
-                            onclick="window.open('${msg.mediaPath}', '_blank')" 
-                            alt="Admin Image"/>
-                     `;
-                 } else {
-                    // Document/File display (using icon and name)
-                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
-                    mediaContent = `
-                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
-                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
-                            <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
-                        </div>
-                    `;
-                 }
-            }
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(timeEl); 
+            container.appendChild(wrapper);
 
-            messageElement.innerHTML = `
-                <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
-                    ${mediaContent}
-                    <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-400' : 'text-indigo-200'} text-right">
-                        ${timeString}
-                    </span>
-                </div>
-            `;
-            return messageElement;
+            container.scrollTop = container.scrollHeight;
         }
         
-        function filterChatHistory(query) {
-            const lowerCaseQuery = query.toLowerCase().trim();
-            const messages = document.querySelectorAll('#messageHistory .message-bubble');
-            let foundCount = 0;
+        // Function to display file/media messages
+        function displayMediaMessage(msg, sender) {
+            const container = document.getElementById('messages-container');
+            if (!container) return;
 
-            messages.forEach(messageDiv => {
-                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
-                
-                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
-                    messageDiv.classList.remove('hidden');
-                    foundCount++;
-                } else {
-                    messageDiv.classList.add('hidden');
-                }
-            });
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('flex', 'flex-col', sender === 'user' ? 'items-start' : 'items-end');
+
+            // Determine Icon and Label
+            let iconClass, mediaTypeLabel;
+            if (msg.mediaType && msg.mediaType.startsWith('image')) {
+                iconClass = 'fa-image';
+                mediaTypeLabel = 'ပုံ / Photo';
+            } else if (msg.mediaType && msg.mediaType.startsWith('video')) {
+                iconClass = 'fa-video';
+                mediaTypeLabel = 'ဗီဒီယို / Video';
+            } else {
+                iconClass = 'fa-file';
+                mediaTypeLabel = 'ဖိုင် / File';
+            }
             
-            const noResultMessage = document.getElementById('noHistoryResults');
-            if (noResultMessage) noResultMessage.remove();
+            // 1. Message Bubble (Container for media content)
+            const bubble = document.createElement('div');
+            bubble.classList.add(
+                'message-bubble', 
+                'p-4',
+                sender === 'user' ? 'user-message' : 'admin-message', 
+                'flex', 'flex-col', 'items-center', 'justify-center', 
+                'max-w-[12rem]',
+                'bg-opacity-80' 
+            );
 
-            if (lowerCaseQuery !== '' && foundCount === 0) {
-                 const feedback = document.createElement('div');
-                 feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
-                 feedback.textContent = `No data packets found for query: "${query}"`;
-                 document.getElementById('messageHistory').appendChild(feedback);
+            // Handle file size display (optional field)
+            const fileSizeText = msg.fileSize ? `${(msg.fileSize / 1024 / 1024).toFixed(2)} MB` : 'Unknown size';
+
+
+            bubble.innerHTML = `
+                <i class="fas ${iconClass} text-5xl mb-3"></i>
+                <div class="font-bold text-base text-center">${mediaTypeLabel}</div>
+                <div class="text-sm italic truncate w-full text-center px-1">${msg.content}</div>
+                <div class="text-xs mt-1 font-semibold">${fileSizeText}</div>
+                <button class="mt-3 px-3 py-1 text-xs bg-white/20 hover:bg-white/30 rounded-full font-semibold transition">
+                    ဖွင့်ရန် (Simulated)
+                </button>
+            `;
+
+            // 2. Timestamp Element
+            const timeEl = document.createElement('span');
+            timeEl.classList.add('message-timestamp', sender === 'user' ? 'ml-0' : 'mr-0'); 
+            timeEl.textContent = formatTime(msg.timestamp);
+
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(timeEl);
+            container.appendChild(wrapper);
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Delegating display function
+        function displayMessage(msg, sender) {
+            if (msg.type === 'media') {
+                displayMediaMessage(msg, sender);
+            } else {
+                displayTextMessage(msg, sender);
+            }
+        }
+        
+        // --- INBOX LOGIC ---
+        
+        function getConversationsCollectionRef() {
+            // Path: /artifacts/{appId}/public/data/conversations
+            return collection(db, `artifacts/${appId}/public/data/conversations`);
+        }
+        
+        function getMessagesCollectionRef(conversationId) {
+            // Path: /artifacts/{appId}/public/data/conversations/{conversationId}/messages
+            return collection(db, `artifacts/${appId}/public/data/conversations/${conversationId}/messages`);
+        }
+        
+        function unsubscribeAll() {
+            if (unsubscribeConversations) {
+                unsubscribeConversations();
+                unsubscribeConversations = null;
+            }
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+                unsubscribeMessages = null;
             }
         }
 
 
-        async function fetchChats() {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
-            unreadCounts = {}; 
-            allChats = []; 
+        function loadConversation(userId, userName, conversationListEl, chatWindowEl) {
+            if (!isAuthReady) {
+                showToast("ဒေတာဘေ့စ်ကို ချိတ်ဆက်နေဆဲဖြစ်သည်...");
+                return;
+            }
+            
+            // Unsubscribe from previous chat listener
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+            }
+            
+            const messagesContainerEl = document.getElementById('messages-container');
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
-                if (!response.ok) throw new Error('Authentication failure or offline');
-                const chats = await response.json();
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('conversation-sidebar');
+                if(sidebar) sidebar.classList.add('hidden'); 
+                if(chatWindowEl) chatWindowEl.classList.remove('hidden');
+            }
+            
+            activeUserId = userId;
+            const activeUserIdInput = document.getElementById('active-user-id');
+            if (activeUserIdInput) activeUserIdInput.value = userId;
 
-                allChats = chats; 
-                chatListElement.innerHTML = '';
-                
-                if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+            // Update Headers
+            const headerName = userName;
+            const headerId = `(#${userId})`;
+
+            document.getElementById('chat-user-name').textContent = headerName;
+            document.getElementById('chat-user-id').textContent = headerId;
+            document.getElementById('chat-user-name-desktop').textContent = headerName;
+            document.getElementById('chat-user-id-desktop').textContent = headerId;
+
+            // Update Active Link Style
+            conversationListEl.querySelectorAll('.chat-item').forEach(el => el.classList.remove('bg-gray-100', 'dark:bg-gray-700'));
+            const selectedItem = document.querySelector(`.chat-item[data-user-id="${userId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('bg-gray-100', 'dark:bg-gray-700');
+            }
+            
+            // Clear current messages and show loading
+            messagesContainerEl.innerHTML = `
+                <div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-spinner fa-spin mr-3 text-2xl"></i>
+                    စာများ တင်နေပါသည်...
+                </div>
+            `;
+            
+            // Start listening to the messages subcollection
+            const messagesQuery = query(
+                getMessagesCollectionRef(userId), 
+                orderBy('timestamp', 'asc')
+            );
+
+            unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
+                // Clear the container only on the initial load or full replacement
+                if (messagesContainerEl.children.length === 1 && messagesContainerEl.textContent.includes('စာများ တင်နေပါသည်')) {
+                    messagesContainerEl.innerHTML = '';
+                }
+
+                if (snapshot.empty) {
+                    messagesContainerEl.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">စကားပြောစတင်ရန်</div>';
                     return;
                 }
-                
-                chats.forEach(chat => {
-                    unreadCounts[chat.telegramId] = 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
 
-            } catch (error) {
-                console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
-            }
+                snapshot.docChanges().forEach((change) => {
+                    const msgData = change.doc.data();
+                    
+                    // Determine sender based on 'fromAdmin' field
+                    const sender = msgData.fromAdmin ? 'admin' : 'user';
+
+                    if (change.type === "added") {
+                        displayMessage(msgData, sender);
+                    }
+                    // Ignoring 'modified' and 'removed' for chat UI simplicity
+                });
+            }, (error) => {
+                console.error("Error listening to messages: ", error);
+                messagesContainerEl.innerHTML = `<div class="text-red-500 p-4">ဒေတာတင်ရာတွင် အမှားဖြစ်ပွားသည်: ${error.code}</div>`;
+            });
+            
+            // Clear any pending file attachment when switching conversations
+            clearFileAttachment();
         }
+        
+        function renderConversationList(conversationListEl, chatWindowEl) {
+            if (!isAuthReady) return;
 
-        async function selectChat(chatId, username) {
-            currentChatId = chatId;
-            
-            document.getElementById('chatHeader').innerHTML = `
-                <div class="flex flex-col">
-                    <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
-                </div>
-            `;
-            document.getElementById('chatInputArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearch').value = ''; 
-            
-            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-            const activeChatElement = document.getElementById(`chat-${chatId}`);
-            if (activeChatElement) {
-                activeChatElement.classList.add('active');
-                unreadCounts[chatId] = 0;
-                const badge = activeChatElement.querySelector('.badge-style');
-                if (badge) badge.remove();
-            }
-            
-            clearFileSelection(); 
-
-            const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
-                if (!response.ok) throw new Error('Failed to load history');
-                const history = await response.json();
-
-                historyContainer.innerHTML = '';
-                history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
-                });
+            // 1. Initial listener setup
+            if (!unsubscribeConversations) {
+                const conversationsQuery = query(
+                    getConversationsCollectionRef(), 
+                    orderBy('lastMessageTimestamp', 'desc')
+                );
                 
-                historyContainer.scrollTop = 0; 
+                unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
+                    conversations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // 2. Clear and render the list
+                    conversationListEl.innerHTML = '';
 
-            } catch (error) {
-                console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+                    if (conversations.length === 0) {
+                        conversationListEl.innerHTML = '<div class="p-4 text-center text-gray-500 dark:text-gray-400">စကားဝိုင်းများ မရှိသေးပါ</div>';
+                        return;
+                    }
+                    
+                    conversations.forEach((conv) => {
+                        const newItem = document.createElement('div');
+                        const lastMessage = conv.lastMessage || "စကားပြောစတင်ရန်";
+                        // Note: unreadCount would ideally be managed by a server-side rule,
+                        // but for client-side display, we just show a badge if it exists/is > 0
+                        const unreadCount = conv.unreadCount || 0; 
+                        
+                        newItem.className = `relative p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 chat-item border-b dark:border-gray-700 ${conv.id === activeUserId ? 'bg-gray-100 dark:bg-gray-700' : ''}`;
+                        newItem.dataset.userId = conv.id;
+                        newItem.dataset.userName = conv.name || conv.id; // Use ID as fallback name
+                        
+                        const badgeHtml = unreadCount > 0 
+                            ? `<span class="unread-count absolute top-4 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">${unreadCount}</span>` 
+                            : '';
+                        
+                        newItem.innerHTML = `
+                            <h4 class="font-semibold text-gray-800 dark:text-white">
+                                <span class="truncate">${conv.name || 'Unknown User'}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">(ID: ${conv.id})</span>
+                            </h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${lastMessage}</p>
+                            ${badgeHtml}
+                        `;
+                        
+                        conversationListEl.appendChild(newItem);
+                        
+                        newItem.addEventListener('click', () => {
+                            loadConversation(conv.id, conv.name || 'Unknown User', conversationListEl, chatWindowEl);
+                        });
+                    });
+                    
+                    // Re-load messages for the currently active user to update the active item's style
+                    if (activeUserId) {
+                        const activeConv = conversations.find(c => c.id === activeUserId);
+                        if (activeConv) {
+                             loadConversation(activeConv.id, activeConv.name || 'Unknown User', conversationListEl, chatWindowEl);
+                        }
+                    }
+
+                }, (error) => {
+                    console.error("Error listening to conversations: ", error);
+                    conversationListEl.innerHTML = `<div class="text-red-500 p-4">စာရင်းတင်ရာတွင် အမှားဖြစ်ပွားသည်: ${error.code}</div>`;
+                });
             }
         }
         
-        /**
-         * Clears all file-related state and UI elements.
-         */
-        function clearFileSelection() {
-            selectedFile = null;
-            mediaPath = null;
-            mediaType = null;
-            filename = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
+        // --- NEW: File attachment logic ---
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            const filePreviewArea = document.getElementById('file-preview-area');
+            const fileNameDisplay = document.getElementById('file-name-display');
+
+            if (file) {
+                fileToSend = file;
+                fileNameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                filePreviewArea.classList.remove('hidden');
+                document.getElementById('message-input').placeholder = "ဖိုင်ကို ပို့ရန် အဆင်သင့်ပါ...";
+                document.getElementById('message-input').value = ''; 
+                document.getElementById('message-input').disabled = true;
+            } else {
+                clearFileAttachment();
+            }
+        }
+        
+        function clearFileAttachment() {
+            fileToSend = null;
+            document.getElementById('file-input').value = null;
+            document.getElementById('file-preview-area').classList.add('hidden');
+            document.getElementById('message-input').placeholder = "စာရိုက်ထည့်ပါ...";
+            document.getElementById('message-input').disabled = false;
+            document.getElementById('message-input').style.height = 'auto'; 
         }
 
-        /**
-         * Handles file selection, converts to Base64, and updates the preview.
-         */
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // --- Message Sending Logic (Using Firestore) ---
+        async function sendMessage(text, currentUserId) {
+            if (!currentUserId || !isAuthReady) return;
 
-            // Max file size 5MB
-            if (file.size > 5 * 1024 * 1024) {
-                 alert("File size exceeds 5MB transmission limit.");
-                 event.target.value = ''; 
+            let newMessageData;
+
+            if (fileToSend) {
+                newMessageData = {
+                    type: 'media',
+                    content: fileToSend.name,
+                    timestamp: serverTimestamp(),
+                    fromAdmin: true,
+                    mediaType: fileToSend.type || 'application/octet-stream',
+                    fileSize: fileToSend.size
+                };
+                showToast(`ဖိုင် (${fileToSend.name}) ကို ပို့နေပါသည်...`);
+                // Important: Clear file attachment BEFORE trying to send to avoid sending the same file again on error
+                clearFileAttachment(); 
+            } else if (text) {
+                newMessageData = {
+                    type: 'text',
+                    content: text,
+                    timestamp: serverTimestamp(),
+                    fromAdmin: true
+                };
+                showToast("စာပို့နေပါသည်...");
+            } else {
+                return;
+            }
+
+            try {
+                // 1. Add message to subcollection
+                await addDoc(getMessagesCollectionRef(currentUserId), newMessageData);
+
+                // 2. Update the parent conversation document (last message preview)
+                // Determine the last message text based on what was sent
+                const lastMessageText = newMessageData.type === 'media'
+                    ? `Admin: [${newMessageData.mediaType.startsWith('image') ? 'ပုံ' : 'ဗီဒီယို'}] ပို့လိုက်သည်`
+                    : `Admin: ${text}`;
+
+                const convRef = doc(getConversationsCollectionRef(), currentUserId);
+                // Note: We use merge: true to avoid overwriting the whole document
+                await setDoc(convRef, {
+                    lastMessage: lastMessageText,
+                    lastMessageTimestamp: serverTimestamp(),
+                    // Optionally reset unreadCount for the admin on reply
+                    // unreadCount: 0 
+                }, { merge: true });
+
+                showToast("စာပို့ခြင်း အောင်မြင်ပါသည်!");
+
+            } catch (error) {
+                console.error("Error sending message or updating conversation: ", error);
+                showToast(`စာပို့ရာတွင် အမှားဖြစ်သည်: ${error.code}`);
+            }
+        }
+
+        function setupInboxEvents(conversationListEl, chatWindowEl) {
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const searchInput = document.getElementById('conversation-search');
+            const backButton = document.getElementById('back-button');
+            const emojiBtn = document.getElementById('emoji-btn');
+            const emojiPicker = document.getElementById('emoji-picker');
+            
+            // FILE ELEMENTS
+            const fileBtn = document.getElementById('file-btn');
+            const fileInput = document.getElementById('file-input');
+            const clearFileBtn = document.getElementById('clear-file-btn');
+
+            // File selection event
+            fileInput.addEventListener('change', handleFileSelect);
+            fileBtn.addEventListener('click', () => fileInput.click());
+            clearFileBtn.addEventListener('click', clearFileAttachment);
+
+
+            messageForm.addEventListener('submit', async e => {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                const currentUserId = document.getElementById('active-user-id').value;
+                
+                if (!currentUserId) {
+                     showToast("စကားပြောရန် အသုံးပြုသူတစ်ဦးကို ရွေးချယ်ပါ။");
+                     return;
+                }
+                
+                // Check if a file is attached OR if the text input has content
+                if (fileToSend || text) {
+                    await sendMessage(text, currentUserId);
+                    if (!fileToSend) { // Only clear text input if it was used for sending text
+                        messageInput.value = ''; 
+                        messageInput.style.height = 'auto'; // Reset textarea height
+                    }
+                }
+            });
+
+            messageInput.addEventListener('input', () => { 
+                // Only allow resizing if no file is attached
+                if (!fileToSend) {
+                    messageInput.style.height = 'auto'; 
+                    messageInput.style.height = messageInput.scrollHeight + 'px';
+                }
+            });
+
+            // Emoji picker
+            emojiBtn.addEventListener('click', () => {
+                emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
+            });
+            emojiPicker.querySelectorAll('span').forEach(e => e.addEventListener('click', () => {
+                if (!fileToSend) {
+                    messageInput.value += e.textContent;
+                    messageInput.focus();
+                    messageInput.style.height = 'auto'; 
+                    messageInput.style.height = messageInput.scrollHeight + 'px';
+                }
+            }));
+            
+            // Search (client-side filtering of loaded data)
+            searchInput.addEventListener('input', () => {
+                const filter = searchInput.value.toLowerCase();
+                document.querySelectorAll('.chat-item').forEach(item => {
+                    const name = item.dataset.userName.toLowerCase();
+                    const id = item.dataset.userId.toLowerCase();
+                    item.style.display = (name.includes(filter) || id.includes(filter)) ? '' : 'none';
+                });
+            });
+            
+            // Mobile back button
+            backButton.addEventListener('click', () => {
+                const sidebar = document.getElementById('conversation-sidebar');
+                if(sidebar) sidebar.classList.remove('hidden');
+                if(chatWindowEl) chatWindowEl.classList.add('hidden');
+                activeUserId = null;
+                const activeUserIdInput = document.getElementById('active-user-id');
+                if (activeUserIdInput) activeUserIdInput.value = null;
+                clearFileAttachment();
+                // Unsubscribe from messages when going back to list
+                if (unsubscribeMessages) {
+                    unsubscribeMessages();
+                    unsubscribeMessages = null;
+                }
+            });
+        }
+        
+        // --- PAGE RENDERING: Integrations UI (NEW) ---
+        function renderIntegrationsUI() {
+             unsubscribeAll();
+             contentContainer.innerHTML = `
+                <div id="main-content-card" class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-6">Bot & API ချိတ်ဆက်မှုများ (Integrations)</h2>
+                    
+                    <p class="text-gray-700 dark:text-gray-300 mb-6">
+                        Telegram Bot ကဲ့သို့သော ပြင်ပဝန်ဆောင်မှုများ (External Services) ကို လက်ရှိ Inbox စနစ်နဲ့ နှစ်လမ်းသွား (Two-Way) ချိတ်ဆက်နိုင်ဖို့အတွက် Server-side logic (Firebase Cloud Functions) လိုအပ်ပါတယ်။
+                        အောက်ပါ အဆင့် (၂) ဆင့်က အဆိုပါ ချိတ်ဆက်မှုအတွက် လိုအပ်တဲ့ ဗိသုကာ (Architecture) အကြောင်းကို ရှင်းပြထားပါတယ်။
+                    </p>
+
+                    <!-- SECTION 1: Telegram to Firestore -->
+                    <div class="mb-8 p-4 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-md">
+                        <h3 class="text-xl font-bold text-blue-800 dark:text-blue-200 mb-3">
+                            ၁။ Telegram မှ Firestore သို့ (အသုံးပြုသူ စာပို့ခြင်း)
+                        </h3>
+                        <p class="text-blue-700 dark:text-blue-300 mb-2">
+                            ဤအဆင့်သည် Telegram အသုံးပြုသူတစ်ဦးမှ စာပို့လိုက်တိုင်း Admin Panel ၏ Inbox ထဲသို့ အချိန်နှင့်တပြေးညီ ရောက်ရှိစေရန် ဖြစ်သည်။
+                        </p>
+                        <ol class="list-decimal list-inside pl-4 space-y-2 text-blue-700 dark:text-blue-300">
+                            <li><strong>Webhook သတ်မှတ်ခြင်း:</strong> Telegram Bot API တွင် သင်၏ Cloud Function ၏ HTTPS endpoint ကို Webhook အဖြစ် သတ်မှတ်ပါ။</li>
+                            <li><strong>Cloud Function (Listener) ရေးသားခြင်း:</strong>
+                                <ul class="list-disc list-inside ml-4">
+                                    <li>ဝင်လာသော Telegram မက်ဆေ့ချ်ကို လက်ခံပြီး၊ မက်ဆေ့ချ်ပို့သောသူ၏ Telegram User ID ကို Conversation ID အဖြစ် သုံးပါ။</li>
+                                    <li>Firestore Path: <code>/artifacts/${appId}/public/data/conversations/{Telegram_User_ID}/messages</code> သို့ အချက်အလက်များကို ရေးသွင်းပါ။</li>
+                                    <li>Data Structure: <code>{ type: 'text', content: '...', timestamp: ServerValue.TIMESTAMP, fromAdmin: false }</code></li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <!-- SECTION 2: Firestore to Telegram -->
+                    <div class="p-4 border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 rounded-lg shadow-md">
+                        <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-3">
+                            ၂။ Firestore မှ Telegram သို့ (Admin မှ စာပြန်ခြင်း)
+                        </h3>
+                        <p class="text-green-700 dark:text-green-300 mb-2">
+                            ဤအဆင့်သည် Admin မှ Inbox တွင် စာပြန်ပို့လိုက်သည်နှင့် ထိုစာကို Telegram User ဆီသို့ ပြန်လည်ပို့ဆောင်ပေးရန် ဖြစ်သည်။
+                        </p>
+                        <ol class="list-decimal list-inside pl-4 space-y-2 text-green-700 dark:text-green-300">
+                            <li><strong>Cloud Function (Firestore Trigger) ရေးသားခြင်း:</strong>
+                                <ul class="list-disc list-inside ml-4">
+                                    <li>Firestore တွင် Message အသစ်တစ်ခု ထပ်ထည့်တိုင်း အလုပ်လုပ်မည့် Trigger တစ်ခု သတ်မှတ်ပါ။ (Path: <code>.../conversations/{conversationId}/messages/{messageId}</code>)</li>
+                                    <li><strong>Condition:</strong> ထို message သည် Admin မှ ပို့သော message (<code>fromAdmin: true</code>) ဖြစ်မှသာ Bot API ကို ခေါ်ဆိုပါ။</li>
+                                    <li><strong>Telegram API Call:</strong> <code>conversationId</code> ကို Telegram Chat ID အဖြစ်သုံးပြီး၊ Admin ၏ စာသားကို Bot API (<code>sendMessage</code> method) မှတစ်ဆင့် ပြန်ပို့ပေးပါ။</li>
+                                </ul>
+                            </li>
+                            <li><strong>API Key လိုအပ်ခြင်း:</strong> ဤ Function သည် Telegram Bot API Key ကို လုံခြုံစွာ အသုံးပြုရန် လိုအပ်ပါသည်။</li>
+                        </ol>
+                    </div>
+
+                    <div class="mt-6 p-3 bg-yellow-100 dark:bg-yellow-800/50 border-l-4 border-yellow-500 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> ဤ Integration စနစ်ကို အကောင်အထည်ဖော်ရန်အတွက် **Firebase Cloud Functions** (server-side code) များကို သီးခြား ရေးသား deploy လုပ်ရန် လိုအပ်ပါသည်။
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderInboxUI() {
+            // Stop any previous message listener
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+                unsubscribeMessages = null;
+            }
+            
+            contentContainer.innerHTML = `
+                <h2 class="hidden md:block text-3xl font-bold text-gray-800 dark:text-white mb-6">Inbox</h2>
+
+                <div class="flex flex-col md:flex-row h-[calc(100vh-140px)] md:h-[calc(100vh-200px)] bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                
+                    <!-- Sidebar -->
+                    <div id="conversation-sidebar" class="w-full md:w-1/3 flex flex-col border-r border-gray-200 dark:border-gray-700 transition-colors duration-300">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <input type="text" id="conversation-search" placeholder="အမည် သို့မဟုတ် ID ဖြင့် ရှာဖွေပါ..."
+                                class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        </div>
+                        <div id="conversation-list" class="flex-1 overflow-y-auto">
+                             <div class="p-4 text-center text-gray-500 dark:text-gray-400">စကားဝိုင်းများ တင်နေပါသည်...</div>
+                        </div>
+                    </div>
+                
+                    <!-- Chat Window -->
+                    <div id="chat-window" class="flex-1 flex flex-col hidden md:flex relative transition-colors duration-300">
+                        <!-- Mobile Header -->
+                        <div class="md:hidden flex items-center justify-start p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <button id="back-button" class="mr-4 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white focus:outline-none">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-white">
+                                    <span id="chat-user-name">Select user</span>
+                                    <span id="chat-user-id" class="text-sm text-gray-500 dark:text-gray-400 ml-1"></span>
+                                </h4>
+                            </div>
+                        </div>
+                
+                        <!-- Desktop Header -->
+                        <div class="hidden md:flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <h4 class="font-semibold text-gray-800 dark:text-white">
+                                <span id="chat-user-name-desktop">Select user</span>
+                                <span id="chat-user-id-desktop" class="text-sm text-gray-500 dark:text-gray-400 ml-1"></span>
+                            </h4>
+                        </div>
+                
+                        <div class="flex flex-col h-full">
+                            <!-- Messages -->
+                            <div id="messages-container" class="flex-1 pt-6 px-6 pb-20 overflow-y-auto flex flex-col space-y-4 bg-gray-50 dark:bg-gray-900/50">
+                                <div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                                    စကားပြောရန် အသုံးပြုသူတစ်ဦးကို ရွေးချယ်ပါ
+                                </div>
+                            </div>
+                
+                            <!-- Input with emoji, file button, and preview (fixed at bottom) -->
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky bottom-0 z-10 flex flex-col">
+                                <!-- File Preview Area -->
+                                <div id="file-preview-area" class="flex items-center justify-between p-2 mb-2 bg-gray-100 dark:bg-gray-700 rounded-lg hidden">
+                                    <div class="flex items-center overflow-hidden">
+                                        <i class="fas fa-paperclip text-lg text-blue-500 mr-2"></i>
+                                        <span id="file-name-display" class="text-sm font-medium dark:text-gray-300 truncate max-w-xs md:max-w-md"></span>
+                                    </div>
+                                    <button id="clear-file-btn" class="text-red-500 hover:text-red-700 p-1 rounded-full transition" title="ဖိုင်ပယ်ဖျက်မည်">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="flex items-end">
+                                    <button id="emoji-btn" class="mr-2 text-2xl hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg transition" title="Emojis">😊</button>
+
+                                    <!-- File Input/Button -->
+                                    <input type="file" id="file-input" class="hidden" accept="image/*,video/*">
+                                    <button id="file-btn" class="mr-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-2 rounded-lg transition flex-shrink-0" title="ပုံ/ဗီဒီယို ပို့ရန်">
+                                        <i class="fas fa-paperclip text-xl"></i>
+                                    </button>
+
+                                    <!-- Emoji Picker -->
+                                    <div id="emoji-picker" class="emoji-picker">
+                                        ${emojis.map(e => `<span>${e}</span>`).join('')}
+                                    </div>
+
+                                    <form id="message-form" class="flex-1 flex items-end space-x-2">
+                                        <input type="hidden" id="active-user-id">
+                                        <textarea id="message-input" class="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32 overflow-y-auto dark:bg-gray-700 dark:text-white dark:border-gray-600 resize-none" placeholder="စာရိုက်ထည့်ပါ..." rows="1" required></textarea>
+                                        <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex-shrink-0 flex items-center justify-center">
+                                            <i class="fas fa-paper-plane mr-2"></i>ပို့ရန်
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                </div>
+            `;
+            
+            // Get newly created elements
+            const conversationListEl = document.getElementById('conversation-list');
+            const chatWindowEl = document.getElementById('chat-window');
+
+            // Set up events and listeners
+            setupInboxEvents(conversationListEl, chatWindowEl);
+            renderConversationList(conversationListEl, chatWindowEl);
+
+            // Handle initial mobile view state
+            if (window.innerWidth < 768) { 
+                document.getElementById('conversation-sidebar').classList.remove('hidden'); 
+                chatWindowEl.classList.add('hidden');
+            } else {
+                document.getElementById('conversation-sidebar').classList.remove('hidden'); 
+                chatWindowEl.classList.remove('hidden');
+            }
+        }
+
+        function renderDashboardUI() {
+             unsubscribeAll();
+             contentContainer.innerHTML = `
+                <div id="main-content-card" class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">Dashboard</h2>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        This is the main content area for the <strong>Dashboard</strong> page.
+                    </p>
+                    <div class="mt-4 p-4 border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-sm text-indigo-800 dark:text-indigo-200">
+                        Firebase User ID (Admin): <code>${userId || 'Not signed in'}</code>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLogoutUI() {
+            unsubscribeAll();
+            contentContainer.innerHTML = `
+                <div id="main-content-card" class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">You have been logged out.</h2>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        Thank you for using the Admin Panel. Your simulated session has been cleared.
+                    </p>
+                    <a href="#/dashboard" class="mt-6 inline-block px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Log In / Go to Dashboard
+                    </a>
+                </div>
+            `;
+            localStorage.removeItem('color-theme');
+            disableDarkMode();
+        }
+
+        function renderGenericUI(path, title) {
+             unsubscribeAll();
+             contentContainer.innerHTML = `
+                <div id="main-content-card" class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">${title}</h2>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        This is the main content area for the <strong>${title}</strong> page.
+                    </p>
+                    <div class="mt-4 p-4 border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-sm text-indigo-800 dark:text-indigo-200">
+                        Current simulated path: <code>${path}</code>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        // --- MAIN ROUTING LOGIC ---
+        function updateActiveLink() {
+            const currentHash = window.location.hash.replace('#', '') || '/dashboard';
+
+            // Reset all links
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Find the matching link and set it active
+            const activeLink = Array.from(navLinks).find(link => link.dataset.path === currentHash);
+
+            if (activeLink) {
+                activeLink.classList.add('active');
+                const titleText = activeLink.querySelector('span').textContent;
+                
+                // Update mobile header title
+                mobilePageTitle.textContent = titleText;
+                
+                // Close sidebar on mobile after navigation
+                toggleSidebar(false); 
+
+                // Render content based on the active path
+                if (currentHash === '/inbox') {
+                    renderInboxUI();
+                } else if (currentHash === '/dashboard') {
+                    renderDashboardUI();
+                } else if (currentHash === '/logout') {
+                    renderLogoutUI();
+                } else if (currentHash === '/integrations') {
+                    renderIntegrationsUI(); // NEW Integration page
+                } else {
+                    renderGenericUI(currentHash, titleText);
+                }
+            }
+        }
+        
+        // --- FIREBASE INITIALIZATION ---
+        async function initializeFirebase() {
+            // Wait for firebaseServices to be populated by the module script
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (window.firebaseServices) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+            });
+
+            ({ 
+                db, auth, appId, initialAuthToken, onAuthStateChanged, 
+                collection, query, orderBy, limit, onSnapshot, 
+                addDoc, serverTimestamp, where
+            } = window.firebaseServices);
+
+            if (!db || !auth) {
+                 console.error("Firebase services failed to initialize.");
                  return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                mediaPath = e.target.result; // Base64 Data URL
-                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
-                filename = file.name;
-                
-                // Update Preview UI
-                document.getElementById('fileName').textContent = filename;
-                document.getElementById('fileSize').textContent = formatBytes(file.size);
-                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
-                document.getElementById('filePreview').classList.remove('hidden');
-                
-                if (mediaType === 'photo') {
-                    // Optional: Show actual image preview
-                }
-            };
-            reader.onerror = (e) => {
-                console.error("File reading error:", e);
-                clearFileSelection();
-            };
-            reader.readAsDataURL(file);
-        }
-
-
-        /**
-         * Sends admin reply to the server via Socket.io.
-         */
-        function sendReply() {
-            if (!currentChatId || !socket) return;
-
-            const replyInput = document.getElementById('replyText');
-            const text = replyInput.value.trim();
-
-            if (!text && !mediaPath) {
-                console.warn("Transmission aborted: Empty data packet.");
-                return;
-            }
-
-            const sendButton = document.getElementById('sendButton');
-            sendButton.disabled = true;
-            sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
-
-            const data = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: mediaPath, 
-                mediaType: mediaType, 
-                filename: filename 
-            };
-
-            socket.emit('admin_reply', data, (response) => {
-                sendButton.disabled = false;
-                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
-                
-                if (response.success) {
-                    // Local Echo
-                    const tempMsg = {
-                        chatId: currentChatId,
-                        sender: 'admin',
-                        text: text,
-                        mediaPath: mediaPath, 
-                        filename: filename,
-                        timestamp: new Date().toISOString()
-                    };
-                    const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
-                    
-                    // Clear state after successful send
-                    replyInput.value = '';
-                    clearFileSelection();
-
+            // Authentication state listener
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    console.log("Admin signed in as:", userId);
+                    showToast(`Admin ID: ${userId} ဖြင့် ချိတ်ဆက်ထားသည်`);
                 } else {
-                    console.error("Failed to transmit data packet:", response.error);
+                    console.warn("User signed out or failed to sign in.");
+                    isAuthReady = true; // Still ready, just unauthenticated (will use anonymous)
+                    userId = null;
                 }
+                
+                // Once auth is checked, load the initial content
+                updateActiveLink();
             });
-        }
 
-
-        // ------------------------------------------------------------------
-        // CORE FIX: Handling Real-time Updates (Socket.io)
-        // ------------------------------------------------------------------
-
-        function setupSocketListeners() {
-            if (typeof io !== 'function') {
-                console.error("Socket.io library not found.");
-                return;
+            // Attempt Custom Token Sign-In first
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    // Fallback to anonymous sign-in if no token is available
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                showToast(`Auth အမှား: ${error.code}`);
+                // Proceed, let onAuthStateChanged handle the unauthenticated state
             }
-            socket = io();
-            
-            socket.on('new_message', (data) => {
-                const chatId = String(data.chatId);
-                const user = data.user;
-                const message = data.message;
-                
-                const chatList = document.getElementById('chatList');
-                
-                // 1. Find and REMOVE the old entry to prevent duplicates
-                const existingChatElement = document.getElementById(`chat-${chatId}`);
-                if (existingChatElement) {
-                    existingChatElement.remove();
-                }
-
-                // 2. Update allChats data array for search functionality
-                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
-                if (chatIndex !== -1) {
-                    allChats.splice(chatIndex, 1);
-                }
-                user.lastMessageText = message.text;
-                user.lastMessageTime = message.timestamp;
-                allChats.unshift(user);
-
-                // 3. Update Unread Count state
-                if (currentChatId !== chatId) {
-                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                } else {
-                    unreadCounts[chatId] = 0;
-                }
-                
-                // 4. Update the chat list display
-                if (document.getElementById('chatListSearch').value.trim() === '') {
-                    user.unreadCount = unreadCounts[chatId]; 
-                    const newChatElement = createChatListItem(user);
-                    chatList.prepend(newChatElement);
-
-                    // 5. If it's the current chat, display the new message immediately
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        newChatElement.classList.add('active'); 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                    } else {
-                        // Add a temporary subtle glow effect for new messages in the list
-                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
-                        setTimeout(() => {
-                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
-                        }, 1000);
-                    }
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                    }
-                }
-
-            });
         }
 
 
-        // ------------------------------------------------------------------
-        // Initialization
-        // ------------------------------------------------------------------
+        // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadDarkModePreference();
-            setupSocketListeners();
-            
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showSection(item.getAttribute('data-section'));
-                });
+            initializeTheme();
+            initializeFirebase(); // Start Firebase and Auth flow
+
+            toggleButton.addEventListener('click', () => {
+                if (htmlElement.classList.contains('dark')) {
+                    disableDarkMode();
+                } else {
+                    enableDarkMode();
+                }
             });
 
-            showSection('dashboard');
-        });
+            // NEW: Menu Toggle Events
+            menuToggleBtn.addEventListener('click', () => toggleSidebar(true));
+            closeMenuBtn.addEventListener('click', () => toggleSidebar(false));
+            menuOverlay.addEventListener('click', () => toggleSidebar(false));
 
+            // Run when hash changes (user clicks navigation links)
+            window.addEventListener('hashchange', updateActiveLink);
+            
+            // Set initial hash if none exists (defaults to dashboard)
+            if (!window.location.hash) {
+                window.location.hash = '/dashboard';
+            }
+        });
     </script>
 </body>
 </html>
