@@ -3,131 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neo-Glass စီမံခန့်ခွဲမှု စနစ် - 2026</title>
-    <!-- Tailwind CSS ကို ထည့်သွင်းခြင်း -->
+    <!-- Title is now controlled by JS translation -->
+    <title data-lang-key="system_title">Quantum Simple Admin System</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* --- Root Theme Variables (Default to Dark) --- */
+        /* Configuration for the futuristic dark theme */
         :root {
-            /* Dark Mode Variables (Default) */
-            --primary-fire: #FF4500;
-            --secondary-aqua: #00FFFF;
-            --abyss-bg: #080A18;
-            --text-color: #F0F4F8;
-            --sidebar-bg: rgba(8, 10, 24, 0.9);
-            --glass-card: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --input-bg: rgba(15, 23, 42, 0.5); /* slate-900/50 */
-            --sub-text: #9CA3AF; /* Gray 400 */
-        }
-
-        /* --- Light Mode Overrides --- */
-        .light {
-            --primary-fire: #E74C3C; /* Strong Red for contrast */
-            --secondary-aqua: #3498DB; /* Sky Blue */
-            --abyss-bg: #F0F4F8;
-            --text-color: #1A202C;
-            --sidebar-bg: #FFFFFF;
-            --glass-card: rgba(255, 255, 255, 0.9); /* Opaque white glass */
-            --glass-border: rgba(0, 0, 0, 0.1);
-            --input-bg: #FFFFFF;
-            --sub-text: #6B7280; /* Gray 500 */
+            --primary-neon: #00e0ff; /* Electric Cyan */
+            --secondary-neon: #ff00ff; /* Fuchsia */
+            --dark-bg: #0d0c1d; /* Very deep indigo/slate */
+            --card-bg: #1a192b; /* Slightly lighter card background */
         }
 
         body { 
             font-family: 'Inter', sans-serif;
-            background-color: var(--abyss-bg);
-            color: var(--text-color); 
             transition: background-color 0.5s, color 0.5s;
+            background-color: var(--dark-bg);
+            color: #E2E8F0; /* Light text */
         }
         
-        /* Glass Base Class: Backdrop blur and transparent background */
-        .glass-element {
-            background-color: var(--glass-card);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
-            transition: all 0.4s ease;
-        }
-
-        /* Sidebar Styling */
+        /* Sidebar: Base for the dark, futuristic look */
         .sidebar {
-            background-color: var(--sidebar-bg);
-            box-shadow: 6px 0 20px rgba(0, 0, 0, 0.1);
-            border-right: 1px solid var(--glass-border);
-        }
-        .dark .sidebar {
-            box-shadow: 6px 0 20px rgba(0, 0, 0, 0.6);
+            background-color: #121021; /* Slightly darker than body for depth */
+            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         /* Nav Item Styling */
         .nav-item {
+            position: relative;
             transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 12px;
-            color: var(--text-color); 
+            border-radius: 14px; /* Aggressive rounding */
         }
 
         .nav-item:hover {
-            background-color: var(--glass-card);
-            color: var(--primary-fire);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--primary-neon);
             transform: scale(1.02);
         }
-        .light .nav-item:hover {
-            background-color: rgba(231, 76, 60, 0.1);
-        }
-        .dark .nav-item:hover {
-            background-color: rgba(255, 69, 0, 0.15); 
-        }
 
-        /* Active Nav Item - Fire Glow Effect */
+        /* Active Nav Item - Neon Glow Effect */
         .active-nav {
-            background-color: var(--glass-card) !important;
-            color: var(--primary-fire) !important;
-            border: 1px solid var(--primary-fire);
-            box-shadow: 0 0 15px rgba(255, 69, 0, 0.4); 
-        }
-        .dark .active-nav {
-            background-color: rgba(255, 69, 0, 0.2) !important;
-            box-shadow: 0 0 15px rgba(255, 69, 0, 0.4); 
-        }
-        .light .active-nav {
-            background-color: rgba(231, 76, 60, 0.1) !important;
-            box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); 
+            background-color: var(--card-bg) !important;
+            color: var(--primary-neon) !important;
+            border: 1px solid var(--primary-neon);
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); /* Subtle glow */
         }
         .active-nav svg {
-            color: var(--primary-fire) !important;
+            color: var(--primary-neon) !important;
         }
 
         /* Chat Item Styling */
         .chat-item {
-            @apply glass-element;
-            border-radius: 14px;
-            color: var(--text-color);
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s;
+            border-radius: 12px;
         }
         
         .chat-item:hover {
-            border-color: var(--primary-fire);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(255, 69, 0, 0.2);
+            background-color: rgba(26, 25, 43, 0.8);
+            border-color: var(--primary-neon);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
         }
         
-        /* Active Chat Item - Secondary Aqua Accent */
+        /* Active Chat Item - Secondary Neon Accent */
         .chat-item.active {
-            background-color: rgba(0, 255, 255, 0.1) !important; 
-            color: var(--text-color) !important; 
-            border: 2px solid var(--secondary-aqua);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
+            background-color: #581c87; /* Deep Purple Accent */
+            color: white !important; 
+            border: 2px solid var(--secondary-neon);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
         }
-        .dark .chat-item.active {
-            background-color: rgba(0, 255, 255, 0.1) !important;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
+        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
+            color: white !important; 
+            opacity: 1;
         }
-        .light .chat-item.active {
-            background-color: rgba(52, 152, 219, 0.1) !important; /* Blue tint for light mode */
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
+        .chat-item.active .avatar-placeholder {
+             background-color: var(--primary-neon) !important; 
         }
-        
+
+        /* Message History container */
         .chat-messages {
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
@@ -136,181 +93,188 @@
             padding: 1rem;
         }
 
-        /* Custom Scrollbar - Changes with theme */
+        /* Custom Scrollbar - Neon look */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: var(--secondary-aqua); 
+            background-color: var(--primary-neon); 
             border-radius: 4px;
         }
         .chat-messages::-webkit-scrollbar-track {
-             background-color: rgba(0, 0, 0, 0.1);
-        }
-        .dark .chat-messages::-webkit-scrollbar-track {
-             background-color: rgba(0, 0, 0, 0.3);
+             background-color: var(--card-bg);
         }
         
+        /* Unread Badge - Sharp and secondary neon */
+        .badge-style {
+            background-color: var(--secondary-neon); 
+            color: var(--dark-bg); 
+            font-weight: 900; 
+            box-shadow: 0 0 8px var(--secondary-neon);
+        }
+
         /* Message Bubbles */
         .admin-bubble {
-            background-color: #581c87; /* Deep Purple (Consistent) */
+            background-color: #312e81; /* Indigo-700 */
             color: white;
             border-bottom-right-radius: 8px !important;
         }
         .user-bubble {
-            background-color: var(--input-bg);
-            color: var(--text-color);
+            background-color: #374151; /* Slate-700 */
+            color: #F9FAFB; 
             border-bottom-left-radius: 8px !important;
         }
-        .dark .user-bubble {
-            background-color: #0F172A; /* Slate-900 */
-        }
-        .light .user-bubble {
-            background-color: #E2E8F0; /* Slate-200 */
-        }
         
-        /* Input/Textarea Focus Glow */
-        input, textarea {
-            background-color: var(--input-bg) !important;
-            color: var(--text-color) !important;
-            border-color: var(--glass-border) !important;
+        /* Card Styles for Dashboard */
+        .stat-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
         }
-        input:focus, textarea:focus {
-            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.4);
-            border-color: var(--primary-fire) !important;
+        .stat-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
         }
-        .light input:focus, .light textarea:focus {
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
-        }
-
-        /* Send Button Glow */
-        #sendButton {
-            background-color: var(--primary-fire);
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 0 12px rgba(255, 69, 0, 0.7);
-            transition: all 0.2s;
-        }
-        #sendButton:hover {
-             box-shadow: 0 0 20px var(--primary-fire), 0 0 8px white;
-             background-color: var(--primary-fire);
-             opacity: 0.9;
-             transform: scale(1.05);
-        }
-
-        /* Card Styles */
-        .stat-card-accent::before {
+        .stat-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 4px;
-            /* Fire Gradient for accent line */
-            background: linear-gradient(90deg, var(--primary-fire), var(--secondary-aqua)); 
+            background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
+        }
+
+        /* Input/Textarea Focus Glow */
+        input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
+            border-color: var(--primary-neon) !important;
+        }
+
+        /* Send Button Glow */
+        #sendButton {
+            background-color: var(--primary-neon);
+            color: var(--dark-bg);
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
+            transition: all 0.2s;
+        }
+        #sendButton:hover {
+             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
+             background-color: #00ffff;
         }
 
     </style>
 </head>
-<!-- Main container uses the dynamic background class -->
-<body class="h-screen overflow-hidden flex">
+<!-- Main container uses the very dark background -->
+<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
 
     <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
-    <div class="w-64 sidebar flex flex-col flex-shrink-0 z-20 transition-all duration-400">
-        <!-- Logo/Title: Dynamic Accent -->
-        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-[var(--glass-border)]">
-            <!-- Quantum / Neo-Glass Icon (Aqua) -->
-            <svg class="w-8 h-8 mr-3 text-[var(--secondary-aqua)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-            <span class="tracking-widest text-[var(--primary-fire)]">NEO-GLASS</span>
+    <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
+        <!-- Logo/Title: Neon Emphasis -->
+        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
+            <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
+            <span class="tracking-widest" data-lang-key="system_name">QUANTUM SYSTEM</span>
         </div>
 
-        <!-- Navigation Menu with Fire Indicators -->
+        <!-- Navigation Menu with Neon Indicators -->
         <nav id="mainNav" class="p-4 space-y-2 flex-grow">
             
-            <a href="#" class="nav-item flex items-center p-3 active-nav" data-section="dashboard">
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-medium">ဒက်ရ်ှဘုတ် (Dashboard)</span>
+                <span class="font-medium" data-lang-key="dashboard">Dashboard</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3" data-section="chat">
-                <svg class="w-6 h-6 mr-3 text-[var(--sub-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="font-medium">ချတ်များ (Chats)</span>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                <span class="font-medium" data-lang-key="chats">Chats</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3" data-section="broadcast">
-                <svg class="w-6 h-6 mr-3 text-[var(--sub-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span class="font-medium">ထုတ်လွှင့်မှု (Broadcast)</span>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+                <span class="font-medium" data-lang-key="broadcast">Broadcast</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3" data-section="settings">
-                <svg class="w-6 h-6 mr-3 text-[var(--sub-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="font-medium">ဆက်တင်များ (Settings)</span>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="font-medium" data-lang-key="settings">Settings</span>
             </a>
         </nav>
         
-        <!-- Theme Control Button -->
-        <div class="p-6 border-t border-[var(--glass-border)]">
+        <!-- Footer Controls (Language and Dark Mode Toggle) -->
+        <div class="p-6 border-t border-gray-700/30 space-y-3">
+
+            <!-- Language Switch Button -->
+            <button id="langToggle" onclick="toggleLanguage()" 
+                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50 text-[var(--secondary-neon)]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 018.58 13L3 18l1.378-2.756l.386-.772A10.02 10.02 0 0115.74 12v0c-.26-.14-.528-.27-.803-.39M21 12a9 9 0 00-9-9 9.98 9.98 0 00-4.06 1.096m11.411 11.411L21 18l-5.756 1.378-.772.386A10.02 10.02 0 0112 21a9 9 0 01-9-9"></path></svg>
+                <span class="font-medium text-sm" id="currentLangDisplay">MYANMAR (MY)</span>
+            </button>
+
+             <!-- Dark Mode Toggle Button -->
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-3 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--glass-card)] transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-[var(--glass-border)]">
-                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-aqua)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Icon will be dynamically updated by JS -->
+                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
+                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
-                <span class="font-medium text-sm hidden sm:inline">အသွင်အပြင် ထိန်းချုပ်မှု</span>
+                <span class="font-medium text-sm hidden sm:inline" data-lang-key="theme_control">Theme Control</span>
             </button>
         </div>
     </div>
 
-    <!-- 2. Chat List Panel (w-80) - Glass Panel -->
-    <div id="chatListPanel" class="w-80 glass-element flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
+    <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
+    <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
         <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-[var(--glass-border)] h-20 flex items-center transition-colors duration-400">
-            ဆက်သွယ်မှု မှတ်တမ်း
+        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400" data-lang-key="conversations_log">
+            Conversations Log
         </div>
 
         <!-- Chat List Search Input -->
-        <div class="p-4 border-b border-[var(--glass-border)]">
-            <input type="text" id="chatListSearch" placeholder="ချတ်/အသုံးပြုသူ ID ရှာဖွေပါ..."
+        <div class="p-4 border-b border-gray-700/30">
+            <input type="text" id="chatListSearch" data-lang-placeholder-key="search_chat_placeholder"
                    onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border rounded-xl focus:ring-[var(--primary-fire)] focus:border-[var(--primary-fire)] transition duration-200 text-sm">
+                   class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
         </div>
 
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-[var(--sub-text)] text-sm">ကွန်ရက်ချိတ်ဆက်မှုကို စတင်နေပါသည်...</div>
+            <div class="text-center p-4 text-gray-500 text-sm" data-lang-key="init_connection">Initializing quantum connection...</div>
         </div>
     </div>
 
     <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col transition-colors duration-400">
+    <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
         
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-fire)] tracking-wide">
-                🚀 ဒက်ရ်ှဘုတ် | မြင်ကွင်းချုပ်
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
+                🚀 <span data-lang-key="dashboard_title">Simple Admin Management | Nexus View</span>
             </h1>
-            <p class="text-[var(--sub-text)] mb-10 border-b border-[var(--glass-border)] pb-4">
-                အချိန်နှင့်တပြေးညီ အချက်အလက်နှင့် စနစ်အခြေအနေများ။
+            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4" data-lang-key="dashboard_subtitle">
+                Real-time metrics and system status reports.
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Card 1 (Fire Accent) -->
-                <div class="stat-card stat-card-accent glass-element p-8 cursor-pointer">
+                <!-- Card 1 -->
+                <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
                     <div class="text-6xl font-black">1,245</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider text-[var(--sub-text)]">မှတ်ပုံတင်ထားသော စုစုပေါင်းအသုံးပြုသူ</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="total_users">Total Users Registered</div>
                 </div>
-                <!-- Card 2 (Aqua Accent) -->
-                <div class="stat-card glass-element p-8 cursor-pointer" style="border-color: var(--secondary-aqua);">
-                    <div class="text-6xl font-black text-[var(--secondary-aqua)]">25</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider text-[var(--sub-text)]">လည်ပတ်နေသော Sessions များ</div>
+                <!-- Card 2 -->
+                <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">25</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="active_sessions">Active Sessions</div>
                 </div>
-                <!-- Card 3 (Fire Accent) -->
-                <div class="stat-card stat-card-accent glass-element p-8 cursor-pointer">
+                <!-- Card 3 -->
+                <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
                     <div class="text-6xl font-black">156</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider text-[var(--sub-text)]">ဆောင်ရွက်ဆဲ အထောက်အပံ့လက်မှတ်များ</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="pending_tickets">Pending Support Tickets</div>
                 </div>
             </div>
             
-            <div class="mt-12 glass-element p-8 rounded-2xl shadow-2xl">
-                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-aqua)]">စနစ်ဝန်အား ပုံဖော်ပြသခြင်း</h3>
-                <p class="text-[var(--sub-text)]">ပြီးခဲ့သည့် ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။</p>
-                <div class="h-64 bg-[var(--input-bg)] rounded-lg mt-4 flex items-center justify-center text-[var(--sub-text)] border border-[var(--glass-border)]">
+            <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
+                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]" data-lang-key="system_load_title">System Load Visualization</h3>
+                <p class="text-gray-500" data-lang-key="system_load_subtitle">Resource utilization over the last 24 hours.</p>
+                <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
                     [Holographic Data Display Placeholder]
                 </div>
             </div>
@@ -318,33 +282,33 @@
 
         <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat Header - Glass element -->
-            <header id="chatHeader" class="p-4 glass-element flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                <span class="text-xl font-semibold text-[var(--text-color)]">ချတ်တစ်ခု ရွေးချယ်ပါ</span>
+            <!-- Chat Header - Sleek, borderless look -->
+            <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
+                <span class="text-xl font-semibold text-gray-300" data-lang-key="select_chat">Select a Chat</span>
             </header>
             
-            <!-- Chat History Search Input - Glass element -->
-            <div id="chatHistorySearchArea" class="p-3 glass-element border-t border-[var(--glass-border)] hidden">
-                <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲရှိ မက်ဆေ့ခ်ျများ ရှာဖွေပါ..."
+            <!-- Chat History Search Input -->
+            <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
+                <input type="text" id="chatHistorySearch" data-lang-placeholder-key="search_history_placeholder"
                        onkeyup="filterChatHistory(this.value)"
-                       class="w-full p-3 border rounded-xl transition duration-200 text-sm">
+                       class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
             </div>
 
             <!-- Message History -->
-            <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-400">
-                <div class="text-center text-[var(--sub-text)]">ချတ်မရွေးရသေးပါ။ ချိတ်ဆက်မှု စတင်ပါ။</div>
+            <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
+                <div class="text-center text-gray-600" data-lang-key="no_chat_selected">No chat selected yet. Initiate connection.</div>
             </div>
 
-            <!-- Message Input - Glass element -->
-            <div id="chatInputArea" class="p-4 glass-element shadow-2xl hidden min-h-[100px]">
+            <!-- Message Input - Floating effect -->
+            <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
                 
                 <!-- File/Image Preview Area -->
-                <div id="filePreview" class="hidden border rounded-xl p-3 mb-2 bg-[var(--input-bg)] border-[var(--glass-border)]">
+                <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <span id="fileIcon" class="text-2xl text-[var(--primary-fire)]"></span>
-                            <span id="fileName" class="text-sm font-medium text-[var(--text-color)] truncate max-w-xs"></span>
-                            <span id="fileSize" class="text-xs text-[var(--sub-text)]"></span>
+                            <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
+                            <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
+                            <span id="fileSize" class="text-xs text-gray-500"></span>
                         </div>
                         <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -360,18 +324,18 @@
                            
                     <!-- Attach Button -->
                     <button onclick="document.getElementById('fileInput').click()" 
-                            class="text-[var(--sub-text)] hover:text-[var(--secondary-aqua)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                            class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                     </button>
                     
-                    <!-- Input field with fire focus style -->
-                    <input type="text" id="replyText" placeholder="ဒေတာအစုအဝေး ပေးပို့ပါ... (စာသား၊ မီဒီယာ၊ ဖိုင်)"
-                           class="flex-grow border rounded-xl p-4 text-base transition duration-200"
+                    <!-- Input field with neon focus style -->
+                    <input type="text" id="replyText" data-lang-placeholder-key="reply_placeholder"
+                           class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
                            onkeypress="if(event.key === 'Enter') sendReply()">
                            
                     <!-- Send button with vibrant glow -->
                     <button id="sendButton" onclick="sendReply()"
-                            class="p-4 rounded-xl flex items-center justify-center">
+                            class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
@@ -380,16 +344,16 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-fire)] tracking-wide">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု</h1>
-            <div class="glass-element p-8 rounded-2xl shadow-xl">
-                <p class="mb-6 text-[var(--sub-text)]">
-                    ပစ်မှတ်ထား အသုံးပြုသူအုပ်စုများသို့ အရေးကြီးသော မက်ဆေ့ခ်ျများ ပေးပို့ပါ။
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 <span data-lang-key="broadcast_title">Global Broadcast Matrix</span></h1>
+            <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                <p class="mb-6 text-gray-400" data-lang-key="broadcast_subtitle">
+                    Send high-priority messages to target user segments.
                 </p>
-                <textarea class="w-full p-4 border rounded-xl text-base focus:ring-[var(--primary-fire)] focus:border-[var(--primary-fire)] transition duration-150" rows="8" placeholder="ထုတ်လွှင့်မည့် မက်ဆေ့ခ်ျကို ဤနေရာတွင် ထည့်ပါ..."></textarea>
-                <button class="mt-4 bg-[var(--primary-fire)] text-white p-4 rounded-xl font-bold hover:bg-opacity-90 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,69,0,0.6)]">
+                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" data-lang-placeholder-key="broadcast_textarea_placeholder"></textarea>
+                <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
                     <span class="flex items-center space-x-2">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span>ထုတ်လွှင့်မှု စတင်ရန်</span>
+                        <span data-lang-key="initiate_broadcast">Initiate Broadcast</span>
                     </span>
                 </button>
             </div>
@@ -397,23 +361,23 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-fire)] tracking-wide">⚙️ စနစ်ဖွဲ့စည်းပုံ</h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ <span data-lang-key="settings_title">System Configuration</span></h1>
             <div class="space-y-8">
                 <!-- Setting Card 1 -->
-                <div class="glass-element p-8 rounded-2xl shadow-xl">
-                    <h3 class="text-2xl font-semibold mb-3 text-[var(--text-color)]">API Key စီမံခန့်ခွဲမှု</h3>
-                    <p class="text-sm text-[var(--sub-text)] mb-4">လုံခြုံသော ဝင်ရောက်ခွင့် လျှို့ဝှက်နံပါတ်များ။</p>
-                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl text-base transition-colors duration-300">
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200" data-lang-key="api_key_title">API Key Management</h3>
+                    <p class="text-sm text-gray-500 mb-4" data-lang-key="api_key_subtitle">Secure access protocol credentials.</p>
+                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
                 </div>
                 <!-- Setting Card 2 -->
-                <div class="glass-element p-8 rounded-2xl shadow-xl">
-                    <h3 class="text-2xl font-semibold mb-3 text-[var(--text-color)]">Bot အခြေအနေ ထိန်းချုပ်မှု</h3>
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200" data-lang-key="bot_status_title">Bot Status Control</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-[var(--sub-text)] text-lg">Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <span class="text-gray-400 text-lg" data-lang-key="bot_status_label">Toggle Core Telegram Gateway.</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
                             <!-- Toggle switch with vibrant colors -->
-                            <div class="w-14 h-8 bg-[var(--sub-text)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--secondary-aqua)]/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--secondary-aqua)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,255,255,0.8)]"></div>
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
                         </label>
                     </div>
                 </div>
@@ -434,12 +398,119 @@
         let unreadCounts = {}; 
         let allChats = []; 
         const htmlElement = document.documentElement;
-
+        
+        // Language State
+        let currentLang = localStorage.getItem('currentLang') || 'my'; 
+        
         // --- File State Variables ---
         let selectedFile = null;
         let mediaPath = null;
         let mediaType = null;
         let filename = null;
+
+        // --- TRANSLATION DATA ---
+        const translations = {
+            'system_title': { my: 'Quantum ရိုးရှင်းသော စီမံခန့်ခွဲမှု စနစ်', en: 'Quantum Simple Admin System' },
+            'system_name': { my: 'QUANTUM စနစ်', en: 'QUANTUM SYSTEM' },
+            'dashboard': { my: 'ပင်မမြင်ကွင်း', en: 'Dashboard' },
+            'chats': { my: 'စကားဝိုင်းများ', en: 'Chats' },
+            'broadcast': { my: 'ထုတ်လွှင့်ခြင်း', en: 'Broadcast' },
+            'settings': { my: 'စနစ်တည်ဆောက်မှု', en: 'Settings' },
+            'theme_control': { my: 'Theme ထိန်းချုပ်မှု', en: 'Theme Control' },
+            'conversations_log': { my: 'စကားဝိုင်း မှတ်တမ်း', en: 'Conversations Log' },
+            
+            // Dashboard
+            'dashboard_title': { my: 'ရိုးရှင်းသော စီမံခန့်ခွဲမှု | Nexus မြင်ကွင်း', en: 'Simple Admin Management | Nexus View' },
+            'dashboard_subtitle': { my: 'အချိန်နှင့်တပြေးညီ တိုင်းတာချက်များနှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။', en: 'Real-time metrics and system status reports.' },
+            'total_users': { my: 'စုစုပေါင်းမှတ်ပုံတင်အသုံးပြုသူ', en: 'Total Users Registered' },
+            'active_sessions': { my: 'အသုံးပြုနေသော Session များ', en: 'Active Sessions' },
+            'pending_tickets': { my: 'ဆိုင်းငံ့ထားသော အကူအညီလက်မှတ်များ', en: 'Pending Support Tickets' },
+            'system_load_title': { my: 'စနစ်ဝန်ဆောင်မှု ပုံရိပ်ဖော်ခြင်း', en: 'System Load Visualization' },
+            'system_load_subtitle': { my: 'ပြီးခဲ့သည့် ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။', en: 'Resource utilization over the last 24 hours.' },
+
+            // Chat
+            'select_chat': { my: 'စကားဝိုင်းတစ်ခုရွေးပါ', en: 'Select a Chat' },
+            'no_chat_selected': { my: 'စကားဝိုင်း မရွေးရသေးပါ။ ချိတ်ဆက်မှု စတင်ပါ။', en: 'No chat selected yet. Initiate connection.' },
+            'unknown_entity': { my: 'အမည်မသိ', en: 'Unknown Entity' },
+            'no_recent_comm': { my: 'မကြာသေးမီက ဆက်သွယ်မှု မရှိပါ', en: 'No recent communication' },
+            'init_connection': { my: 'ပတ်လမ်းဒေတာ စီးကြောင်းများ ရယူနေသည်...', en: 'Fetching orbital data streams...' },
+            'search_no_match': { my: 'ရှာဖွေမှုနှင့် ကိုက်ညီသော အချက်အလက် မတွေ့ပါ။', en: 'No entities match search query.' },
+            'search_history_no_match': { my: 'ရှာဖွေမှုနှင့် ကိုက်ညီသော ဒေတာ packet မတွေ့ပါ', en: 'No data packets found for query' },
+            'fetching_history': { my: 'ဆက်သွယ်မှု မှတ်တမ်း ရယူနေသည်...', en: 'Retrieving communication history...' },
+            'transmission_error': { my: 'ဒေတာ packet များ ရယူရာတွင် အမှား။', en: 'Error retrieving data packets.' },
+            'file_too_large': { my: 'ဖိုင်အရွယ်အစားသည် 5MB ထက်ကျော်လွန်နေသည်။', en: 'File size exceeds 5MB transmission limit.' },
+            'transmission_aborted': { my: 'Transmission aborted: Empty data packet.', en: 'Transmission aborted: Empty data packet.' },
+            'online_status': { my: 'ချိတ်ဆက်ပြီး', en: 'Online' },
+
+            // Placeholders
+            'search_chat_placeholder': { my: 'စကားဝိုင်း/အသုံးပြုသူ ID ရှာဖွေပါ...', en: 'Search Chat/User ID...' },
+            'search_history_placeholder': { my: 'မှတ်တမ်းထဲမှ စာများကို ရှာဖွေပါ...', en: 'Search Messages in History...' },
+            'reply_placeholder': { my: 'ဒေတာ packet ပေးပို့ပါ... (စာ၊ မီဒီယာ၊ ဖိုင်)', en: 'Transmit data packet... (Text, Media, File)' },
+            'broadcast_textarea_placeholder': { my: 'ထုတ်လွှင့်မည့် စာကို ဤနေရာတွင် ရိုက်ထည့်ပါ...', en: 'Enter broadcast message here...' },
+
+            // Broadcast
+            'broadcast_title': { my: 'ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု စနစ်', en: 'Global Broadcast Matrix' },
+            'broadcast_subtitle': { my: 'ဦးစားပေးမြင့်မားသော စာများကို ပစ်မှတ်ထားသော အသုံးပြုသူ အပိုင်းများသို့ ပေးပို့ပါ။', en: 'Send high-priority messages to target user segments.' },
+            'initiate_broadcast': { my: 'ထုတ်လွှင့်မှု စတင်ရန်', en: 'Initiate Broadcast' },
+            
+            // Settings
+            'settings_title': { my: 'စနစ်ပြင်ဆင်မှု', en: 'System Configuration' },
+            'api_key_title': { my: 'API Key စီမံခန့်ခွဲမှု', en: 'API Key Management' },
+            'api_key_subtitle': { my: 'လုံခြုံသော ဝင်ရောက်ခွင့် protocol များ၏ အထောက်အထားများ။', en: 'Secure access protocol credentials.' },
+            'bot_status_title': { my: 'Bot အခြေအနေ ထိန်းချုပ်မှု', en: 'Bot Status Control' },
+            'bot_status_label': { my: 'Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။', en: 'Toggle Core Telegram Gateway.' },
+        };
+        
+        // --- Translation Logic ---
+
+        /**
+         * Translates the entire UI based on the currentLang state.
+         */
+        function translateUI() {
+            // Update all elements with data-lang-key
+            document.querySelectorAll('[data-lang-key]').forEach(el => {
+                const key = el.getAttribute('data-lang-key');
+                if (translations[key] && translations[key][currentLang]) {
+                    el.textContent = translations[key][currentLang];
+                }
+            });
+
+            // Update all elements with data-lang-placeholder-key (for input placeholders)
+            document.querySelectorAll('[data-lang-placeholder-key]').forEach(el => {
+                const key = el.getAttribute('data-lang-placeholder-key');
+                if (translations[key] && translations[key][currentLang]) {
+                    el.placeholder = translations[key][currentLang];
+                }
+            });
+
+            // Update the document title
+            const titleEl = document.querySelector('title');
+            const titleKey = titleEl.getAttribute('data-lang-key');
+            if (translations[titleKey] && translations[titleKey][currentLang]) {
+                titleEl.textContent = translations[titleKey][currentLang];
+            }
+            
+            // Update the language display text
+            const langDisplay = document.getElementById('currentLangDisplay');
+            if (langDisplay) {
+                langDisplay.textContent = currentLang === 'my' ? 'MYANMAR (MY)' : 'ENGLISH (EN)';
+            }
+            
+            // Re-render chat list to update dynamic text like 'Unknown Entity'
+            if (document.getElementById('chatListPanel').classList.contains('hidden') === false) {
+                 filterChatList(document.getElementById('chatListSearch').value);
+            }
+        }
+        
+        /**
+         * Toggles the current language between Burmese (my) and English (en).
+         */
+        function toggleLanguage() {
+            currentLang = currentLang === 'my' ? 'en' : 'my';
+            localStorage.setItem('currentLang', currentLang);
+            htmlElement.lang = currentLang;
+            translateUI();
+        }
 
         // --- Utility Functions ---
 
@@ -462,47 +533,18 @@
         }
 
 
-        // --- Dark Mode Functions (Updated for Dual Theme) ---
-        
+        // --- Dark Mode Functions (The theme is fixed dark now) ---
         function toggleDarkMode() {
-            const isDark = htmlElement.classList.contains('dark');
-            if (isDark) {
-                htmlElement.classList.remove('dark');
-                htmlElement.classList.add('light');
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlElement.classList.remove('light');
-                htmlElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            updateThemeIcon();
+            const message = translations['theme_control'][currentLang] + (currentLang === 'my' ? " ကို Quantum Dark Mode တွင် ပိတ်ထားပါသည်။" : " is locked to Quantum Dark Mode.");
+            alert(message);
         }
 
         function updateThemeIcon() {
-            const iconElement = document.getElementById('themeIcon');
-            const isDark = htmlElement.classList.contains('dark');
-            
-            // Clear existing content
-            iconElement.innerHTML = '';
-            
-            // Set icon based on current theme class
-            if (isDark) {
-                // Currently Dark, show Sun icon to switch to Light
-                iconElement.innerHTML = `
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                `;
-            } else {
-                // Currently Light, show Moon icon to switch to Dark
-                iconElement.innerHTML = `
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                `;
-            }
+            // No action needed, theme is fixed dark.
         }
 
         function loadDarkModePreference() {
-            const savedTheme = localStorage.getItem('theme') || 'dark'; // Default to dark
-            htmlElement.classList.remove('dark', 'light');
-            htmlElement.classList.add(savedTheme);
+            htmlElement.classList.add('dark'); // Force dark mode
             updateThemeIcon();
         }
 
@@ -516,7 +558,7 @@
                 targetSection.classList.remove('hidden');
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
-                     document.getElementById('chatHistorySearchArea').classList.remove('hidden'); 
+                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
                 } else {
                      targetSection.classList.remove('flex-col');
                 }
@@ -549,31 +591,32 @@
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || 'Unknown Entity';
+            const username = chat.username || translations.unknown_entity[currentLang];
             const count = chat.unreadCount || unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative shadow-lg hover:shadow-2xl';
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
             chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', username.toLowerCase());
+            chatElement.setAttribute('data-username', (chat.username || '').toLowerCase());
 
-            // Badge uses Primary Fire color
-            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full bg-[var(--primary-fire)] text-white font-bold shadow-[0_0_8px_var(--primary-fire)]">${count > 99 ? '99+' : count}</span>` : '';
+            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
 
-            // Avatar SVG Placeholder - Aqua Accent
+            // Avatar SVG Placeholder - Futuristic style
             const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-[var(--secondary-aqua)]/10 text-[var(--secondary-aqua)] border border-[var(--secondary-aqua)]/50">
+                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
             `;
+
+            const lastMessageText = chat.lastMessageText || ` [${translations.no_recent_comm[currentLang]}]`;
 
             chatElement.innerHTML = `
                 ${avatar}
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-[var(--primary-fire)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-[var(--sub-text)] truncate mt-1">${chat.lastMessageText || '[နောက်ဆုံးဆက်သွယ်မှုမရှိပါ]'} </p>
+                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
+                    <p class="text-sm text-gray-400 truncate mt-1">${lastMessageText}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -592,7 +635,7 @@
             chatListElement.innerHTML = ''; 
 
             const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || '').toLowerCase();
+                const username = (chat.username || translations.unknown_entity['en']).toLowerCase(); // Filter against English or original username
                 const chatId = String(chat.telegramId);
                 return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
             });
@@ -602,7 +645,8 @@
                     chatListElement.appendChild(createChatListItem(chat));
                 });
             } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-[var(--sub-text)] text-sm">ရှာဖွေမှုနှင့် ကိုက်ညီသော အသုံးပြုသူ မရှိပါ: "${query}"</div>`;
+                const noMatchText = translations.search_no_match[currentLang] + `: "${query}"`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">${noMatchText}</div>`;
             }
         }
 
@@ -621,35 +665,30 @@
 
             let mediaContent = '';
             
-            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
             const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
             const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
 
             if (isUserMedia) {
-                // User sent media (image/file from Telegram, displayed via API)
                 const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
                 mediaContent = `
                     <img src="${imageUrl}" 
-                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-[var(--glass-border)]" 
+                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
                          onclick="window.open('${imageUrl}', '_blank')" 
                          onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
                          alt="Chat Media"/>
                 `;
             } else if (isAdminMedia) {
-                 // Admin sent media (Base64 data URL, directly displayed)
                  if (msg.mediaPath.startsWith('data:image/')) {
-                     // Image display
                      mediaContent = `
                         <img src="${msg.mediaPath}" 
-                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-[var(--glass-border)]" 
+                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
                             onclick="window.open('${msg.mediaPath}', '_blank')" 
                             alt="Admin Image"/>
                      `;
                  } else {
-                    // Document/File display (using icon and name)
                     const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
                     mediaContent = `
-                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--secondary-aqua)]">
+                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
                             <span class="text-2xl">${getFileIcon(mimeType)}</span>
                             <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
                         </div>
@@ -661,7 +700,7 @@
                 <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
                     ${mediaContent}
                     <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-[var(--sub-text)]' : 'text-indigo-200'} text-right">
+                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-400' : 'text-indigo-200'} text-right">
                         ${timeString}
                     </span>
                 </div>
@@ -675,10 +714,7 @@
             let foundCount = 0;
 
             messages.forEach(messageDiv => {
-                const messageContent = messageDiv.querySelector('.message-content');
-                if (!messageContent) return; 
-
-                const messageText = messageContent.getAttribute('data-text');
+                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
                 
                 if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
                     messageDiv.classList.remove('hidden');
@@ -694,8 +730,9 @@
             if (lowerCaseQuery !== '' && foundCount === 0) {
                  const feedback = document.createElement('div');
                  feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-[var(--primary-fire)] font-medium my-4';
-                 feedback.textContent = `ရှာဖွေမှုနှင့် ကိုက်ညီသော ဒေတာအစုအဝေး မရှိပါ: "${query}"`;
+                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
+                 const text = translations.search_history_no_match[currentLang] + `: "${query}"`;
+                 feedback.textContent = text;
                  document.getElementById('messageHistory').appendChild(feedback);
             }
         }
@@ -703,12 +740,11 @@
 
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-[var(--sub-text)] transition-colors duration-300">အချက်အလက်များကို ရယူနေပါသည်...</div>';
+            chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 transition-colors duration-300">${translations.init_connection[currentLang]}</div>`;
             unreadCounts = {}; 
             allChats = []; 
 
             try {
-                // NOTE: In a real environment, replace BASE_URL and apiKey handling with secure server-side logic.
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
                 if (!response.ok) throw new Error('Authentication failure or offline');
                 const chats = await response.json();
@@ -717,7 +753,7 @@
                 chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-[var(--sub-text)]">ဆက်သွယ်မှု စနစ် မရှိပါ။</div>';
+                    chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600">${translations.select_chat[currentLang]}</div>`;
                     return;
                 }
                 
@@ -728,18 +764,8 @@
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
-                // Custom modal/message box replacement for alert()
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center';
-                errorMessage.innerHTML = `
-                    <div class="glass-element p-8 rounded-xl shadow-2xl max-w-sm text-center">
-                        <h3 class="text-xl font-bold text-[var(--primary-fire)] mb-4">ကွန်ရက်ချိတ်ဆက်မှု အမှား</h3>
-                        <p class="text-[var(--text-color)] text-sm mb-4">Chat list ကိုရယူရာတွင် ပြဿနာရှိပါသည်။ ${error.message}</p>
-                        <button onclick="this.parentNode.parentNode.remove()" class="bg-[var(--primary-fire)] text-white p-2 rounded-lg mt-2 hover:opacity-90 transition">အတည်ပြုရန်</button>
-                    </div>
-                `;
-                document.body.appendChild(errorMessage);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-[var(--primary-fire)] text-sm">ကွန်ရက်ချိတ်ဆက်မှု အမှား။</div>`;
+                const errorMessage = currentLang === 'my' ? `Matrix နှင့် ချိတ်ဆက်မှု အမှား။ Error: ${error.message}` : `Error connecting to matrix. Error: ${error.message}`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">${errorMessage}</div>`;
             }
         }
 
@@ -748,8 +774,8 @@
             
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
-                    <span class="text-xl font-semibold text-[var(--text-color)]">${username}</span>
-                    <span class="text-sm font-medium text-[var(--secondary-aqua)] opacity-80">ID: ${chatId} | Online</span>
+                    <span class="text-xl font-semibold text-gray-300">${username}</span>
+                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | ${translations.online_status[currentLang]}</span>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
@@ -768,7 +794,7 @@
             clearFileSelection(); 
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-[var(--sub-text)]">ဆက်သွယ်မှုမှတ်တမ်းကို ရယူနေပါသည်...</div>';
+            historyContainer.innerHTML = `<div class="text-center text-gray-600">${translations.fetching_history[currentLang]}</div>`;
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -784,7 +810,7 @@
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-[var(--primary-fire)]">ဒေတာအစုအဝေးများ ရယူရာတွင် အမှားဖြစ်ပွားသည်။</div>`;
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">${translations.transmission_error[currentLang]}</div>`;
             }
         }
         
@@ -809,17 +835,7 @@
 
             // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 // Custom modal/message box replacement for alert()
-                const sizeAlert = document.createElement('div');
-                sizeAlert.className = 'fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center';
-                sizeAlert.innerHTML = `
-                    <div class="glass-element p-6 rounded-xl shadow-2xl max-w-xs text-center">
-                        <h3 class="text-xl font-bold text-[var(--primary-fire)] mb-3">သတိပေးချက်</h3>
-                        <p class="text-[var(--text-color)] text-sm mb-4">ဖိုင်အရွယ်အစား 5MB ထက်ကျော်လွန်နေပါသည်</p>
-                        <button onclick="this.parentNode.parentNode.remove()" class="bg-[var(--primary-fire)] text-white p-2 rounded-lg mt-2 hover:opacity-90 transition">လက်ခံပါသည်</button>
-                    </div>
-                `;
-                document.body.appendChild(sizeAlert);
+                 alert(translations.file_too_large[currentLang]);
                  event.target.value = ''; 
                  return;
             }
@@ -835,10 +851,6 @@
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
-                
-                if (mediaType === 'photo') {
-                    // Optional: Show actual image preview
-                }
             };
             reader.onerror = (e) => {
                 console.error("File reading error:", e);
@@ -858,7 +870,7 @@
             const text = replyInput.value.trim();
 
             if (!text && !mediaPath) {
-                console.warn("Transmission aborted: Empty data packet.");
+                console.warn(translations.transmission_aborted.en);
                 return;
             }
 
@@ -958,9 +970,9 @@
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
                     } else {
                         // Add a temporary subtle glow effect for new messages in the list
-                        newChatElement.classList.add('ring-4', 'ring-[var(--primary-fire)]/50');
+                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
                         setTimeout(() => {
-                            newChatElement.classList.remove('ring-4', 'ring-[var(--primary-fire)]/50');
+                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
                         }, 1000);
                     }
                 } else {
@@ -991,6 +1003,9 @@
                 });
             });
 
+            // Initial Language and UI Load
+            htmlElement.lang = currentLang;
+            translateUI();
             showSection('dashboard');
         });
 
