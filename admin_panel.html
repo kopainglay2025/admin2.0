@@ -246,21 +246,8 @@
             </a>
         </nav>
         
-        <!-- Auth and Theme Control Area -->
-        <div class="p-4 border-t border-[var(--glass-border)] space-y-3">
-             <!-- User/Auth Status -->
-             <div id="authStatus" class="p-3 rounded-xl bg-[var(--input-bg)] flex items-center space-x-3 transition duration-150">
-                 <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
-                 <div class="flex-grow">
-                     <p id="userIdDisplay" class="text-xs font-semibold truncate text-[var(--secondary-aqua)]">Loading...</p>
-                     <p class="text-xs text-[var(--sub-text)]">အခြေအနေ: <span id="authStatusText">စစ်ဆေးနေသည်...</span></p>
-                 </div>
-                 <button id="logoutButton" onclick="handleLogout()" title="Logout" class="p-1 text-red-500 hover:text-red-400 hidden">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-3m0-6V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                 </button>
-             </div>
-
-             <!-- Theme Control Button -->
+        <!-- Theme Control Button -->
+        <div class="p-6 border-t border-[var(--glass-border)]">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--glass-card)] transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-[var(--glass-border)]">
                 <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-aqua)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -435,23 +422,9 @@
 
     </div>
 
-    <!-- 4. Firebase and Socket.io/JavaScript Logic -->
-    <script type="module">
-        // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Socket.io (Assuming available via server)
-        import { io } from "/socket.io/socket.io.js";
-
-        // --- Global Firebase & State Variables ---
-        let app;
-        let auth;
-        let db;
-        let userId = null;
-        let isAuthReady = false;
-
+    <!-- 4. Socket.io and JavaScript Logic -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
         // --- Client-side State Management ---
         const apiKey = ""; 
         const BASE_URL = ''; 
@@ -489,9 +462,9 @@
         }
 
 
-        // --- Dark Mode Functions ---
+        // --- Dark Mode Functions (Updated for Dual Theme) ---
         
-        window.toggleDarkMode = function() { // Attach to window for onclick
+        function toggleDarkMode() {
             const isDark = htmlElement.classList.contains('dark');
             if (isDark) {
                 htmlElement.classList.remove('dark');
@@ -509,8 +482,10 @@
             const iconElement = document.getElementById('themeIcon');
             const isDark = htmlElement.classList.contains('dark');
             
+            // Clear existing content
             iconElement.innerHTML = '';
             
+            // Set icon based on current theme class
             if (isDark) {
                 // Currently Dark, show Sun icon to switch to Light
                 iconElement.innerHTML = `
@@ -531,92 +506,6 @@
             updateThemeIcon();
         }
 
-        // --- Firebase/Auth Functions ---
-
-        function updateAuthUI(user) {
-            const userIdDisplay = document.getElementById('userIdDisplay');
-            const authStatusText = document.getElementById('authStatusText');
-            const logoutButton = document.getElementById('logoutButton');
-
-            if (user) {
-                userIdDisplay.textContent = `UID: ${user.uid}`;
-                authStatusText.textContent = user.isAnonymous ? 'အမည်မသိ' : 'ဝင်ရောက်ပြီး';
-                logoutButton.classList.remove('hidden');
-                document.querySelector('#authStatus div.w-2').classList.replace('bg-red-500', 'bg-green-500');
-            } else {
-                userIdDisplay.textContent = 'Auth Required';
-                authStatusText.textContent = 'ထွက်ခွာပြီး';
-                logoutButton.classList.add('hidden');
-                document.querySelector('#authStatus div.w-2').classList.replace('bg-green-500', 'bg-red-500');
-            }
-        }
-        
-        async function initializeFirebaseAndAuth() {
-            try {
-                // Global variables are provided by the canvas environment
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; 
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-                if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    console.error("Firebase configuration is missing or invalid.");
-                    updateAuthUI(null);
-                    isAuthReady = true;
-                    return;
-                }
-
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                // Auth State Listener: Runs when auth status changes (login, logout, token refresh)
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Authenticated with UID:", userId);
-                    } else {
-                        // User logged out or initialization state. Try to sign in.
-                        if (initialAuthToken) {
-                            // 1. Try Custom Token (If provided by the environment)
-                            try {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                                console.log("Signed in with custom token.");
-                            } catch (error) {
-                                console.warn("Custom token sign-in failed. Falling back to anonymous:", error.message);
-                                await signInAnonymously(auth);
-                            }
-                        } else {
-                            // 2. Fallback to Anonymous Sign-in
-                             await signInAnonymously(auth);
-                        }
-                    }
-                    
-                    // This flag ensures other logic waits until a user (even anonymous) is established.
-                    if (!isAuthReady) {
-                        isAuthReady = true;
-                        // Re-trigger the current section logic after authentication is ready
-                        showSection(document.querySelector('.active-nav').getAttribute('data-section'));
-                    }
-                    updateAuthUI(auth.currentUser);
-                });
-
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                isAuthReady = true; 
-                updateAuthUI(null);
-            }
-        }
-
-        window.handleLogout = async function() { // Attach to window for onclick
-            if (!auth) return;
-            try {
-                await signOut(auth);
-                console.log("User manually signed out.");
-            } catch (error) {
-                console.error("Error signing out:", error);
-            }
-        }
-        
         // --- Navigation Functions ---
         function showSection(sectionId) {
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
@@ -641,15 +530,10 @@
             const chatListPanel = document.getElementById('chatListPanel');
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
-                // Only try to fetch chats if Auth is ready
-                if (isAuthReady && userId) { 
-                    if (allChats.length === 0) {
-                        fetchChats();
-                    } else {
-                        filterChatList(document.getElementById('chatListSearch').value);
-                    }
-                } else if (isAuthReady && !userId) {
-                    document.getElementById('chatList').innerHTML = '<div class="text-center p-4 text-[var(--primary-fire)] text-sm">ချတ်များကို ကြည့်ရှုရန် လော့ဂ်အင် ဝင်ရန် လိုအပ်ပါသည်။</div>';
+                if (allChats.length === 0) {
+                    fetchChats();
+                } else {
+                    filterChatList(document.getElementById('chatListSearch').value);
                 }
             } else {
                 chatListPanel.classList.add('hidden');
@@ -660,7 +544,7 @@
         }
 
 
-        // --- Chat Specific Functions (Unchanged, relies on userId/isAuthReady now) ---
+        // --- Chat Specific Functions ---
 
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
@@ -701,7 +585,7 @@
             return chatElement;
         }
 
-        window.filterChatList = function(query) { // Attach to window for onkeyup
+        function filterChatList(query) {
             const chatListElement = document.getElementById('chatList');
             const lowerCaseQuery = query.toLowerCase().trim();
             
@@ -785,7 +669,7 @@
             return messageElement;
         }
         
-        window.filterChatHistory = function(query) { // Attach to window for onkeyup
+        function filterChatHistory(query) {
             const lowerCaseQuery = query.toLowerCase().trim();
             const messages = document.querySelectorAll('#messageHistory .message-bubble');
             let foundCount = 0;
@@ -818,8 +702,6 @@
 
 
         async function fetchChats() {
-            if (!userId) return; // Guard clause for unauthenticated access
-            
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-[var(--sub-text)] transition-colors duration-300">အချက်အလက်များကို ရယူနေပါသည်...</div>';
             unreadCounts = {}; 
@@ -862,8 +744,6 @@
         }
 
         async function selectChat(chatId, username) {
-            if (!userId) return; // Guard clause
-            
             currentChatId = chatId;
             
             document.getElementById('chatHeader').innerHTML = `
@@ -908,7 +788,10 @@
             }
         }
         
-        window.clearFileSelection = function() { // Attach to window for onclick
+        /**
+         * Clears all file-related state and UI elements.
+         */
+        function clearFileSelection() {
             selectedFile = null;
             mediaPath = null;
             mediaType = null;
@@ -917,7 +800,10 @@
             document.getElementById('filePreview').classList.add('hidden');
         }
 
-        window.handleFileSelect = function(event) { // Attach to window for onchange
+        /**
+         * Handles file selection, converts to Base64, and updates the preview.
+         */
+        function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -949,6 +835,10 @@
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
+                
+                if (mediaType === 'photo') {
+                    // Optional: Show actual image preview
+                }
             };
             reader.onerror = (e) => {
                 console.error("File reading error:", e);
@@ -957,8 +847,12 @@
             reader.readAsDataURL(file);
         }
 
-        window.sendReply = function() { // Attach to window for onclick/onkeypress
-            if (!currentChatId || !socket || !userId) return; // Guard clause
+
+        /**
+         * Sends admin reply to the server via Socket.io.
+         */
+        function sendReply() {
+            if (!currentChatId || !socket) return;
 
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
@@ -1088,7 +982,6 @@
         // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
             loadDarkModePreference();
-            initializeFirebaseAndAuth();
             setupSocketListeners();
             
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -1098,7 +991,6 @@
                 });
             });
 
-            // Start with dashboard. The actual chat loading will wait for auth.
             showSection('dashboard');
         });
 
