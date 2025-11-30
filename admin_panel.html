@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="my" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Title is now controlled by JS translation -->
-    <title data-lang-key="system_title">Quantum Simple Admin System</title>
+    <title>Admin Plan</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -86,6 +85,7 @@
 
         /* Message History container */
         .chat-messages {
+            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
             display: flex;
@@ -174,7 +174,7 @@
         <!-- Logo/Title: Neon Emphasis -->
         <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
             <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-            <span class="tracking-widest" data-lang-key="system_name">QUANTUM SYSTEM</span>
+            <span class="tracking-widest">Admin Plan</span>
         </div>
 
         <!-- Navigation Menu with Neon Indicators -->
@@ -182,42 +182,34 @@
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
                 <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-medium" data-lang-key="dashboard">Dashboard</span>
+                <span class="font-medium">Dashboard</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
                 <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="font-medium" data-lang-key="chats">Chats</span>
+                <span class="font-medium">Chats</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
                 <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span class="font-medium" data-lang-key="broadcast">Broadcast</span>
+                <span class="font-medium">Broadcast</span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
                 <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="font-medium" data-lang-key="settings">Settings</span>
+                <span class="font-medium">Settings</span>
             </a>
         </nav>
         
-        <!-- Footer Controls (Language and Dark Mode Toggle) -->
-        <div class="p-6 border-t border-gray-700/30 space-y-3">
-
-            <!-- Language Switch Button -->
-            <button id="langToggle" onclick="toggleLanguage()" 
-                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50 text-[var(--secondary-neon)]">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 018.58 13L3 18l1.378-2.756l.386-.772A10.02 10.02 0 0115.74 12v0c-.26-.14-.528-.27-.803-.39M21 12a9 9 0 00-9-9 9.98 9.98 0 00-4.06 1.096m11.411 11.411L21 18l-5.756 1.378-.772.386A10.02 10.02 0 0112 21a9 9 0 01-9-9"></path></svg>
-                <span class="font-medium text-sm" id="currentLangDisplay">MYANMAR (MY)</span>
-            </button>
-
-             <!-- Dark Mode Toggle Button -->
+        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
+        <div class="p-6 border-t border-gray-700/30">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
                 <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Default to Sun icon as the theme is fixed dark -->
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
-                <span class="font-medium text-sm hidden sm:inline" data-lang-key="theme_control">Theme Control</span>
+                <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
             </button>
         </div>
     </div>
@@ -225,20 +217,20 @@
     <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
     <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
         <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400" data-lang-key="conversations_log">
+        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
             Conversations Log
         </div>
 
         <!-- Chat List Search Input -->
         <div class="p-4 border-b border-gray-700/30">
-            <input type="text" id="chatListSearch" data-lang-placeholder-key="search_chat_placeholder"
+            <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
                    onkeyup="filterChatList(this.value)"
                    class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
         </div>
 
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-gray-500 text-sm" data-lang-key="init_connection">Initializing quantum connection...</div>
+            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
         </div>
     </div>
 
@@ -248,32 +240,32 @@
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
             <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
-                🚀 <span data-lang-key="dashboard_title">Simple Admin Management | Nexus View</span>
+                🚀 Dashboard | Nexus View
             </h1>
-            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4" data-lang-key="dashboard_subtitle">
+            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
                 Real-time metrics and system status reports.
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Card 1 -->
+                <!-- Card 1 (Neon Blue Gradient) -->
                 <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
                     <div class="text-6xl font-black">1,245</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="total_users">Total Users Registered</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
                 </div>
-                <!-- Card 2 -->
+                <!-- Card 2 (Neon Green Gradient) -->
                 <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
                     <div class="text-6xl font-black">25</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="active_sessions">Active Sessions</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
                 </div>
-                <!-- Card 3 -->
+                <!-- Card 3 (Neon Magenta/Red Gradient) -->
                 <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
                     <div class="text-6xl font-black">156</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider" data-lang-key="pending_tickets">Pending Support Tickets</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
                 </div>
             </div>
             
             <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
-                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]" data-lang-key="system_load_title">System Load Visualization</h3>
-                <p class="text-gray-500" data-lang-key="system_load_subtitle">Resource utilization over the last 24 hours.</p>
+                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
+                <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
                 <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
                     [Holographic Data Display Placeholder]
                 </div>
@@ -284,19 +276,19 @@
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
             <!-- Chat Header - Sleek, borderless look -->
             <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                <span class="text-xl font-semibold text-gray-300" data-lang-key="select_chat">Select a Chat</span>
+                <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
             </header>
             
             <!-- Chat History Search Input -->
             <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
-                <input type="text" id="chatHistorySearch" data-lang-placeholder-key="search_history_placeholder"
+                <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
                        onkeyup="filterChatHistory(this.value)"
                        class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
             </div>
 
             <!-- Message History -->
             <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
-                <div class="text-center text-gray-600" data-lang-key="no_chat_selected">No chat selected yet. Initiate connection.</div>
+                <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
             </div>
 
             <!-- Message Input - Floating effect -->
@@ -329,7 +321,7 @@
                     </button>
                     
                     <!-- Input field with neon focus style -->
-                    <input type="text" id="replyText" data-lang-placeholder-key="reply_placeholder"
+                    <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
                            class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
                            onkeypress="if(event.key === 'Enter') sendReply()">
                            
@@ -344,16 +336,16 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 <span data-lang-key="broadcast_title">Global Broadcast Matrix</span></h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
             <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                <p class="mb-6 text-gray-400" data-lang-key="broadcast_subtitle">
+                <p class="mb-6 text-gray-400">
                     Send high-priority messages to target user segments.
                 </p>
-                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" data-lang-placeholder-key="broadcast_textarea_placeholder"></textarea>
+                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
                 <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
                     <span class="flex items-center space-x-2">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span data-lang-key="initiate_broadcast">Initiate Broadcast</span>
+                        <span>Initiate Broadcast</span>
                     </span>
                 </button>
             </div>
@@ -361,19 +353,19 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ <span data-lang-key="settings_title">System Configuration</span></h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
             <div class="space-y-8">
                 <!-- Setting Card 1 -->
                 <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200" data-lang-key="api_key_title">API Key Management</h3>
-                    <p class="text-sm text-gray-500 mb-4" data-lang-key="api_key_subtitle">Secure access protocol credentials.</p>
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
+                    <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
                     <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
                 </div>
                 <!-- Setting Card 2 -->
                 <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200" data-lang-key="bot_status_title">Bot Status Control</h3>
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-400 text-lg" data-lang-key="bot_status_label">Toggle Core Telegram Gateway.</span>
+                        <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
                             <!-- Toggle switch with vibrant colors -->
@@ -386,7 +378,7 @@
 
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic -->
+    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // --- Client-side State Management ---
@@ -398,119 +390,12 @@
         let unreadCounts = {}; 
         let allChats = []; 
         const htmlElement = document.documentElement;
-        
-        // Language State
-        let currentLang = localStorage.getItem('currentLang') || 'my'; 
-        
+
         // --- File State Variables ---
         let selectedFile = null;
         let mediaPath = null;
         let mediaType = null;
         let filename = null;
-
-        // --- TRANSLATION DATA ---
-        const translations = {
-            'system_title': { my: 'Quantum ရိုးရှင်းသော စီမံခန့်ခွဲမှု စနစ်', en: 'Quantum Simple Admin System' },
-            'system_name': { my: 'QUANTUM စနစ်', en: 'QUANTUM SYSTEM' },
-            'dashboard': { my: 'ပင်မမြင်ကွင်း', en: 'Dashboard' },
-            'chats': { my: 'စကားဝိုင်းများ', en: 'Chats' },
-            'broadcast': { my: 'ထုတ်လွှင့်ခြင်း', en: 'Broadcast' },
-            'settings': { my: 'စနစ်တည်ဆောက်မှု', en: 'Settings' },
-            'theme_control': { my: 'Theme ထိန်းချုပ်မှု', en: 'Theme Control' },
-            'conversations_log': { my: 'စကားဝိုင်း မှတ်တမ်း', en: 'Conversations Log' },
-            
-            // Dashboard
-            'dashboard_title': { my: 'ရိုးရှင်းသော စီမံခန့်ခွဲမှု | Nexus မြင်ကွင်း', en: 'Simple Admin Management | Nexus View' },
-            'dashboard_subtitle': { my: 'အချိန်နှင့်တပြေးညီ တိုင်းတာချက်များနှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။', en: 'Real-time metrics and system status reports.' },
-            'total_users': { my: 'စုစုပေါင်းမှတ်ပုံတင်အသုံးပြုသူ', en: 'Total Users Registered' },
-            'active_sessions': { my: 'အသုံးပြုနေသော Session များ', en: 'Active Sessions' },
-            'pending_tickets': { my: 'ဆိုင်းငံ့ထားသော အကူအညီလက်မှတ်များ', en: 'Pending Support Tickets' },
-            'system_load_title': { my: 'စနစ်ဝန်ဆောင်မှု ပုံရိပ်ဖော်ခြင်း', en: 'System Load Visualization' },
-            'system_load_subtitle': { my: 'ပြီးခဲ့သည့် ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။', en: 'Resource utilization over the last 24 hours.' },
-
-            // Chat
-            'select_chat': { my: 'စကားဝိုင်းတစ်ခုရွေးပါ', en: 'Select a Chat' },
-            'no_chat_selected': { my: 'စကားဝိုင်း မရွေးရသေးပါ။ ချိတ်ဆက်မှု စတင်ပါ။', en: 'No chat selected yet. Initiate connection.' },
-            'unknown_entity': { my: 'အမည်မသိ', en: 'Unknown Entity' },
-            'no_recent_comm': { my: 'မကြာသေးမီက ဆက်သွယ်မှု မရှိပါ', en: 'No recent communication' },
-            'init_connection': { my: 'ပတ်လမ်းဒေတာ စီးကြောင်းများ ရယူနေသည်...', en: 'Fetching orbital data streams...' },
-            'search_no_match': { my: 'ရှာဖွေမှုနှင့် ကိုက်ညီသော အချက်အလက် မတွေ့ပါ။', en: 'No entities match search query.' },
-            'search_history_no_match': { my: 'ရှာဖွေမှုနှင့် ကိုက်ညီသော ဒေတာ packet မတွေ့ပါ', en: 'No data packets found for query' },
-            'fetching_history': { my: 'ဆက်သွယ်မှု မှတ်တမ်း ရယူနေသည်...', en: 'Retrieving communication history...' },
-            'transmission_error': { my: 'ဒေတာ packet များ ရယူရာတွင် အမှား။', en: 'Error retrieving data packets.' },
-            'file_too_large': { my: 'ဖိုင်အရွယ်အစားသည် 5MB ထက်ကျော်လွန်နေသည်။', en: 'File size exceeds 5MB transmission limit.' },
-            'transmission_aborted': { my: 'Transmission aborted: Empty data packet.', en: 'Transmission aborted: Empty data packet.' },
-            'online_status': { my: 'ချိတ်ဆက်ပြီး', en: 'Online' },
-
-            // Placeholders
-            'search_chat_placeholder': { my: 'စကားဝိုင်း/အသုံးပြုသူ ID ရှာဖွေပါ...', en: 'Search Chat/User ID...' },
-            'search_history_placeholder': { my: 'မှတ်တမ်းထဲမှ စာများကို ရှာဖွေပါ...', en: 'Search Messages in History...' },
-            'reply_placeholder': { my: 'ဒေတာ packet ပေးပို့ပါ... (စာ၊ မီဒီယာ၊ ဖိုင်)', en: 'Transmit data packet... (Text, Media, File)' },
-            'broadcast_textarea_placeholder': { my: 'ထုတ်လွှင့်မည့် စာကို ဤနေရာတွင် ရိုက်ထည့်ပါ...', en: 'Enter broadcast message here...' },
-
-            // Broadcast
-            'broadcast_title': { my: 'ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု စနစ်', en: 'Global Broadcast Matrix' },
-            'broadcast_subtitle': { my: 'ဦးစားပေးမြင့်မားသော စာများကို ပစ်မှတ်ထားသော အသုံးပြုသူ အပိုင်းများသို့ ပေးပို့ပါ။', en: 'Send high-priority messages to target user segments.' },
-            'initiate_broadcast': { my: 'ထုတ်လွှင့်မှု စတင်ရန်', en: 'Initiate Broadcast' },
-            
-            // Settings
-            'settings_title': { my: 'စနစ်ပြင်ဆင်မှု', en: 'System Configuration' },
-            'api_key_title': { my: 'API Key စီမံခန့်ခွဲမှု', en: 'API Key Management' },
-            'api_key_subtitle': { my: 'လုံခြုံသော ဝင်ရောက်ခွင့် protocol များ၏ အထောက်အထားများ။', en: 'Secure access protocol credentials.' },
-            'bot_status_title': { my: 'Bot အခြေအနေ ထိန်းချုပ်မှု', en: 'Bot Status Control' },
-            'bot_status_label': { my: 'Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။', en: 'Toggle Core Telegram Gateway.' },
-        };
-        
-        // --- Translation Logic ---
-
-        /**
-         * Translates the entire UI based on the currentLang state.
-         */
-        function translateUI() {
-            // Update all elements with data-lang-key
-            document.querySelectorAll('[data-lang-key]').forEach(el => {
-                const key = el.getAttribute('data-lang-key');
-                if (translations[key] && translations[key][currentLang]) {
-                    el.textContent = translations[key][currentLang];
-                }
-            });
-
-            // Update all elements with data-lang-placeholder-key (for input placeholders)
-            document.querySelectorAll('[data-lang-placeholder-key]').forEach(el => {
-                const key = el.getAttribute('data-lang-placeholder-key');
-                if (translations[key] && translations[key][currentLang]) {
-                    el.placeholder = translations[key][currentLang];
-                }
-            });
-
-            // Update the document title
-            const titleEl = document.querySelector('title');
-            const titleKey = titleEl.getAttribute('data-lang-key');
-            if (translations[titleKey] && translations[titleKey][currentLang]) {
-                titleEl.textContent = translations[titleKey][currentLang];
-            }
-            
-            // Update the language display text
-            const langDisplay = document.getElementById('currentLangDisplay');
-            if (langDisplay) {
-                langDisplay.textContent = currentLang === 'my' ? 'MYANMAR (MY)' : 'ENGLISH (EN)';
-            }
-            
-            // Re-render chat list to update dynamic text like 'Unknown Entity'
-            if (document.getElementById('chatListPanel').classList.contains('hidden') === false) {
-                 filterChatList(document.getElementById('chatListSearch').value);
-            }
-        }
-        
-        /**
-         * Toggles the current language between Burmese (my) and English (en).
-         */
-        function toggleLanguage() {
-            currentLang = currentLang === 'my' ? 'en' : 'my';
-            localStorage.setItem('currentLang', currentLang);
-            htmlElement.lang = currentLang;
-            translateUI();
-        }
 
         // --- Utility Functions ---
 
@@ -533,14 +418,15 @@
         }
 
 
-        // --- Dark Mode Functions (The theme is fixed dark now) ---
+        // --- Dark Mode Functions (The theme is fixed dark now, this button can toggle a subtle effect or future mode) ---
         function toggleDarkMode() {
-            const message = translations['theme_control'][currentLang] + (currentLang === 'my' ? " ကို Quantum Dark Mode တွင် ပိတ်ထားပါသည်။" : " is locked to Quantum Dark Mode.");
-            alert(message);
+            // Since the theme is fixed dark, this can trigger a special effect or log a message.
+            console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
+            alert("Theme is locked to Quantum Dark Mode.");
         }
 
         function updateThemeIcon() {
-            // No action needed, theme is fixed dark.
+            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
         }
 
         function loadDarkModePreference() {
@@ -591,14 +477,14 @@
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || translations.unknown_entity[currentLang];
+            const username = chat.username || 'Unknown Entity';
             const count = chat.unreadCount || unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
             chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
             chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', (chat.username || '').toLowerCase());
+            chatElement.setAttribute('data-username', username.toLowerCase());
 
             const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
 
@@ -609,14 +495,12 @@
                 </div>
             `;
 
-            const lastMessageText = chat.lastMessageText || ` [${translations.no_recent_comm[currentLang]}]`;
-
             chatElement.innerHTML = `
                 ${avatar}
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
                     <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-400 truncate mt-1">${lastMessageText}</p>
+                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -635,7 +519,7 @@
             chatListElement.innerHTML = ''; 
 
             const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || translations.unknown_entity['en']).toLowerCase(); // Filter against English or original username
+                const username = (chat.username || '').toLowerCase();
                 const chatId = String(chat.telegramId);
                 return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
             });
@@ -645,8 +529,7 @@
                     chatListElement.appendChild(createChatListItem(chat));
                 });
             } else {
-                const noMatchText = translations.search_no_match[currentLang] + `: "${query}"`;
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">${noMatchText}</div>`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
             }
         }
 
@@ -665,10 +548,12 @@
 
             let mediaContent = '';
             
+            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
             const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
             const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
 
             if (isUserMedia) {
+                // User sent media (image/file from Telegram, displayed via API)
                 const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
                 mediaContent = `
                     <img src="${imageUrl}" 
@@ -678,7 +563,9 @@
                          alt="Chat Media"/>
                 `;
             } else if (isAdminMedia) {
+                 // Admin sent media (Base64 data URL, directly displayed)
                  if (msg.mediaPath.startsWith('data:image/')) {
+                     // Image display
                      mediaContent = `
                         <img src="${msg.mediaPath}" 
                             class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
@@ -686,6 +573,7 @@
                             alt="Admin Image"/>
                      `;
                  } else {
+                    // Document/File display (using icon and name)
                     const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
                     mediaContent = `
                         <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
@@ -731,8 +619,7 @@
                  const feedback = document.createElement('div');
                  feedback.id = 'noHistoryResults';
                  feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
-                 const text = translations.search_history_no_match[currentLang] + `: "${query}"`;
-                 feedback.textContent = text;
+                 feedback.textContent = `No data packets found for query: "${query}"`;
                  document.getElementById('messageHistory').appendChild(feedback);
             }
         }
@@ -740,7 +627,7 @@
 
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 transition-colors duration-300">${translations.init_connection[currentLang]}</div>`;
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
             unreadCounts = {}; 
             allChats = []; 
 
@@ -753,7 +640,7 @@
                 chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
-                    chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600">${translations.select_chat[currentLang]}</div>`;
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
                     return;
                 }
                 
@@ -764,8 +651,7 @@
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
-                const errorMessage = currentLang === 'my' ? `Matrix နှင့် ချိတ်ဆက်မှု အမှား။ Error: ${error.message}` : `Error connecting to matrix. Error: ${error.message}`;
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">${errorMessage}</div>`;
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
             }
         }
 
@@ -775,7 +661,7 @@
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | ${translations.online_status[currentLang]}</span>
+                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
@@ -794,7 +680,7 @@
             clearFileSelection(); 
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = `<div class="text-center text-gray-600">${translations.fetching_history[currentLang]}</div>`;
+            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -810,7 +696,7 @@
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">${translations.transmission_error[currentLang]}</div>`;
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
             }
         }
         
@@ -835,7 +721,7 @@
 
             // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 alert(translations.file_too_large[currentLang]);
+                 alert("File size exceeds 5MB transmission limit.");
                  event.target.value = ''; 
                  return;
             }
@@ -851,6 +737,10 @@
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
+                
+                if (mediaType === 'photo') {
+                    // Optional: Show actual image preview
+                }
             };
             reader.onerror = (e) => {
                 console.error("File reading error:", e);
@@ -870,7 +760,7 @@
             const text = replyInput.value.trim();
 
             if (!text && !mediaPath) {
-                console.warn(translations.transmission_aborted.en);
+                console.warn("Transmission aborted: Empty data packet.");
                 return;
             }
 
@@ -1003,9 +893,6 @@
                 });
             });
 
-            // Initial Language and UI Load
-            htmlElement.lang = currentLang;
-            translateUI();
             showSection('dashboard');
         });
 
