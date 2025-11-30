@@ -7,26 +7,43 @@
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Configuration for the futuristic dark theme */
+        /* Configuration for the theme */
         :root {
-            --primary-neon: #00e0ff; /* Electric Cyan */
-            --secondary-neon: #ff00ff; /* Fuchsia */
-            --dark-bg: #0d0c1d; /* Very deep indigo/slate */
-            --card-bg: #1a192b; /* Slightly lighter card background */
+            --primary-neon: #00e0ff; /* Electric Cyan - Dark Mode Accent */
+            --secondary-neon: #ff00ff; /* Fuchsia - Dark Mode Accent */
         }
 
         body { 
             font-family: 'Inter', sans-serif;
             transition: background-color 0.5s, color 0.5s;
-            background-color: var(--dark-bg);
-            color: #E2E8F0; /* Light text */
         }
         
-        /* Sidebar: Base for the dark, futuristic look */
+        /* Set default (Light Mode) colors */
+        html:not(.dark) body {
+            background-color: #f1f5f9; /* Slate-100 */
+            color: #1e293b; /* Slate-800 */
+        }
+        /* Dark Mode colors */
+        html.dark body {
+            background-color: #0f172a; /* Slate-900 */
+            color: #e2e8f0; /* Slate-200 */
+        }
+
+        /* Sidebar: Custom styles for the fixed structure */
         .sidebar {
-            background-color: #121021; /* Slightly darker than body for depth */
+            transition: all 0.4s;
+        }
+        /* Dark Mode Sidebar */
+        html.dark .sidebar {
+            background-color: #1e293b; /* Slate-800 */
             box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
             border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        /* Light Mode Sidebar */
+        html:not(.dark) .sidebar {
+            background-color: #ffffff; /* White */
+            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.1);
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         /* Nav Item Styling */
@@ -36,56 +53,73 @@
             border-radius: 14px; /* Aggressive rounding */
         }
 
-        .nav-item:hover {
+        /* Nav Item Hover States */
+        html.dark .nav-item:hover {
             background-color: rgba(255, 255, 255, 0.05);
             color: var(--primary-neon);
             transform: scale(1.02);
         }
+        html:not(.dark) .nav-item:hover {
+            background-color: #e2e8f0; /* Slate-200 */
+            color: #1e293b; /* Slate-800 */
+            transform: scale(1.02);
+        }
 
-        /* Active Nav Item - Neon Glow Effect */
-        .active-nav {
-            background-color: var(--card-bg) !important;
+        /* Active Nav Item - Accent */
+        html.dark .active-nav {
+            background-color: #1a192b !important; 
             color: var(--primary-neon) !important;
             border: 1px solid var(--primary-neon);
             box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); /* Subtle glow */
         }
-        .active-nav svg {
+        html.dark .active-nav svg {
             color: var(--primary-neon) !important;
+        }
+        html:not(.dark) .active-nav {
+            background-color: #bfdbfe !important; /* Blue-300 */
+            color: #1e40af !important; /* Blue-800 */
+            border: 1px solid #3b82f6; /* Blue-500 */
+        }
+        html:not(.dark) .active-nav svg {
+            color: #1e40af !important;
         }
 
         /* Chat Item Styling */
         .chat-item {
-            background-color: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s;
             border-radius: 12px;
         }
+        html:not(.dark) .chat-item {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb; 
+        }
+        html.dark .chat-item {
+            background-color: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
         
-        .chat-item:hover {
-            background-color: rgba(26, 25, 43, 0.8);
+        html.dark .chat-item:hover {
             border-color: var(--primary-neon);
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
         }
         
-        /* Active Chat Item - Secondary Neon Accent */
-        .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
+        /* Active Chat Item Accent */
+        html.dark .chat-item.active {
+            background-color: #581c87; 
             color: white !important; 
             border: 2px solid var(--secondary-neon);
             box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
         }
-        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
-            color: white !important; 
-            opacity: 1;
-        }
-        .chat-item.active .avatar-placeholder {
-             background-color: var(--primary-neon) !important; 
+        html:not(.dark) .chat-item.active {
+            background-color: #dbeafe; /* Blue-100 */
+            color: #1e40af !important; 
+            border: 2px solid #3b82f6;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
         }
 
         /* Message History container */
         .chat-messages {
-            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
             display: flex;
@@ -93,49 +127,64 @@
             padding: 1rem;
         }
 
-        /* Custom Scrollbar - Neon look */
+        /* Custom Scrollbar */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: var(--primary-neon); 
+            background-color: #64748b; 
             border-radius: 4px;
         }
-        .chat-messages::-webkit-scrollbar-track {
-             background-color: var(--card-bg);
-        }
+        html.dark .chat-messages::-webkit-scrollbar-thumb { background-color: var(--primary-neon); }
+        .chat-messages::-webkit-scrollbar-track { background-color: #e2e8f0; }
+        html.dark .chat-messages::-webkit-scrollbar-track { background-color: #1e293b; }
         
         /* Unread Badge - Sharp and secondary neon */
         .badge-style {
             background-color: var(--secondary-neon); 
-            color: var(--dark-bg); 
+            color: #0f172a; /* Dark body color */
             font-weight: 900; 
             box-shadow: 0 0 8px var(--secondary-neon);
         }
 
         /* Message Bubbles */
         .admin-bubble {
-            background-color: #312e81; /* Indigo-700 */
+            background-color: #3b82f6; /* Blue-500 */
             color: white;
             border-bottom-right-radius: 8px !important;
         }
+        html.dark .admin-bubble {
+            background-color: #312e81; /* Indigo-700 */
+            color: white;
+        }
+        
         .user-bubble {
+            background-color: #e2e8f0; /* Slate-200 */
+            color: #1e293b; /* Slate-800 */
+            border-bottom-left-radius: 8px !important;
+        }
+        html.dark .user-bubble {
             background-color: #374151; /* Slate-700 */
             color: #F9FAFB; 
-            border-bottom-left-radius: 8px !important;
         }
         
         /* Card Styles for Dashboard */
         .stat-card {
-            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s;
             border-radius: 16px;
             overflow: hidden;
             position: relative;
         }
-        .stat-card:hover {
+        html:not(.dark) .stat-card {
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        html.dark .stat-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        html.dark .stat-card:hover {
             transform: scale(1.03);
             box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
         }
-        .stat-card::before {
+        html.dark .stat-card::before {
             content: '';
             position: absolute;
             top: 0;
@@ -147,126 +196,135 @@
 
         /* Input/Textarea Focus Glow */
         input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+            border-color: #3b82f6 !important;
+        }
+        html.dark input:focus, html.dark textarea:focus {
             box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
             border-color: var(--primary-neon) !important;
         }
 
         /* Send Button Glow */
         #sendButton {
-            background-color: var(--primary-neon);
-            color: var(--dark-bg);
+            background-color: #3b82f6; /* Light Mode: Blue-500 */
+            color: white;
             font-weight: 700;
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
             transition: all 0.2s;
         }
-        #sendButton:hover {
+        html.dark #sendButton {
+            background-color: var(--primary-neon);
+            color: #0f172a; /* Dark body color */
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
+        }
+        html.dark #sendButton:hover {
              box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
              background-color: #00ffff;
         }
 
     </style>
 </head>
-<!-- Main container uses the very dark background -->
-<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
+<!-- Body background is now controlled by CSS/Tailwind adaptive classes -->
+<body class="h-screen overflow-hidden flex">
 
     <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
-    <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
+    <div class="w-64 sidebar flex flex-col flex-shrink-0 z-20 transition-all duration-400 dark:text-white text-gray-800">
         <!-- Logo/Title: Neon Emphasis -->
-        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
-            <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
+        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-200 dark:border-gray-700/30">
+            <svg class="w-8 h-8 mr-3 text-blue-600 dark:text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
             <span class="tracking-widest">Admin Plan</span>
         </div>
 
         <!-- Navigation Menu with Neon Indicators -->
         <nav id="mainNav" class="p-4 space-y-2 flex-grow">
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
-                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav text-gray-800 dark:text-white" data-section="dashboard">
+                <svg class="w-6 h-6 mr-3 text-blue-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="font-medium">Dashboard</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 text-gray-800 dark:text-white" data-section="chat">
+                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                 <span class="font-medium">Chats</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 text-gray-800 dark:text-white" data-section="broadcast">
+                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
                 <span class="font-medium">Broadcast</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 text-gray-800 dark:text-white" data-section="settings">
+                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span class="font-medium">Settings</span>
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
-        <div class="p-6 border-t border-gray-700/30">
+        <!-- Dark Mode Toggle Button -->
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700/30">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
-                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Default to Sun icon as the theme is fixed dark -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    class="p-3 rounded-xl bg-gray-200/50 dark:bg-gray-800/50 hover:bg-gray-300 dark:hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-300 dark:border-gray-700/50">
+                <svg id="themeIcon" class="w-6 h-6 text-gray-800 dark:text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Path will be updated by JS -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                 </svg>
-                <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
+                <span id="themeText" class="font-medium text-sm hidden sm:inline">Theme Control</span>
             </button>
         </div>
     </div>
 
     <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
-    <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
-        <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
+    <div id="chatListPanel" class="w-80 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
+        <!-- Chat List Header (FIX: Added adaptive background class) -->
+        <div class="p-6 text-xl font-extrabold border-b border-gray-200 dark:border-gray-700/30 text-gray-800 dark:text-white h-20 flex items-center transition-colors duration-400 bg-white dark:bg-slate-800">
             Conversations Log
         </div>
 
         <!-- Chat List Search Input -->
-        <div class="p-4 border-b border-gray-700/30">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700/30">
             <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
                    onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+                   class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-[var(--primary-neon)] focus:border-blue-500 dark:focus:border-[var(--primary-neon)] transition duration-200 text-sm">
         </div>
 
         <!-- Chat List Container -->
         <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
+            <!-- FIX: Added dark:text-gray-400 for placeholder readability -->
+            <div class="text-center p-4 text-gray-500 dark:text-gray-400 text-sm">Initializing quantum connection...</div>
         </div>
     </div>
 
     <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
+    <div class="flex-grow flex flex-col transition-colors duration-400">
         
         <!-- === SECTION: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-8">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
+            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-[var(--primary-neon)] tracking-wide">
                 🚀 Dashboard | Nexus View
             </h1>
-            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
+            <p class="text-gray-600 dark:text-gray-400 mb-10 border-b border-gray-300 dark:border-gray-700/50 pb-4">
                 Real-time metrics and system status reports.
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Card 1 (Neon Blue Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
+                <div class="stat-card p-8 bg-blue-100 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-white cursor-pointer">
                     <div class="text-6xl font-black">1,245</div>
                     <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
                 </div>
                 <!-- Card 2 (Neon Green Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
+                <div class="stat-card p-8 bg-green-100 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-green-800 dark:text-white cursor-pointer">
                     <div class="text-6xl font-black">25</div>
                     <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
                 </div>
                 <!-- Card 3 (Neon Magenta/Red Gradient) -->
-                <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
+                <div class="stat-card p-8 bg-red-100 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-red-800 dark:text-white cursor-pointer">
                     <div class="text-6xl font-black">156</div>
                     <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
                 </div>
             </div>
             
-            <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
-                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
-                <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
-                <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
+            <div class="mt-12 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-300 dark:border-gray-700/50">
+                <h3 class="text-2xl font-bold mb-4 text-fuchsia-600 dark:text-[var(--secondary-neon)]">System Load Visualization</h3>
+                <p class="text-gray-600 dark:text-gray-400">Resource utilization over the last 24 hours.</p>
+                <div class="h-64 bg-gray-200 dark:bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-500 dark:text-gray-700 border border-gray-300 dark:border-gray-700/50">
                     [Holographic Data Display Placeholder]
                 </div>
             </div>
@@ -275,32 +333,33 @@
         <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
             <!-- Chat Header - Sleek, borderless look -->
-            <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
-                <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
+            <header id="chatHeader" class="p-4 border-b border-gray-200 dark:border-gray-700/30 bg-white dark:bg-slate-800 flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
+                <span class="text-xl font-semibold text-gray-800 dark:text-gray-300">Select a Chat</span>
             </header>
             
             <!-- Chat History Search Input -->
-            <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
+            <div id="chatHistorySearchArea" class="p-3 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700/30 hidden">
                 <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
                        onkeyup="filterChatHistory(this.value)"
-                       class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+                       class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-[var(--primary-neon)] focus:border-blue-500 dark:focus:border-[var(--primary-neon)] transition duration-200 text-sm">
             </div>
 
             <!-- Message History -->
-            <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
-                <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
+            <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-400">
+                <!-- FIX: Added dark:text-gray-400 for placeholder readability -->
+                <div class="text-center text-gray-600 dark:text-gray-400">No chat selected yet. Initiate connection.</div>
             </div>
 
             <!-- Message Input - Floating effect -->
-            <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
+            <div id="chatInputArea" class="p-4 bg-white dark:bg-slate-800 transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-200 dark:border-gray-700/50">
                 
                 <!-- File/Image Preview Area -->
-                <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
+                <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
-                            <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
-                            <span id="fileSize" class="text-xs text-gray-500"></span>
+                            <span id="fileIcon" class="text-2xl text-blue-500 dark:text-[var(--primary-neon)]"></span>
+                            <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs"></span>
+                            <span id="fileSize" class="text-xs text-gray-500 dark:text-gray-400"></span>
                         </div>
                         <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -316,13 +375,13 @@
                            
                     <!-- Attach Button -->
                     <button onclick="document.getElementById('fileInput').click()" 
-                            class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                            class="text-gray-500 dark:text-gray-400 hover:text-fuchsia-500 dark:hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                     </button>
                     
-                    <!-- Input field with neon focus style -->
+                    <!-- Input field with focus style -->
                     <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
-                           class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
+                           class="flex-grow border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-200"
                            onkeypress="if(event.key === 'Enter') sendReply()">
                            
                     <!-- Send button with vibrant glow -->
@@ -336,13 +395,13 @@
 
         <!-- === SECTION: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
-            <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                <p class="mb-6 text-gray-400">
+            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
+            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-300 dark:border-gray-700/50 transition-colors duration-300">
+                <p class="mb-6 text-gray-600 dark:text-gray-400">
                     Send high-priority messages to target user segments.
                 </p>
-                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
-                <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
+                <textarea class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-fuchsia-500 dark:focus:ring-[var(--secondary-neon)] focus:border-fuchsia-500 dark:focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
+                <button class="mt-4 bg-fuchsia-600 dark:bg-[var(--secondary-neon)] text-white dark:text-gray-900 p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
                     <span class="flex items-center space-x-2">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
                         <span>Initiate Broadcast</span>
@@ -353,23 +412,23 @@
 
         <!-- === SECTION: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
+            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
             <div class="space-y-8">
                 <!-- Setting Card 1 -->
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
-                    <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
-                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-300 dark:border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-200">API Key Management</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Secure access protocol credentials.</p>
+                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 transition-colors duration-300 text-base">
                 </div>
                 <!-- Setting Card 2 -->
-                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-gray-300 dark:border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-200">Bot Status Control</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
+                        <span class="text-gray-600 dark:text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
                             <!-- Toggle switch with vibrant colors -->
-                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
+                            <div class="w-14 h-8 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/50 dark:peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-[var(--primary-neon)] shadow-lg dark:peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
                         </label>
                     </div>
                 </div>
@@ -378,7 +437,7 @@
 
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
+    <!-- 4. Socket.io and JavaScript Logic (Updated for Dark Mode) -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // --- Client-side State Management ---
@@ -418,26 +477,73 @@
         }
 
 
-        // --- Dark Mode Functions (The theme is fixed dark now, this button can toggle a subtle effect or future mode) ---
+        // --- Dark Mode Functions (UPDATED FOR TOGGLE) ---
         function toggleDarkMode() {
-            // Since the theme is fixed dark, this can trigger a special effect or log a message.
-            console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
-            alert("Theme is locked to Quantum Dark Mode.");
-        }
-
-        function updateThemeIcon() {
-            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
-        }
-
-        function loadDarkModePreference() {
-            htmlElement.classList.add('dark'); // Force dark mode
+            if (htmlElement.classList.contains('dark')) {
+                // Switch to Light Mode
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                // Switch to Dark Mode
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
             updateThemeIcon();
         }
 
-        // --- Navigation Functions ---
+        function updateThemeIcon() {
+            const isDark = htmlElement.classList.contains('dark');
+            const iconPath = isDark 
+                ? 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z' // Moon (representing the current theme)
+                : 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'; // Sun
+                
+            const iconSvg = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (iconSvg) {
+                // Update icon path
+                iconSvg.innerHTML = '';
+                const path = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('stroke-linejoin', 'round');
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('d', iconPath);
+                iconSvg.appendChild(path);
+                
+                // Update icon colors via Tailwind classes
+                iconSvg.classList.toggle('text-gray-800', !isDark);
+                iconSvg.classList.toggle('dark:text-[var(--secondary-neon)]', isDark);
+            }
+            if (themeText) {
+                themeText.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+            }
+        }
+
+        function loadDarkModePreference() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                htmlElement.classList.remove('dark');
+            } else {
+                // Default to dark mode if no preference or saved 'dark'
+                htmlElement.classList.add('dark'); 
+            }
+            updateThemeIcon();
+        }
+
+        // --- Navigation Functions (Same as before) ---
         function showSection(sectionId) {
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active-nav');
+                // Ensure text and icon colors are reset/defaulted
+                el.classList.remove('text-blue-800', 'dark:text-[var(--primary-neon)]');
+                el.classList.add('text-gray-800', 'dark:text-white');
+                const svg = el.querySelector('svg');
+                if (svg) {
+                    svg.classList.remove('text-blue-600', 'dark:text-[var(--primary-neon)]');
+                    svg.classList.add('text-gray-500', 'dark:text-gray-400');
+                }
+            });
 
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
@@ -453,6 +559,8 @@
             const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
             if (activeNavItem) {
                 activeNavItem.classList.add('active-nav');
+                // Manually re-apply colors for the non-active nav items that might get overridden by the shared CSS
+                activeNavItem.classList.remove('text-gray-800', 'dark:text-white'); 
             }
 
             const chatListPanel = document.getElementById('chatListPanel');
@@ -472,7 +580,7 @@
         }
 
 
-        // --- Chat Specific Functions ---
+        // --- Chat Specific Functions (Same as before, except using new adaptive classes) ---
 
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
@@ -482,7 +590,7 @@
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-800 dark:text-gray-200 shadow-lg hover:shadow-2xl';
             chatElement.setAttribute('data-chat-id', chatId);
             chatElement.setAttribute('data-username', username.toLowerCase());
 
@@ -490,7 +598,7 @@
 
             // Avatar SVG Placeholder - Futuristic style
             const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
+                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 dark:bg-indigo-700/50 text-blue-600 dark:text-[var(--primary-neon)] border border-blue-500/50 dark:border-[var(--primary-neon)]/50">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
             `;
@@ -499,8 +607,8 @@
                 ${avatar}
                 <div class="flex-grow min-w-0">
                     <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
+                    <p class="text-xs text-blue-600 dark:text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
                 </div>
                 ${unreadBadge}
             `;
@@ -529,7 +637,8 @@
                     chatListElement.appendChild(createChatListItem(chat));
                 });
             } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
+                // FIX: Added dark:text-gray-400 for placeholder readability
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 dark:text-gray-400 text-sm">No entities match search query: "${query}"</div>`;
             }
         }
 
@@ -576,7 +685,7 @@
                     // Document/File display (using icon and name)
                     const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
                     mediaContent = `
-                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
+                        <div class="flex items-center space-x-2 p-3 bg-blue-900 dark:bg-indigo-900 rounded-lg mb-2 border border-blue-500 dark:border-[var(--primary-neon)]">
                             <span class="text-2xl">${getFileIcon(mimeType)}</span>
                             <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
                         </div>
@@ -588,7 +697,7 @@
                 <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
                     ${mediaContent}
                     <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-400' : 'text-indigo-200'} text-right">
+                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-500 dark:text-gray-400' : 'text-indigo-200'} text-right">
                         ${timeString}
                     </span>
                 </div>
@@ -602,7 +711,8 @@
             let foundCount = 0;
 
             messages.forEach(messageDiv => {
-                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
+                const messageContent = messageDiv.querySelector('.message-content');
+                const messageText = messageContent ? messageContent.getAttribute('data-text') : '';
                 
                 if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
                     messageDiv.classList.remove('hidden');
@@ -618,7 +728,7 @@
             if (lowerCaseQuery !== '' && foundCount === 0) {
                  const feedback = document.createElement('div');
                  feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
+                 feedback.className = 'text-center text-fuchsia-500 dark:text-[var(--secondary-neon)] font-medium my-4';
                  feedback.textContent = `No data packets found for query: "${query}"`;
                  document.getElementById('messageHistory').appendChild(feedback);
             }
@@ -627,7 +737,8 @@
 
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
+            // FIX: Added dark:text-gray-400 for placeholder readability
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 dark:text-gray-400 transition-colors duration-300">Fetching orbital data streams...</div>';
             unreadCounts = {}; 
             allChats = []; 
 
@@ -640,7 +751,8 @@
                 chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                    // FIX: Added dark:text-gray-400 for placeholder readability
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 dark:text-gray-400">No active communication threads detected.</div>';
                     return;
                 }
                 
@@ -658,10 +770,13 @@
         async function selectChat(chatId, username) {
             currentChatId = chatId;
             
+            const isDark = htmlElement.classList.contains('dark');
+            const neonColor = isDark ? 'text-[var(--primary-neon)]' : 'text-blue-600';
+
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
-                    <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
+                    <span class="text-xl font-semibold text-gray-800 dark:text-gray-300">${username}</span>
+                    <span class="text-sm font-medium ${neonColor} opacity-80">ID: ${chatId} | Online</span>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
@@ -680,7 +795,8 @@
             clearFileSelection(); 
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
+            // FIX: Added dark:text-gray-400 for placeholder readability
+            historyContainer.innerHTML = '<div class="text-center text-gray-600 dark:text-gray-400">Retrieving communication history...</div>';
 
             try {
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
@@ -721,7 +837,8 @@
 
             // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 alert("File size exceeds 5MB transmission limit.");
+                 // Using console.error instead of alert per instructions
+                 console.error("File size exceeds 5MB transmission limit.");
                  event.target.value = ''; 
                  return;
             }
@@ -734,6 +851,7 @@
                 
                 // Update Preview UI
                 document.getElementById('fileName').textContent = filename;
+                // FIX: Added dark:text-gray-400 to fileSize element
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
@@ -860,9 +978,9 @@
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
                     } else {
                         // Add a temporary subtle glow effect for new messages in the list
-                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
+                        newChatElement.classList.add('ring-4', 'ring-fuchsia-500/50', 'dark:ring-[var(--secondary-neon)]/50');
                         setTimeout(() => {
-                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
+                            newChatElement.classList.remove('ring-4', 'ring-fuchsia-500/50', 'dark:ring-[var(--secondary-neon)]/50');
                         }, 1000);
                     }
                 } else {
