@@ -45,7 +45,7 @@ console.log("Firebase Admin SDK initialized successfully.");
 // --- Telegram Bot Initialization ---
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
 // IMPORTANT: Update to your VPS domain
-bot.telegram.setWebhook(`https://your-vps-domain.com/webhook`); 
+bot.telegram.setWebhook(`https://mkschannel.org/webhook`); 
 console.log(`Telegram Bot initialized. Webhook set to: /webhook`);
 
 // --- Firestore Helpers ---
