@@ -185,9 +185,14 @@
                 <span class="font-medium">Dashboard</span>
             </a>
             
-            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="chat">
-                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="font-medium">Chats</span>
+            <!-- CHATS ITEM WITH UNREAD BADGE -->
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 justify-between" data-section="chat">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <span class="font-medium">Chats</span>
+                </div>
+                <!-- Total Unread Count Badge -->
+                <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
             </a>
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
@@ -422,7 +427,8 @@
         function toggleDarkMode() {
             // Since the theme is fixed dark, this can trigger a special effect or log a message.
             console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
-            alert("Theme is locked to Quantum Dark Mode.");
+            // Replaced alert() with a console log as per instructions
+            console.log("Theme is locked to Quantum Dark Mode.");
         }
 
         function updateThemeIcon() {
@@ -433,6 +439,29 @@
             htmlElement.classList.add('dark'); // Force dark mode
             updateThemeIcon();
         }
+
+        // --- Unread Count Logic (NEW) ---
+        function updateTotalUnreadBadge() {
+            const badge = document.getElementById('totalUnreadBadge');
+            let totalCount = 0;
+            
+            // Calculate total count from the unreadCounts map
+            for (const chatId in unreadCounts) {
+                totalCount += unreadCounts[chatId];
+            }
+            
+            if (badge) {
+                if (totalCount > 0) {
+                    badge.textContent = totalCount > 99 ? '99+' : totalCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.textContent = '';
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+        // --- End New Unread Count Logic ---
+
 
         // --- Navigation Functions ---
         function showSection(sectionId) {
@@ -478,7 +507,8 @@
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
             const username = chat.username || 'Unknown Entity';
-            const count = chat.unreadCount || unreadCounts[chatId] || 0; 
+            // Use unreadCounts state for real-time updates after fetching
+            const count = unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
@@ -508,6 +538,12 @@
             chatElement.addEventListener('click', () => {
                 selectChat(chatId, username);
             });
+
+            // Ensure active chat style is applied on creation if needed (e.g. on filter)
+            if (currentChatId === chatId) {
+                 chatElement.classList.add('active');
+            }
+
 
             return chatElement;
         }
@@ -602,7 +638,10 @@
             let foundCount = 0;
 
             messages.forEach(messageDiv => {
-                const messageText = messageDiv.querySelector('.message-content').getAttribute('data-text');
+                const messageContentEl = messageDiv.querySelector('.message-content');
+                if (!messageContentEl) return;
+                
+                const messageText = messageContentEl.getAttribute('data-text');
                 
                 if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
                     messageDiv.classList.remove('hidden');
@@ -630,8 +669,10 @@
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
             unreadCounts = {}; 
             allChats = []; 
+            updateTotalUnreadBadge(); // Reset badge immediately
 
             try {
+                // Simplified mock fetching (replace with actual API call)
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
                 if (!response.ok) throw new Error('Authentication failure or offline');
                 const chats = await response.json();
@@ -641,17 +682,22 @@
                 
                 if (chats.length === 0) {
                     chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                    updateTotalUnreadBadge();
                     return;
                 }
                 
                 chats.forEach(chat => {
-                    unreadCounts[chat.telegramId] = 0; 
+                    // Initialize unreadCounts with the count from the server if available
+                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
                     chatListElement.appendChild(createChatListItem(chat));
                 });
+
+                updateTotalUnreadBadge();
 
             } catch (error) {
                 console.error("Error fetching chat list:", error);
                 chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
+                updateTotalUnreadBadge();
             }
         }
 
@@ -672,9 +718,14 @@
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
-                unreadCounts[chatId] = 0;
-                const badge = activeChatElement.querySelector('.badge-style');
-                if (badge) badge.remove();
+                
+                // Clear unread count for the selected chat
+                if (unreadCounts[chatId] > 0) {
+                    unreadCounts[chatId] = 0;
+                    const badge = activeChatElement.querySelector('.badge-style');
+                    if (badge) badge.remove();
+                    updateTotalUnreadBadge(); // Update sidebar badge after clearing
+                }
             }
             
             clearFileSelection(); 
@@ -721,7 +772,8 @@
 
             // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 alert("File size exceeds 5MB transmission limit.");
+                 // Replaced alert() with console log
+                 console.log("File size exceeds 5MB transmission limit.");
                  event.target.value = ''; 
                  return;
             }
@@ -845,6 +897,8 @@
                     unreadCounts[chatId] = 0;
                 }
                 
+                updateTotalUnreadBadge(); // Update main badge
+
                 // 4. Update the chat list display
                 if (document.getElementById('chatListSearch').value.trim() === '') {
                     user.unreadCount = unreadCounts[chatId]; 
