@@ -206,7 +206,7 @@
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
+        <!-- Dark Mode Toggle Button (The theme is fixed dark, this could switch to light or toggle effects) -->
         <div class="p-6 border-t border-gray-700/30">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
@@ -502,6 +502,31 @@
 
 
         // --- Chat Specific Functions ---
+        
+        /**
+         * Function to notify the server that a chat has been read, ensuring persistence across reloads.
+         * @param {string} chatId The ID of the chat to mark as read.
+         */
+        async function markChatAsRead(chatId) {
+            // We assume the backend has an endpoint to mark a chat as read and reset its unread counter in the database.
+            try {
+                // Using POST for a state-changing operation
+                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    console.error('Server responded with an error when marking as read:', response.status);
+                } else {
+                    console.log(`Chat ${chatId} successfully marked as read on server.`);
+                }
+            } catch (error) {
+                console.error(`Failed to notify server to mark chat ${chatId} as read:`, error);
+            }
+        }
+
 
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
@@ -725,6 +750,9 @@
                     const badge = activeChatElement.querySelector('.badge-style');
                     if (badge) badge.remove();
                     updateTotalUnreadBadge(); // Update sidebar badge after clearing
+                    
+                    // NEW FIX: Mark as read on the server to persist the read status
+                    markChatAsRead(chatId);
                 }
             }
             
@@ -912,6 +940,9 @@
                         historyContainer.scrollTop = 0; 
                         newChatElement.classList.add('active'); 
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                        
+                        // NEW: If message arrives while chat is open, mark as read on server too (though redundant, it ensures server is up-to-date)
+                        markChatAsRead(chatId);
                     } else {
                         // Add a temporary subtle glow effect for new messages in the list
                         newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
@@ -926,6 +957,7 @@
                         historyContainer.prepend(createMessageBubble(message));
                         historyContainer.scrollTop = 0; 
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                        markChatAsRead(chatId); // Mark read if open
                     }
                 }
 
