@@ -24,7 +24,7 @@
                         'dark-bg': '#0D0C1D', // Very deep indigo/slate
                         'dark-card': '#1A192B', // Slightly lighter card background
                         'dark-border': '#374151',
-                        'darker-sidebar': '#121021', // Darker base for the sidebar (The fix uses this color)
+                        'darker-sidebar': '#121021', // Darker base for the sidebar
                     }
                 }
             }
@@ -38,24 +38,34 @@
             transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
         }
 
-        /* FIXED: Custom CSS for .sidebar now only handles custom shadows 
-           and ensures the transition is smooth. Background/Border are handled by Tailwind classes in HTML.
-        */
+        /* Sidebar Styling for desktop/tablet, and mobile transitions */
         .sidebar {
             box-shadow: 6px 0 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.5s ease-in-out; 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Faster transition for mobile slide */
         }
         .dark .sidebar {
             box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
         }
 
+        /* Backdrop for mobile sidebar */
+        #mobile-backdrop {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+        .sidebar-open #mobile-backdrop {
+            opacity: 0.7;
+            visibility: visible;
+        }
+        .sidebar-open .sidebar {
+            transform: translateX(0); /* Slides in */
+        }
+
         /* Nav Item Styling */
         .nav-item {
             position: relative;
-            /* Smooth transition for hover and active states */
             transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             border-radius: 14px; 
-            /* Ensure text color transitions smoothly too */
             color: #4B5563; /* Default gray text */
         }
         .dark .nav-item {
@@ -63,21 +73,20 @@
         }
         
         .nav-item:hover {
-            color: #111827; /* Dark text for light mode hover */
-            background-color: #F3F4F6; /* Light gray subtle background */
+            color: #111827; 
+            background-color: #F3F4F6; 
             transform: scale(1.02);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Subtle lift */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
         }
         .dark .nav-item:hover {
-            color: theme('colors.neon-primary'); /* Neon text for dark mode hover */
+            color: theme('colors.neon-primary'); 
             background-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.15); /* Neon lift */
+            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.15); 
         }
 
         /* Active Nav Item - CRUCIAL EFFECT */
         .active-nav {
             font-weight: 700 !important;
-            /* Light Mode Active: Solid fill, strong blue border/shadow */
             background-color: theme('colors.white') !important; 
             color: theme('colors.blue.700') !important;
             border: 1px solid theme('colors.blue.500');
@@ -85,17 +94,16 @@
         }
         .dark .active-nav {
             font-weight: 700 !important;
-            /* Dark Mode Active: Dark card fill, NEON primary border/glow */
             background-color: theme('colors.dark-card') !important;
             color: theme('colors.neon-primary') !important;
             border: 1px solid theme('colors.neon-primary');
-            box-shadow: 0 0 12px rgba(0, 224, 255, 0.8); /* Stronger neon glow */
+            box-shadow: 0 0 12px rgba(0, 224, 255, 0.8); 
         }
         .active-nav svg { color: theme('colors.blue.600') !important; }
         .dark .active-nav svg { color: theme('colors.neon-primary') !important; }
 
 
-        /* Chat Item Styling (Kept from previous version, just ensuring color consistency) */
+        /* Chat Item Styling */
         .chat-item {
             background-color: theme('colors.light-card');
             border: 1px solid theme('colors.light-border');
@@ -134,17 +142,18 @@
 
         /* Message History container */
         .chat-messages {
-            max-height: calc(100vh - 230px); 
+            /* Adjusted for mobile: header height + input height */
+            max-height: calc(100vh - 160px); 
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; 
             padding: 1rem;
         }
-
-        /* Custom Scrollbar */
+        
+        /* Custom Scrollbar (kept for desktop view) */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #3B82F6; /* Blue in light mode */
+            background-color: #3B82F6; 
             border-radius: 4px;
         }
         .dark .chat-messages::-webkit-scrollbar-thumb { 
@@ -159,7 +168,7 @@
         
         /* Unread Badge */
         .badge-style {
-            background-color: #EF4444; /* Red in light mode */
+            background-color: #EF4444; 
             color: white; 
             font-weight: 900; 
             box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
@@ -172,20 +181,20 @@
 
         /* Message Bubbles */
         .admin-bubble {
-            background-color: #3B82F6; /* Blue-500 */
+            background-color: #3B82F6; 
             color: white;
             border-bottom-right-radius: 8px !important;
         }
         .dark .admin-bubble {
-            background-color: #312e81; /* Indigo-700 */
+            background-color: #312e81; 
         }
         .user-bubble {
-            background-color: #E5E7EB; /* Gray-200 */
-            color: #1F2937; /* Dark text */
+            background-color: #E5E7EB; 
+            color: #1F2937; 
             border-bottom-left-radius: 8px !important;
         }
         .dark .user-bubble {
-            background-color: #374151; /* Slate-700 */
+            background-color: #374151; 
             color: #F9FAFB; 
         }
         
@@ -211,7 +220,7 @@
             left: 0;
             width: 100%;
             height: 4px;
-            background: linear-gradient(90deg, #3B82F6, #10B981); /* Blue to Green */
+            background: linear-gradient(90deg, #3B82F6, #10B981); 
         }
         .dark .stat-card::before {
             background: linear-gradient(90deg, theme('colors.neon-primary'), theme('colors.neon-secondary'));
@@ -253,9 +262,14 @@
 <!-- Main container uses light-bg by default, dark-bg in dark mode -->
 <body class="bg-light-bg dark:bg-dark-bg h-screen overflow-hidden flex text-gray-900 dark:text-gray-200">
 
-    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
-    <!-- FIX: Added bg-light-card dark:bg-darker-sidebar and border/shadow classes to ensure theme switch works via Tailwind -->
-    <div class="w-64 sidebar bg-light-card dark:bg-darker-sidebar border-r border-light-border dark:border-gray-700/30 shadow-2xl flex flex-col flex-shrink-0 z-20 transition-all duration-500">
+    <!-- Mobile Sidebar Backdrop (Only visible when sidebar is open on small screens) -->
+    <div id="mobile-backdrop" class="fixed inset-0 bg-black z-30 md:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- 1. Full Sidebar (Responsive: fixed & hidden on mobile, static on desktop) -->
+    <!-- Added fixed, h-full, top-0, left-0, transform transition to make it a mobile drawer -->
+    <div id="sidebar" class="w-64 sidebar bg-light-card dark:bg-darker-sidebar border-r border-light-border dark:border-gray-700/30 shadow-2xl flex flex-col flex-shrink-0 z-40
+                fixed h-full top-0 left-0 transform -translate-x-full md:relative md:transform-none md:flex transition-transform duration-500">
+        
         <!-- Logo/Title: Neon Emphasis -->
         <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
             <svg class="w-8 h-8 mr-3 text-blue-600 dark:text-neon-secondary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
@@ -305,8 +319,9 @@
         </div>
     </div>
 
-    <!-- 2. Chat List Panel (w-80) -->
-    <div id="chatListPanel" class="w-80 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-gray-700/30 flex-col flex-shrink-0 z-10 transition-colors duration-500 shadow-xl hidden">
+    <!-- 2. Chat List Panel (Responsive: full width on mobile, w-80 on desktop/tablet) -->
+    <!-- Added absolute/fixed positioning for mobile chat list management -->
+    <div id="chatListPanel" class="w-full md:w-80 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-gray-700/30 flex-col flex-shrink-0 z-30 transition-colors duration-500 shadow-xl hidden">
         <!-- Chat List Header -->
         <div class="p-6 text-xl font-extrabold border-b border-light-border dark:border-gray-700/30 h-20 flex items-center transition-colors duration-500">
             Conversations Log
@@ -326,38 +341,54 @@
     </div>
 
     <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col transition-colors duration-500">
+    <div class="flex-grow flex flex-col transition-colors duration-500 relative">
+        
+        <!-- Mobile Header (Visible only on small screens) -->
+        <header id="mobileHeader" class="md:hidden p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+            <!-- Menu Toggle Button -->
+            <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200">
+                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+            <span id="mobileHeaderTitle" class="text-lg font-bold text-gray-800 dark:text-gray-200">Dashboard</span>
+            <!-- Back Button for Chat View (hidden by default) -->
+             <button id="chatBackButton" onclick="backToChatList()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200 hidden">
+                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <div class="w-10 h-10 md:hidden"></div> <!-- Placeholder for alignment -->
+        </header>
+
         
         <!-- === SECTION: Dashboard === -->
-        <div id="section-dashboard" class="main-section flex-grow p-8">
-            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
+        <div id="section-dashboard" class="main-section flex-grow p-4 md:p-8 overflow-y-auto">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 🚀 Dashboard 
             </h1>
-            <p class="text-gray-500 dark:text-gray-400 mb-10 border-b border-light-border dark:border-gray-700/50 pb-4 transition-colors duration-500">
+            <p class="text-gray-500 dark:text-gray-400 mb-6 md:mb-10 border-b border-light-border dark:border-gray-700/50 pb-4 transition-colors duration-500">
                 အချိန်နှင့်တပြေးညီ အချက်အလက်နှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။
             </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Adjusted grid for better mobile flow (1 col, 3 cols on md) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 <!-- Card 1 -->
-                <div class="stat-card p-8 bg-blue-500 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">၁,၂၄၅</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">မှတ်ပုံတင်ထားသော အသုံးပြုသူ စုစုပေါင်း</div>
+                <div class="stat-card p-6 md:p-8 bg-blue-500 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-white cursor-pointer">
+                    <div class="text-4xl md:text-6xl font-black">၁,၂၄၅</div>
+                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">မှတ်ပုံတင်ထားသော အသုံးပြုသူ စုစုပေါင်း</div>
                 </div>
                 <!-- Card 2 -->
-                <div class="stat-card p-8 bg-green-500 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">၂၅</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">လက်ရှိအသုံးပြုနေသော စက်ရှင်များ</div>
+                <div class="stat-card p-6 md:p-8 bg-green-500 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-white cursor-pointer">
+                    <div class="text-4xl md:text-6xl font-black">၂၅</div>
+                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">လက်ရှိအသုံးပြုနေသော စက်ရှင်များ</div>
                 </div>
                 <!-- Card 3 -->
-                <div class="stat-card p-8 bg-purple-500 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">၁၅၆</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">ဖြေရှင်းရန် ကျန်ရှိသော လက်မှတ်များ</div>
+                <div class="stat-card p-6 md:p-8 bg-purple-500 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-white cursor-pointer">
+                    <div class="text-4xl md:text-6xl font-black">၁၅၆</div>
+                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">ဖြေရှင်းရန် ကျန်ရှိသော လက်မှတ်များ</div>
                 </div>
             </div>
             
-            <div class="mt-12 bg-light-card dark:bg-dark-card p-8 rounded-2xl shadow-2xl transition-colors duration-500 border border-light-border dark:border-gray-700/50">
-                <h3 class="text-2xl font-bold mb-4 text-purple-600 dark:text-neon-secondary transition-colors duration-500">စနစ်ဝန်ထုပ်ဝန်ပိုး မြင်ကွင်း</h3>
-                <p class="text-gray-500 dark:text-gray-400 transition-colors duration-500">နောက်ဆုံး ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။</p>
-                <div class="h-64 bg-gray-200 dark:bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-400 dark:text-gray-700 border border-gray-300 dark:border-gray-700/50 transition-colors duration-500">
+            <div class="mt-8 md:mt-12 bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-2xl transition-colors duration-500 border border-light-border dark:border-gray-700/50">
+                <h3 class="text-xl md:text-2xl font-bold mb-4 text-purple-600 dark:text-neon-secondary transition-colors duration-500">စနစ်ဝန်ထုပ်ဝန်ပိုး မြင်ကွင်း</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-500">နောက်ဆုံး ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။</p>
+                <div class="h-48 md:h-64 bg-gray-200 dark:bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-400 dark:text-gray-700 border border-gray-300 dark:border-gray-700/50 transition-colors duration-500">
                     [Holographic Data Display Placeholder]
                 </div>
             </div>
@@ -365,70 +396,73 @@
 
         <!-- === SECTION: Chat (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat Header -->
-            <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md">
-                <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
-            </header>
-            
-            <!-- Chat History Search Input -->
-            <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
-                <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
-                       onkeyup="filterChatHistory(this.value)"
-                       class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-            </div>
-
-            <!-- Message History -->
-            <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-500">
-                <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
-            </div>
-
-            <!-- Message Input -->
-            <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50">
+            <!-- Chat View (History/Input) - Hidden on mobile by default until a chat is selected -->
+            <div id="chatView" class="flex-grow flex-col hidden md:flex"> 
+                <!-- Chat Header (Desktop View) -->
+                <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
+                    <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
+                </header>
                 
-                <!-- File/Image Preview Area -->
-                <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
-                            <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
-                            <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
-                        </div>
-                        <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                    </div>
+                <!-- Chat History Search Input -->
+                <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
+                    <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
+                           onkeyup="filterChatHistory(this.value)"
+                           class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
                 </div>
 
-                <div class="flex space-x-2">
-                    <!-- Hidden File Input -->
-                    <input type="file" id="fileInput" class="hidden" 
-                           onchange="handleFileSelect(event)" 
-                           accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                           
-                    <!-- Attach Button -->
-                    <button onclick="document.getElementById('fileInput').click()" 
-                            class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                    </button>
+                <!-- Message History -->
+                <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-500">
+                    <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
+                </div>
+
+                <!-- Message Input -->
+                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50">
                     
-                    <!-- Input field with neon focus style -->
-                    <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
-                           class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
-                           onkeypress="if(event.key === 'Enter') sendReply()">
-                           
-                    <!-- Send button with vibrant glow -->
-                    <button id="sendButton" onclick="sendReply()"
-                            class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </button>
+                    <!-- File/Image Preview Area -->
+                    <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
+                                <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
+                                <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
+                            </div>
+                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <!-- Hidden File Input -->
+                        <input type="file" id="fileInput" class="hidden" 
+                               onchange="handleFileSelect(event)" 
+                               accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                               
+                        <!-- Attach Button -->
+                        <button onclick="document.getElementById('fileInput').click()" 
+                                class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        </button>
+                        
+                        <!-- Input field with neon focus style -->
+                        <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
+                               class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
+                               onkeypress="if(event.key === 'Enter') sendReply()">
+                               
+                        <!-- Send button with vibrant glow -->
+                        <button id="sendButton" onclick="sendReply()"
+                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- === SECTION: Broadcast === -->
-        <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု (Global Broadcast)</h1>
-            <div class="bg-light-card dark:bg-dark-card p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
+        <div id="section-broadcast" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု (Global Broadcast)</h1>
+            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
                 <p class="mb-6 text-gray-500 dark:text-gray-400 transition-colors duration-500">
                     ပစ်မှတ်ထားသော အသုံးပြုသူ အပိုင်းများသို့ ဦးစားပေး မက်ဆေ့ခ်ျများ ပေးပို့ပါ။
                 </p>
@@ -443,20 +477,20 @@
         </div>
 
         <!-- === SECTION: Settings === -->
-        <div id="section-settings" class="main-section flex-grow p-8 hidden">
-            <h1 class="text-4xl font-extrabold mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">⚙️ စနစ်ဖွဲ့စည်းပုံ (System Configuration)</h1>
-            <div class="space-y-8">
+        <div id="section-settings" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">⚙️ စနစ်ဖွဲ့စည်းပုံ (System Configuration)</h1>
+            <div class="space-y-6 md:space-y-8">
                 <!-- Setting Card 1 -->
-                <div class="bg-light-card dark:bg-dark-card p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">API Key စီမံခန့်ခွဲမှု</h3>
+                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">API Key စီမံခန့်ခွဲမှု</h3>
                     <p class="text-sm text-gray-500 mb-4 transition-colors duration-500">လုံခြုံသော ဝင်ရောက်မှု ပရိုတိုကော အထောက်အထားများ။</p>
                     <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 transition duration-300 text-base">
                 </div>
                 <!-- Setting Card 2 -->
-                <div class="bg-light-card dark:bg-dark-card p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">Bot အခြေအနေ ထိန်းချုပ်မှု</h3>
+                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">Bot အခြေအနေ ထိန်းချုပ်မှု</h3>
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-600 dark:text-gray-400 text-lg transition-colors duration-500">Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။</span>
+                        <span class="text-gray-600 dark:text-gray-400 text-base md:text-lg transition-colors duration-500">Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer" checked>
                             <!-- Toggle switch with vibrant colors and transition -->
@@ -487,6 +521,9 @@
         let mediaPath = null;
         let mediaType = null;
         let filename = null;
+
+        // --- Responsive State Variable ---
+        let isMobileSidebarOpen = false;
 
         // --- Utility Functions ---
 
@@ -544,6 +581,43 @@
             updateThemeIcon();
         }
         // --- End Dark Mode Functions ---
+        
+        // --- Mobile Sidebar/Chat View Toggle Functions ---
+        function toggleSidebar() {
+            isMobileSidebarOpen = !isMobileSidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const body = document.body;
+
+            if (isMobileSidebarOpen) {
+                body.classList.add('sidebar-open');
+            } else {
+                body.classList.remove('sidebar-open');
+            }
+        }
+
+        function isMobileView() {
+            // Tailwind's 'md' breakpoint is 768px.
+            return window.matchMedia('(max-width: 767px)').matches;
+        }
+
+        function backToChatList() {
+             const chatView = document.getElementById('chatView');
+             const chatListPanel = document.getElementById('chatListPanel');
+             
+             // Hide chat view, show list
+             chatView.classList.add('hidden');
+             chatListPanel.classList.remove('hidden');
+
+             // Update Mobile Header
+             document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
+             document.getElementById('chatBackButton').classList.add('hidden');
+             
+             // Clear current chat selection
+             currentChatId = null;
+             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        }
+        // --- End Mobile Toggle Functions ---
+
 
         // --- Unread Count Logic ---
         function updateTotalUnreadBadge() {
@@ -576,9 +650,10 @@
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
+                document.getElementById('mobileHeaderTitle').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+                
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
-                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
                 } else {
                      targetSection.classList.remove('flex-col');
                 }
@@ -588,10 +663,31 @@
             if (activeNavItem) {
                 activeNavItem.classList.add('active-nav');
             }
+            
+            // Hide the mobile sidebar if it was open
+            if (isMobileSidebarOpen) {
+                toggleSidebar();
+            }
 
             const chatListPanel = document.getElementById('chatListPanel');
+            const chatView = document.getElementById('chatView');
+            const chatBackButton = document.getElementById('chatBackButton');
+
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
+                
+                // On desktop/tablet, show both list and view
+                if (!isMobileView()) {
+                     chatView.classList.remove('hidden');
+                     chatBackButton.classList.add('hidden');
+                     document.getElementById('mobileHeaderTitle').textContent = 'Chat'; // Reset to generic title for desktop
+                } else {
+                     // On mobile, show only the list initially
+                     chatView.classList.add('hidden');
+                     chatBackButton.classList.add('hidden');
+                     document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
+                }
+
                 if (allChats.length === 0) {
                     fetchChats();
                 } else {
@@ -599,6 +695,8 @@
                 }
             } else {
                 chatListPanel.classList.add('hidden');
+                chatView.classList.add('hidden');
+                chatBackButton.classList.add('hidden');
                 currentChatId = null; 
                 document.getElementById('chatHistorySearch').value = ''; 
                 clearFileSelection(); 
@@ -608,14 +706,8 @@
 
         // --- Chat Specific Functions ---
         
-        /**
-         * Function to notify the server that a chat has been read, ensuring persistence across reloads.
-         * @param {string} chatId The ID of the chat to mark as read.
-         */
         async function markChatAsRead(chatId) {
-            // We assume the backend has an endpoint to mark a chat as read and reset its unread counter in the database.
             try {
-                // Using POST for a state-changing operation
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
                     method: 'POST',
                     headers: {
@@ -637,7 +729,6 @@
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
             const username = chat.username || 'Unknown Entity';
-            // Use unreadCounts state for real-time updates after fetching
             const count = unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
@@ -833,7 +924,19 @@
 
         async function selectChat(chatId, username) {
             currentChatId = chatId;
-            
+            const chatListPanel = document.getElementById('chatListPanel');
+            const chatView = document.getElementById('chatView');
+            const chatBackButton = document.getElementById('chatBackButton');
+
+            // --- MOBILE VIEW LOGIC: Hide list and show chat view ---
+            if (isMobileView()) {
+                 chatListPanel.classList.add('hidden');
+                 chatView.classList.remove('hidden');
+                 chatBackButton.classList.remove('hidden'); // Show back button
+                 document.getElementById('mobileHeaderTitle').textContent = username; // Set mobile header title to username
+            }
+            // --------------------------------------------------------
+
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-900 dark:text-gray-300 transition-colors duration-500">${username}</span>
@@ -1085,6 +1188,7 @@
                 });
             });
 
+            // Initial view setup
             showSection('dashboard');
         });
 
