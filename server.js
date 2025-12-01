@@ -70,12 +70,13 @@ const basicAuthMiddleware = basicAuth({
 
 /**
  * Saves a message (user or admin) to Firestore.
+ * NOTE: If sender is 'user', unreadCount is incremented.
  * @param {string} chatId - Telegram chat ID.
  * @param {string} sender - 'user' or 'admin'.
- * @param {string} text - Message text (caption).
+ * @param {string | null} text - Message text (caption).
  * @param {string | null} mediaPath - File ID (for user) or Base64 (for admin).
  * @param {string | null} username - Telegram username (only for user message on first contact).
- * @param {string | null} filename - Original filename (for admin document replies).
+ * @param {string | null} filename - Original filename (for admin document replies).
  * @returns {Promise<object>} The saved message data.
  */
 async function saveMessage(chatId, sender, text, mediaPath = null, username = 'Unknown User', filename = null) {
@@ -90,6 +91,8 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = 'U
 
     if (sender === 'user') {
         chatUpdate.username = username; // Update username on user contact
+        // === NEW: Increment unread count for admin ===
+        chatUpdate.unreadCount = admin.firestore.FieldValue.increment(1);
     }
     
     // Ensure the chat document exists or create it
@@ -101,7 +104,7 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = 'U
         sender: sender,
         text: text,
         mediaPath: mediaPath, // Used for file_id (user) or base64 (admin)
-        filename: filename, // New field for admin side document/file display
+        filename: filename, // New field for admin side document/file display
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -134,10 +137,10 @@ bot.on('message', async (msg) => {
         mediaPath = msg.photo[msg.photo.length - 1].file_id;
         text = msg.caption || ''; // Caption is the text for a photo
     } else if (msg.document) {
-        mediaPath = msg.document.file_id;
-        filename = msg.document.file_name;
-        text = msg.caption || '';
-    }
+        mediaPath = msg.document.file_id;
+        filename = msg.document.file_name;
+        text = msg.caption || '';
+    }
     // You could add similar logic for video, audio, etc. if needed
 
     if (!text && !mediaPath) {
@@ -149,15 +152,20 @@ bot.on('message', async (msg) => {
         // For user messages, save the file_id in mediaPath and the original filename
         const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename);
 
-        // Notify Admin Panel (All connected sockets)
+        // 1. Fetch the updated chat data to get the new unreadCount
+        const chatDoc = await db.collection(CHAT_COLLECTION).doc(String(chatId)).get();
+        const chatData = chatDoc.data();
+
+        // 2. Notify Admin Panel (All connected sockets)
         io.emit('new_message', { 
             chatId: chatId,
             message: savedMessage,
             user: {
                 telegramId: String(chatId),
-                username: username,
+                username: chatData.username,
                 lastMessageTime: savedMessage.timestamp,
                 lastMessageText: savedMessage.text,
+                unreadCount: chatData.unreadCount || 0, // === NEW: Send unreadCount ===
             }
         });
         console.log(`New user message saved and broadcasted: ${username}`);
@@ -183,13 +191,14 @@ app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
             telegramId: doc.id,
             ...doc.data(),
             // Ensure timestamp fields are serialized correctly
-            lastMessageTime: doc.data().lastMessageTime ? doc.data().lastMessageTime.toDate().toISOString() : new Date().toISOString()
+            lastMessageTime: doc.data().lastMessageTime ? doc.data().lastMessageTime.toDate().toISOString() : new Date().toISOString(),
+            unreadCount: doc.data().unreadCount || 0 // === NEW: Include unreadCount ===
         }));
 
         res.json(chats);
     } catch (error) {
-        console.error("Error fetching chat list:", error.message); 
-        console.error(error); 
+        console.error("Error fetching chat list:", error.message); 
+        console.error(error); 
         
         if (error.code === 16) {
              console.error("Firestore Error Code 16: UNAUTHENTICATED. Check service account credentials parsing in server.js!");
@@ -199,6 +208,25 @@ app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
              console.error("Firestore Error Code 9: FAILED_PRECONDITION (Missing Index). Check the full error message above for the index creation URL!");
         }
         res.status(500).json({ error: 'Failed to retrieve chat list.' });
+    }
+});
+
+// === NEW: API to mark a chat as read (resetting unreadCount) ===
+app.put('/api/chats/:chatId/read', basicAuthMiddleware, async (req, res) => {
+    const { chatId } = req.params;
+
+    try {
+        const chatRef = db.collection(CHAT_COLLECTION).doc(chatId);
+        await chatRef.update({
+            unreadCount: 0,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        // Broadcast an update to all connected admins to instantly clear the badge
+        io.emit('chat_read_status', { chatId, unreadCount: 0 });
+        res.json({ success: true, message: `Chat ${chatId} marked as read.` });
+    } catch (error) {
+        console.error(`Error marking chat ${chatId} as read:`, error);
+        res.status(500).json({ error: 'Failed to mark chat as read.' });
     }
 });
 
@@ -264,7 +292,7 @@ io.on('connection', (socket) => {
     // Admin sends a reply
     socket.on('admin_reply', async (data, callback) => {
         // Added mediaType and filename for handling different media types
-        const { chatId, text, mediaPath, mediaType, filename } = data; 
+        const { chatId, text, mediaPath, mediaType, filename } = data; 
 
         try {
             let telegramResponse;
@@ -274,15 +302,15 @@ io.on('connection', (socket) => {
                 // Base64 data URL format: data:[<MIME-type>][;charset=<encoding>][;base64],<data>
                 const parts = mediaPath.split(';base64,');
                 if (parts.length !== 2) throw new Error("Invalid Base64 format.");
-                
+                
                 const base64Data = parts[1];
                 const buffer = Buffer.from(base64Data, 'base64');
-                const mimeType = parts[0].split(':')[1];
+                const mimeType = parts[0].split(':')[1];
 
-                const fileOptions = { 
-                    filename: filename || 'admin_file', 
-                    contentType: mimeType 
-                };
+                const fileOptions = { 
+                    filename: filename || 'admin_file', 
+                    contentType: mimeType 
+                };
                 
                 if (mediaType === 'photo') {
                     // Send photo to Telegram
@@ -291,9 +319,9 @@ io.on('connection', (socket) => {
                     // Send document/file to Telegram
                     telegramResponse = await bot.sendDocument(chatId, buffer, { caption: text }, fileOptions);
                 } else {
-                    throw new Error(`Unsupported media type: ${mediaType}`);
-                }
-                
+                    throw new Error(`Unsupported media type: ${mediaType}`);
+                }
+                
             } else if (text) {
                 // Send text message (handles emojis)
                 telegramResponse = await bot.sendMessage(chatId, text);
@@ -305,6 +333,13 @@ io.on('connection', (socket) => {
             // Save admin's message to Firestore (use the original base64/text for local echo)
             // If media was sent, we save the Base64 in mediaPath for admin side to display.
             await saveMessage(chatId, 'admin', text, mediaPath, null, filename); 
+
+            // Send chat_read_status update since admin just replied (implies reading)
+            // Although /read API is better for click events, this ensures the count is reset on reply.
+            await db.collection(CHAT_COLLECTION).doc(String(chatId)).update({
+                unreadCount: 0
+            });
+            io.emit('chat_read_status', { chatId, unreadCount: 0 }); // Broadcast the reset
 
             if (callback) callback({ success: true });
 
