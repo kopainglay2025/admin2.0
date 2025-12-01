@@ -180,7 +180,13 @@
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Failed to send message:', errorData.message);
-                alert('Message send failed: ' + errorData.message);
+                // Use custom modal/message box instead of alert()
+                document.getElementById('app-container').insertAdjacentHTML('beforeend', `
+                    <div class="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-xl z-50 transition-opacity duration-300" id="error-message-box">
+                        Message send failed: ${errorData.message}
+                    </div>
+                `);
+                setTimeout(() => document.getElementById('error-message-box')?.remove(), 3000);
                 return;
             }
 
@@ -193,7 +199,13 @@
 
         } catch (error) {
             console.error('Network error sending message:', error);
-            alert('A network error occurred while sending the message.');
+            // Use custom modal/message box instead of alert()
+            document.getElementById('app-container').insertAdjacentHTML('beforeend', `
+                <div class="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-xl z-50 transition-opacity duration-300" id="error-message-box">
+                    A network error occurred while sending the message.
+                </div>
+            `);
+            setTimeout(() => document.getElementById('error-message-box')?.remove(), 3000);
         }
     }
 
@@ -452,30 +464,21 @@
         
         selectedChatId = chatId;
         
-        // Update header and input state immediately
-        document.getElementById('current-chat-header').textContent = 'Chatting with: ' + username;
-        document.getElementById('message-input').disabled = false;
-        document.getElementById('send-btn').disabled = false;
-
         // Unsubscribe from previous chat's messages
         if (messageListUnsubscribe) messageListUnsubscribe();
 
         // Attach new message listener
         setupMessageListener(chatId, renderMessages);
 
-        // Re-render the chat list to update the active highlight
-        // This is necessary because the chat list is inside the layout
-        const chatListContainer = document.getElementById('chat-list')?.parentNode;
-        if (chatListContainer) {
-            // Note: This partial re-render logic can be simplified if we just re-run renderApp, but keeping the current structure.
-            chatListContainer.innerHTML = renderChat(currentChats).split('<!-- Chat List Sidebar -->')[1].split('<!-- Chat Window -->')[0];
-        }
+        // Re-render the chat UI to update list/header/input state
+        renderApp();
     };
 
     let currentChats = [];
 
     // --- Main Renderer ---
     function renderApp() {
+        // RENDER LOGIN IF ON /login PATH OR IF SESSION COOKIE IS MISSING
         if (currentPath.startsWith('/login') || !document.cookie.includes('admin_session')) {
             renderLogin();
             return;
@@ -530,44 +533,24 @@
                 if (document.getElementById('total-chats-count')) {
                     // This is a rough estimation, a more robust way involves an aggregate query
                     document.getElementById('total-chats-count').textContent = currentChats.length.toString();
-                    document.getElementById('pending-messages-count').textContent = 'N/A (check chats)';
                 }
             }, 500); 
         }
 
         renderAdminLayout(content);
 
-        // Attach form listener only on /chat view initial load (if not handled inside setupChatListListener)
-        if (currentPath.startsWith('/chat') && !document.getElementById('message-form')?.hasAttribute('data-listener-attached')) {
+        // Attach form listener only on /chat view initial load
+        if (currentPath.startsWith('/chat')) {
              document.getElementById('message-form')?.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const text = document.getElementById('message-input').value;
                 sendMessage(selectedChatId, text);
             });
-            document.getElementById('message-form')?.setAttribute('data-listener-attached', 'true');
         }
     }
 
-    // Check for existing session on page load
-    fetch(currentPath)
-        .then(response => {
-            // If the server redirects to /login, handle it.
-            if (response.redirected && response.url.endsWith('/login')) {
-                // If it's already on /login, let renderApp handle it via path check.
-                if (!isLoginPage) {
-                    navigate('/login');
-                } else {
-                    renderApp();
-                }
-            } else {
-                // If session is active or on /login, proceed with rendering
-                renderApp();
-            }
-        })
-        .catch(() => {
-            // Fallback render (e.g., network error)
-            renderApp();
-        });
+    // --- FIX: Initial render on page load immediately, letting renderApp handle the path. ---
+    renderApp();
 
 </script>
 </body>
