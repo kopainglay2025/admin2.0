@@ -68,8 +68,8 @@
                 <i class="ph-messenger-logo text-xl mr-3"></i>
                 FB Page Messager
             </button>
-            <!-- NOTE: 'Chats' is the same view as Messenger for this demo, keeping the structure -->
-            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="chats">
+            <!-- FIX: The 'Chats' button now points to the functional 'messenger' view. -->
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="messenger">
                 <i class="ph-chats text-xl mr-3"></i>
                 Chats
             </button>
@@ -101,7 +101,7 @@
 
         <!-- Dynamic Content Views -->
         <div id="content-container" class="flex-grow overflow-y-auto p-4 md:p-6">
-            <!-- Messenger View (Default) -->
+            <!-- Messenger View (Default, contains the main Chat UI) -->
             <div id="view-messenger" class="h-full flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-6">
 
                 <!-- 1. Chat List (Left Panel) -->
@@ -165,12 +165,7 @@
                     <p class="mt-4 text-gray-600">Overview of FB Page performance and messaging metrics will be shown here.</p>
                 </div>
             </div>
-            <div id="view-chats" class="hidden">
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-bold">Chats (Combined)</h2>
-                    <p class="mt-4 text-gray-600">This section could combine messages from Messenger, Instagram, or other sources.</p>
-                </div>
-            </div>
+            <!-- NOTE: view-chats div removed as the 'Chats' menu button now links to view-messenger -->
             <div id="view-broadcast" class="hidden">
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h2 class="text-2xl font-bold">Broadcast Messages</h2>
@@ -292,7 +287,7 @@
                     contentHTML = `<img src="${mediaUrl}" alt="Media" class="max-w-xs md:max-w-sm rounded-lg shadow-md" onerror="this.onerror=null;this.src='https://placehold.co/200x150/f0f2f5/a8a8a8?text=Cannot+Load+Media'">`;
                 } else {
                     // Document/File display
-                    const icon = message.filename.endsWith('.pdf') ? 'ph-file-pdf' : 'ph-file-text';
+                    const icon = message.filename && message.filename.endsWith('.pdf') ? 'ph-file-pdf' : 'ph-file-text';
                     contentHTML = `
                         <a href="${mediaUrl}" target="_blank" class="flex items-center p-3 bg-white text-gray-800 rounded-lg border border-gray-300 hover:bg-gray-100 transition duration-150">
                             <i class="${icon} text-xl mr-2"></i>
