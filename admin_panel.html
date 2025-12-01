@@ -1,462 +1,954 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Chat Admin Panel</title>
-    <!-- Tailwind CSS CDN -->
+    <title> AdminPlan</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Inter for modern look -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Configuration for the futuristic dark theme */
         :root {
+            --primary-neon: #00e0ff; /* Electric Cyan */
+            --secondary-neon: #ff00ff; /* Fuchsia */
+            --dark-bg: #0d0c1d; /* Very deep indigo/slate */
+            --card-bg: #1a192b; /* Slightly lighter card background */
+        }
+
+        body { 
             font-family: 'Inter', sans-serif;
+            transition: background-color 0.5s, color 0.5s;
+            background-color: var(--dark-bg);
+            color: #E2E8F0; /* Light text */
         }
-        .chat-container {
-            display: flex;
-            height: calc(100vh - 4rem); /* Subtract header height */
+        
+        /* Sidebar: Base for the dark, futuristic look */
+        .sidebar {
+            background-color: #121021; /* Slightly darker than body for depth */
+            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .chat-history {
+
+        /* Nav Item Styling */
+        .nav-item {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-radius: 14px; /* Aggressive rounding */
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--primary-neon);
+            transform: scale(1.02);
+        }
+
+        /* Active Nav Item - Neon Glow Effect */
+        .active-nav {
+            background-color: var(--card-bg) !important;
+            color: var(--primary-neon) !important;
+            border: 1px solid var(--primary-neon);
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); /* Subtle glow */
+        }
+        .active-nav svg {
+            color: var(--primary-neon) !important;
+        }
+
+        /* Chat Item Styling */
+        .chat-item {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s;
+            border-radius: 12px;
+        }
+        
+        .chat-item:hover {
+            background-color: rgba(26, 25, 43, 0.8);
+            border-color: var(--primary-neon);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
+        }
+        
+        /* Active Chat Item - Secondary Neon Accent */
+        .chat-item.active {
+            background-color: #581c87; /* Deep Purple Accent */
+            color: white !important; 
+            border: 2px solid var(--secondary-neon);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+        }
+        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
+            color: white !important; 
+            opacity: 1;
+        }
+        .chat-item.active .avatar-placeholder {
+             background-color: var(--primary-neon) !important; 
+        }
+
+        /* Message History container */
+        .chat-messages {
+            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
+            max-height: calc(100vh - 230px); 
             overflow-y: auto;
-            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column-reverse; 
+            padding: 1rem;
         }
-        .user-message {
-            background-color: #e5e7eb; /* Gray-200 */
-            align-self: flex-start;
+
+        /* Custom Scrollbar - Neon look */
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb { 
+            background-color: var(--primary-neon); 
+            border-radius: 4px;
         }
-        .admin-message {
-            background-color: #2563eb; /* Blue-600 */
+        .chat-messages::-webkit-scrollbar-track {
+             background-color: var(--card-bg);
+        }
+        
+        /* Unread Badge - Sharp and secondary neon */
+        .badge-style {
+            background-color: var(--secondary-neon); 
+            color: var(--dark-bg); 
+            font-weight: 900; 
+            box-shadow: 0 0 8px var(--secondary-neon);
+        }
+
+        /* Message Bubbles */
+        .admin-bubble {
+            background-color: #312e81; /* Indigo-700 */
             color: white;
-            align-self: flex-end;
+            border-bottom-right-radius: 8px !important;
         }
+        .user-bubble {
+            background-color: #374151; /* Slate-700 */
+            color: #F9FAFB; 
+            border-bottom-left-radius: 8px !important;
+        }
+        
+        /* Card Styles for Dashboard */
+        .stat-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+        .stat-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
+        }
+
+        /* Input/Textarea Focus Glow */
+        input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
+            border-color: var(--primary-neon) !important;
+        }
+
+        /* Send Button Glow */
+        #sendButton {
+            background-color: var(--primary-neon);
+            color: var(--dark-bg);
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
+            transition: all 0.2s;
+        }
+        #sendButton:hover {
+             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
+             background-color: #00ffff;
+        }
+
     </style>
 </head>
-<body class="bg-gray-50">
+<!-- Main container uses the very dark background -->
+<body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
 
-    <!-- Header -->
-    <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
-        <h1 class="text-2xl font-bold text-gray-800">Telegram Live Chat Relay</h1>
-        <div id="connection-status" class="flex items-center space-x-2 text-sm">
-            <span class="w-3 h-3 rounded-full bg-red-500" id="status-indicator"></span>
-            <span class="text-gray-600" id="status-text">Connecting...</span>
-        </div>
-    </header>
-
-    <main class="chat-container">
-        <!-- Chat List (Left Column) -->
-        <div id="chat-list" class="w-full md:w-1/3 border-r bg-white overflow-y-auto">
-            <div id="list-loading" class="p-4 text-center text-gray-500 hidden">
-                Loading chats...
-            </div>
-            <div id="list-empty" class="p-4 text-center text-gray-500 hidden">
-                No active chats found.
-            </div>
+    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
+    <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
+        <!-- Logo/Title: Neon Emphasis -->
+        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
+            <svg class="w-8 h-8 mr-3 text-[var(--secondary-neon)]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
+            <span class="tracking-widest">Admin Plan</span>
         </div>
 
-        <!-- Chat Window (Right Column) -->
-        <div id="chat-window-container" class="w-full md:w-2/3 flex flex-col hidden bg-gray-100">
-            <!-- Selected Chat Header -->
-            <div class="p-4 border-b bg-white shadow-sm">
-                <h2 class="text-xl font-semibold text-gray-800" id="current-chat-title">Select a Chat</h2>
-                <p class="text-sm text-gray-500" id="current-chat-id"></p>
-            </div>
-
-            <!-- Chat History Area -->
-            <div id="chat-history" class="chat-history flex-grow p-4 space-y-3">
-                <!-- Messages will be injected here -->
-            </div>
-
-            <!-- Message Input Area -->
-            <div class="p-4 bg-white border-t sticky bottom-0">
-                <div id="file-preview-area" class="mb-2 hidden p-2 border border-gray-300 rounded-lg bg-gray-50 flex justify-between items-center">
-                    <span id="file-name-display" class="text-sm text-gray-700 truncate"></span>
-                    <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-700 ml-4 font-semibold text-sm">Remove</button>
+        <!-- Navigation Menu with Neon Indicators -->
+        <nav id="mainNav" class="p-4 space-y-2 flex-grow">
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            
+            <!-- CHATS ITEM WITH UNREAD BADGE -->
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 justify-between" data-section="chat">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <span class="font-medium">Chats</span>
                 </div>
-                <div class="flex items-end space-x-2">
-                    <textarea id="message-input" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-none" rows="1" placeholder="Type your reply..."></textarea>
+                <!-- Total Unread Count Badge -->
+                <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
+            </a>
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="broadcast">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+                <span class="font-medium">Broadcast</span>
+            </a>
+            
+            <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 hover:text-[var(--primary-neon)]" data-section="settings">
+                <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="font-medium">Settings</span>
+            </a>
+        </nav>
+        
+        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
+        <div class="p-6 border-t border-gray-700/30">
+             <button id="darkModeToggle" onclick="toggleDarkMode()" 
+                    class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
+                <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Default to Sun icon as the theme is fixed dark -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
+    <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
+        <!-- Chat List Header -->
+        <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
+            Conversations Log
+        </div>
+
+        <!-- Chat List Search Input -->
+        <div class="p-4 border-b border-gray-700/30">
+            <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
+                   onkeyup="filterChatList(this.value)"
+                   class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+        </div>
+
+        <!-- Chat List Container -->
+        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
+            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
+        </div>
+    </div>
+
+    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
+    <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
+        
+        <!-- === SECTION: Dashboard === -->
+        <div id="section-dashboard" class="main-section flex-grow p-8">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">
+                🚀 Dashboard | Nexus View
+            </h1>
+            <p class="text-gray-400 mb-10 border-b border-gray-700/50 pb-4">
+                Real-time metrics and system status reports.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 (Neon Blue Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-blue-900 to-indigo-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">1,245</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Total Users Registered</div>
+                </div>
+                <!-- Card 2 (Neon Green Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-green-900 to-teal-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">25</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Active Sessions</div>
+                </div>
+                <!-- Card 3 (Neon Magenta/Red Gradient) -->
+                <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
+                    <div class="text-6xl font-black">156</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
+                </div>
+            </div>
+            
+            <div class="mt-12 bg-[var(--card-bg)] p-8 rounded-2xl shadow-2xl transition-colors duration-300 border border-gray-700/50">
+                <h3 class="text-2xl font-bold mb-4 text-[var(--secondary-neon)]">System Load Visualization</h3>
+                <p class="text-gray-500">Resource utilization over the last 24 hours.</p>
+                <div class="h-64 bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-700 border border-gray-700/50">
+                    [Holographic Data Display Placeholder]
+                </div>
+            </div>
+        </div>
+
+        <!-- === SECTION: Chat (Existing Chat Logic) === -->
+        <div id="section-chat" class="main-section flex-grow flex-col hidden">
+            <!-- Chat Header - Sleek, borderless look -->
+            <header id="chatHeader" class="p-4 border-b border-gray-700/30 bg-[var(--card-bg)] flex items-center justify-between z-10 transition-colors duration-400 h-20 shadow-md">
+                <span class="text-xl font-semibold text-gray-300">Select a Chat</span>
+            </header>
+            
+            <!-- Chat History Search Input -->
+            <div id="chatHistorySearchArea" class="p-3 bg-[var(--card-bg)] border-b border-gray-700/30 hidden">
+                <input type="text" id="chatHistorySearch" placeholder="Search Messages in History..."
+                       onkeyup="filterChatHistory(this.value)"
+                       class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
+            </div>
+
+            <!-- Message History -->
+            <div id="messageHistory" class="flex-grow chat-messages bg-[var(--dark-bg)] transition-colors duration-400">
+                <div class="text-center text-gray-600">No chat selected yet. Initiate connection.</div>
+            </div>
+
+            <!-- Message Input - Floating effect -->
+            <div id="chatInputArea" class="p-4 bg-[var(--card-bg)] transition-colors duration-400 shadow-2xl hidden min-h-[100px] border-t border-gray-700/50">
+                
+                <!-- File/Image Preview Area -->
+                <div id="filePreview" class="hidden border border-gray-700/50 bg-gray-900/50 rounded-xl p-3 mb-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span id="fileIcon" class="text-2xl text-[var(--primary-neon)]"></span>
+                            <span id="fileName" class="text-sm font-medium text-gray-200 truncate max-w-xs"></span>
+                            <span id="fileSize" class="text-xs text-gray-500"></span>
+                        </div>
+                        <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="fileInput" class="hidden" 
+                           onchange="handleFileSelect(event)" 
+                           accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                           
+                    <!-- Attach Button -->
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="text-gray-400 hover:text-[var(--secondary-neon)] p-4 rounded-xl transition duration-200 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                    </button>
                     
-                    <label for="file-upload" class="p-3 bg-gray-200 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300 transition duration-150 shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13.5" />
-                        </svg>
-                    </label>
-                    <input type="file" id="file-upload" class="hidden" onchange="handleFileSelect(event)">
-                    
-                    <button id="send-button" onclick="sendMessage()" class="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow-md flex items-center justify-center disabled:opacity-50" disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-45 -mt-1 -mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
+                    <!-- Input field with neon focus style -->
+                    <input type="text" id="replyText" placeholder="Transmit data packet... (Text, Media, File)"
+                           class="flex-grow border border-gray-700 bg-gray-900 rounded-xl p-4 text-base text-gray-100 transition duration-200"
+                           onkeypress="if(event.key === 'Enter') sendReply()">
+                           
+                    <!-- Send button with vibrant glow -->
+                    <button id="sendButton" onclick="sendReply()"
+                            class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05]">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Initial Placeholder Message -->
-        <div id="chat-placeholder" class="w-full md:w-2/3 flex items-center justify-center p-8 text-gray-500 text-center">
-            <p>Select a user from the left panel to view and start chatting.</p>
+        <!-- === SECTION: Broadcast === -->
+        <div id="section-broadcast" class="main-section flex-grow p-8 hidden">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">📣 Global Broadcast Matrix</h1>
+            <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                <p class="mb-6 text-gray-400">
+                    Send high-priority messages to target user segments.
+                </p>
+                <textarea class="w-full p-4 border rounded-xl bg-gray-900 border-gray-700 text-gray-100 focus:ring-[var(--secondary-neon)] focus:border-[var(--secondary-neon)] transition duration-150 text-base" rows="8" placeholder="Enter broadcast message here..."></textarea>
+                <button class="mt-4 bg-[var(--secondary-neon)] text-white p-4 rounded-xl font-bold hover:bg-fuchsia-400 transition duration-200 shadow-xl transform hover:scale-[1.02] shadow-[0_0_10px_rgba(255,0,255,0.6)]">
+                    <span class="flex items-center space-x-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
+                        <span>Initiate Broadcast</span>
+                    </span>
+                </button>
+            </div>
         </div>
-    </main>
 
+        <!-- === SECTION: Settings === -->
+        <div id="section-settings" class="main-section flex-grow p-8 hidden">
+            <h1 class="text-4xl font-extrabold mb-8 text-[var(--primary-neon)] tracking-wide">⚙️ System Configuration</h1>
+            <div class="space-y-8">
+                <!-- Setting Card 1 -->
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">API Key Management</h3>
+                    <p class="text-sm text-gray-500 mb-4">Secure access protocol credentials.</p>
+                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-900 text-gray-100 border-gray-700 transition-colors duration-300 text-base">
+                </div>
+                <!-- Setting Card 2 -->
+                <div class="bg-[var(--card-bg)] p-8 rounded-2xl shadow-xl border border-gray-700/50 transition-colors duration-300">
+                    <h3 class="text-2xl font-semibold mb-3 text-gray-200">Bot Status Control</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-lg">Toggle Core Telegram Gateway.</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer" checked>
+                            <!-- Toggle switch with vibrant colors -->
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--primary-neon)]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--primary-neon)] shadow-lg peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)]"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- Global State ---
-        const socket = io();
+        // --- Client-side State Management ---
+        const apiKey = ""; 
+        const BASE_URL = ''; 
+        let socket;
+        
         let currentChatId = null;
-        let selectedFile = null;
+        let unreadCounts = {}; 
+        let allChats = []; 
+        const htmlElement = document.documentElement;
 
-        // --- DOM Elements ---
-        const chatListEl = document.getElementById('chat-list');
-        const chatHistoryEl = document.getElementById('chat-history');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const chatWindowContainer = document.getElementById('chat-window-container');
-        const chatPlaceholder = document.getElementById('chat-placeholder');
-        const statusIndicator = document.getElementById('status-indicator');
-        const statusText = document.getElementById('status-text');
-        const filePreviewArea = document.getElementById('file-preview-area');
-        const fileNameDisplay = document.getElementById('file-name-display');
+        // --- File State Variables ---
+        let selectedFile = null;
+        let mediaPath = null;
+        let mediaType = null;
+        let filename = null;
 
         // --- Utility Functions ---
 
-        /** Formats Firestore/Date timestamps into readable strings */
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            if (isNaN(date)) return '---';
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
-                   ' ' + 
-                   date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.includes('pdf')) return '📄';
+            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+            return '📎';
         }
 
-        /** Enables/Disables the send button based on input state */
-        function updateSendButtonState() {
-            const hasText = messageInput.value.trim().length > 0;
-            const hasFile = selectedFile !== null;
-            sendButton.disabled = !(hasText || hasFile || currentChatId === null);
+
+        // --- Dark Mode Functions (The theme is fixed dark now, this button can toggle a subtle effect or future mode) ---
+        function toggleDarkMode() {
+            // Since the theme is fixed dark, this can trigger a special effect or log a message.
+            console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
+            // Replaced alert() with a console log as per instructions
+            console.log("Theme is locked to Quantum Dark Mode.");
         }
 
-        // --- Message Rendering ---
+        function updateThemeIcon() {
+            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
+        }
 
-        /** Renders a single message bubble into the chat history */
-        function renderMessage(msg) {
-            const isUser = msg.sender === 'user';
-            const alignmentClass = isUser ? 'items-start' : 'items-end';
-            const messageClasses = isUser ? 'user-message' : 'admin-message';
+        function loadDarkModePreference() {
+            htmlElement.classList.add('dark'); // Force dark mode
+            updateThemeIcon();
+        }
+
+        // --- Unread Count Logic (NEW) ---
+        function updateTotalUnreadBadge() {
+            const badge = document.getElementById('totalUnreadBadge');
+            let totalCount = 0;
             
-            const messageWrapper = document.createElement('div');
-            messageWrapper.className = `flex flex-col w-full ${alignmentClass}`;
-
-            const contentBlock = document.createElement('div');
-            contentBlock.className = `max-w-xl p-3 rounded-xl shadow-md break-words ${messageClasses}`;
-
-            // Handle Media Content
-            if (msg.mediaPath) {
-                const mediaType = msg.mediaPath.startsWith('data:') ? (msg.mediaPath.includes('image') ? 'image' : 'file') : 'telegram-file';
-                
-                if (mediaType === 'image' || (mediaType === 'telegram-file' && msg.filename && msg.filename.match(/\.(jpeg|jpg|png|gif)$/i))) {
-                    // Display image (either base64 for admin echo, or fetching via API for user messages)
-                    const mediaEl = document.createElement('img');
-                    mediaEl.className = 'max-w-full h-auto rounded-lg mb-2 cursor-pointer';
-                    mediaEl.style.maxHeight = '300px';
-                    mediaEl.src = mediaType === 'image' 
-                        ? msg.mediaPath 
-                        : `/api/get-media?file_id=${msg.mediaPath}`;
-                    mediaEl.onerror = () => mediaEl.src = 'https://placehold.co/300x200/cccccc/333333?text=Image+Load+Error';
-                    contentBlock.appendChild(mediaEl);
-
-                } else if (mediaType === 'file' || mediaType === 'telegram-file') {
-                    // Display document/file link
-                    const filename = msg.filename || (mediaType === 'file' ? 'Admin File' : 'User Document');
-                    const fileLink = document.createElement('a');
-                    fileLink.className = 'text-sm font-medium underline';
-                    fileLink.textContent = `⬇️ Download: ${filename}`;
-                    fileLink.target = '_blank';
-                    
-                    if (mediaType === 'telegram-file') {
-                         fileLink.href = `/api/get-media?file_id=${msg.mediaPath}`;
-                    } else {
-                        // For admin echo, base64 is saved, but we can't download it easily via link.
-                        // For simplicity, we just display the filename or a link placeholder.
-                        fileLink.removeAttribute('href');
-                        fileLink.style.pointerEvents = 'none'; // Make it non-clickable
-                    }
-                    contentBlock.appendChild(fileLink);
+            // Calculate total count from the unreadCounts map
+            for (const chatId in unreadCounts) {
+                totalCount += unreadCounts[chatId];
+            }
+            
+            if (badge) {
+                if (totalCount > 0) {
+                    badge.textContent = totalCount > 99 ? '99+' : totalCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.textContent = '';
+                    badge.classList.add('hidden');
                 }
             }
-            
-            // Handle Text Content (including captions)
-            if (msg.text) {
-                const textEl = document.createElement('p');
-                textEl.className = 'text-sm';
-                textEl.textContent = msg.text;
-                contentBlock.appendChild(textEl);
+        }
+        // --- End New Unread Count Logic ---
+
+
+        // --- Navigation Functions ---
+        function showSection(sectionId) {
+            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
+
+            const targetSection = document.getElementById(`section-${sectionId}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                if (sectionId === 'chat') {
+                     targetSection.classList.add('flex-col');
+                     document.getElementById('chatHistorySearchArea').classList.add('hidden'); 
+                } else {
+                     targetSection.classList.remove('flex-col');
+                }
             }
 
-            // Timestamp
-            const timestampEl = document.createElement('span');
-            timestampEl.className = `text-xs ${isUser ? 'text-gray-600 mr-2' : 'text-blue-200 ml-2'} mt-1`;
-            timestampEl.textContent = formatTimestamp(msg.timestamp);
-            contentBlock.appendChild(timestampEl);
+            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active-nav');
+            }
 
-            messageWrapper.appendChild(contentBlock);
-            chatHistoryEl.appendChild(messageWrapper);
-            
-            // Scroll to bottom after adding new message
-            chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+            const chatListPanel = document.getElementById('chatListPanel');
+            if (sectionId === 'chat') {
+                chatListPanel.classList.remove('hidden');
+                if (allChats.length === 0) {
+                    fetchChats();
+                } else {
+                    filterChatList(document.getElementById('chatListSearch').value);
+                }
+            } else {
+                chatListPanel.classList.add('hidden');
+                currentChatId = null; 
+                document.getElementById('chatHistorySearch').value = ''; 
+                clearFileSelection(); 
+            }
         }
 
-        /** Renders a single chat item in the list */
-        function renderChatItem(chat) {
-            const item = document.createElement('div');
-            item.id = `chat-item-${chat.telegramId}`;
-            item.className = 'p-4 border-b cursor-pointer hover:bg-gray-50 transition duration-150';
-            item.setAttribute('data-chat-id', chat.telegramId);
-            item.onclick = () => selectChat(chat.telegramId, chat.username);
 
-            item.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <span class="font-semibold text-gray-800">${chat.username || 'User ' + chat.telegramId}</span>
-                    <span class="text-xs text-gray-400" data-timestamp="${chat.telegramId}">${formatTimestamp(chat.lastMessageTime)}</span>
+        // --- Chat Specific Functions ---
+
+        function createChatListItem(chat) {
+            const chatId = chat.telegramId;
+            const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
+            const username = chat.username || 'Unknown Entity';
+            // Use unreadCounts state for real-time updates after fetching
+            const count = unreadCounts[chatId] || 0; 
+
+            const chatElement = document.createElement('div');
+            chatElement.id = `chat-${chatId}`;
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
+            chatElement.setAttribute('data-chat-id', chatId);
+            chatElement.setAttribute('data-username', username.toLowerCase());
+
+            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
+
+            // Avatar SVG Placeholder - Futuristic style
+            const avatar = `
+                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700/50 text-[var(--primary-neon)] border border-[var(--primary-neon)]/50">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
-                <p class="text-sm text-gray-500 truncate mt-1" data-last-message="${chat.telegramId}">
-                    ${chat.lastMessageText || 'Start chat...'}
-                </p>
             `;
-            chatListEl.appendChild(item);
-            return item;
+
+            chatElement.innerHTML = `
+                ${avatar}
+                <div class="flex-grow min-w-0">
+                    <p class="font-bold truncate text-base">${username}</p>
+                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
+                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
+                </div>
+                ${unreadBadge}
+            `;
+
+            chatElement.addEventListener('click', () => {
+                selectChat(chatId, username);
+            });
+
+            // Ensure active chat style is applied on creation if needed (e.g. on filter)
+            if (currentChatId === chatId) {
+                 chatElement.classList.add('active');
+            }
+
+
+            return chatElement;
         }
 
-        // --- Core Application Logic ---
+        function filterChatList(query) {
+            const chatListElement = document.getElementById('chatList');
+            const lowerCaseQuery = query.toLowerCase().trim();
+            
+            chatListElement.innerHTML = ''; 
 
-        /** Fetches and displays the list of active chats */
-        async function fetchChats() {
-            document.getElementById('list-loading').classList.remove('hidden');
-            try {
-                const response = await fetch('/api/chats');
-                if (!response.ok) throw new Error('Failed to fetch chat list');
-                const chats = await response.json();
+            const filteredChats = allChats.filter(chat => {
+                const username = (chat.username || '').toLowerCase();
+                const chatId = String(chat.telegramId);
+                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+            });
+            
+            if (filteredChats.length > 0) {
+                filteredChats.forEach(chat => {
+                    chatListElement.appendChild(createChatListItem(chat));
+                });
+            } else {
+                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
+            }
+        }
+
+        /**
+         * Renders a single message bubble.
+         */
+        function createMessageBubble(msg) {
+            const isUser = msg.sender === 'user';
+            const alignment = isUser ? 'justify-start' : 'justify-end';
+            const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `message-bubble flex ${alignment} mb-3`;
+            
+            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            let mediaContent = '';
+            
+            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
+            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
+            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
+
+            if (isUserMedia) {
+                // User sent media (image/file from Telegram, displayed via API)
+                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
+                mediaContent = `
+                    <img src="${imageUrl}" 
+                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
+                         onclick="window.open('${imageUrl}', '_blank')" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
+                         alt="Chat Media"/>
+                `;
+            } else if (isAdminMedia) {
+                 // Admin sent media (Base64 data URL, directly displayed)
+                 if (msg.mediaPath.startsWith('data:image/')) {
+                     // Image display
+                     mediaContent = `
+                        <img src="${msg.mediaPath}" 
+                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
+                            onclick="window.open('${msg.mediaPath}', '_blank')" 
+                            alt="Admin Image"/>
+                     `;
+                 } else {
+                    // Document/File display (using icon and name)
+                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
+                    mediaContent = `
+                        <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
+                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
+                            <span class="text-sm font-medium text-white">${msg.filename || 'Admin File'}</span>
+                        </div>
+                    `;
+                 }
+            }
+
+            messageElement.innerHTML = `
+                <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
+                    ${mediaContent}
+                    <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
+                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-400' : 'text-indigo-200'} text-right">
+                        ${timeString}
+                    </span>
+                </div>
+            `;
+            return messageElement;
+        }
+        
+        function filterChatHistory(query) {
+            const lowerCaseQuery = query.toLowerCase().trim();
+            const messages = document.querySelectorAll('#messageHistory .message-bubble');
+            let foundCount = 0;
+
+            messages.forEach(messageDiv => {
+                const messageContentEl = messageDiv.querySelector('.message-content');
+                if (!messageContentEl) return;
                 
-                chatListEl.innerHTML = ''; // Clear existing list
+                const messageText = messageContentEl.getAttribute('data-text');
+                
+                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
+                    messageDiv.classList.remove('hidden');
+                    foundCount++;
+                } else {
+                    messageDiv.classList.add('hidden');
+                }
+            });
+            
+            const noResultMessage = document.getElementById('noHistoryResults');
+            if (noResultMessage) noResultMessage.remove();
+
+            if (lowerCaseQuery !== '' && foundCount === 0) {
+                 const feedback = document.createElement('div');
+                 feedback.id = 'noHistoryResults';
+                 feedback.className = 'text-center text-[var(--secondary-neon)] font-medium my-4';
+                 feedback.textContent = `No data packets found for query: "${query}"`;
+                 document.getElementById('messageHistory').appendChild(feedback);
+            }
+        }
+
+
+        async function fetchChats() {
+            const chatListElement = document.getElementById('chatList');
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
+            unreadCounts = {}; 
+            allChats = []; 
+            updateTotalUnreadBadge(); // Reset badge immediately
+
+            try {
+                // Simplified mock fetching (replace with actual API call)
+                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
+                if (!response.ok) throw new Error('Authentication failure or offline');
+                const chats = await response.json();
+
+                allChats = chats; 
+                chatListElement.innerHTML = '';
                 
                 if (chats.length === 0) {
-                    document.getElementById('list-empty').classList.remove('hidden');
-                } else {
-                    chats.forEach(renderChatItem);
+                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                    updateTotalUnreadBadge();
+                    return;
                 }
-
-            } catch (error) {
-                console.error('Error loading chats:', error);
-                chatListEl.innerHTML = `<div class="p-4 text-red-500">Error: ${error.message}. Check Server Console.</div>`;
-            } finally {
-                document.getElementById('list-loading').classList.add('hidden');
-            }
-        }
-
-        /** Selects a chat, updates the UI, and loads history */
-        async function selectChat(chatId, username) {
-            if (currentChatId === chatId) return;
-
-            // Update state
-            currentChatId = chatId;
-            selectedFile = null;
-            clearFileSelection();
-            messageInput.value = '';
-            updateSendButtonState();
-
-            // UI changes
-            chatHistoryEl.innerHTML = '<div class="text-center text-gray-400">Loading chat history...</div>';
-            chatWindowContainer.classList.remove('hidden');
-            chatPlaceholder.classList.add('hidden');
-            document.getElementById('current-chat-title').textContent = username || `User ${chatId}`;
-            document.getElementById('current-chat-id').textContent = `ID: ${chatId}`;
-
-            // Highlight selected item
-            document.querySelectorAll('#chat-list > div').forEach(el => {
-                el.classList.remove('bg-blue-100', 'border-l-4', 'border-blue-500');
-            });
-            const selectedEl = document.getElementById(`chat-item-${chatId}`);
-            if (selectedEl) {
-                selectedEl.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500');
-            }
-
-            // Load History
-            try {
-                const response = await fetch(`/api/chats/${chatId}/history?limit=50`);
-                if (!response.ok) throw new Error('Failed to load chat history');
-                const history = await response.json();
                 
-                chatHistoryEl.innerHTML = ''; // Clear loading message
-                history.forEach(renderMessage);
-                chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight; // Scroll to bottom
-                
-            } catch (error) {
-                console.error(`Error loading history for ${chatId}:`, error);
-                chatHistoryEl.innerHTML = `<div class="text-center text-red-500">Failed to load history.</div>`;
-            }
-        }
-
-        /** Sends the message (text and/or media) via Socket.io */
-        async function sendMessage() {
-            const text = messageInput.value.trim();
-            const chatId = currentChatId;
-
-            if (!chatId || (!text && !selectedFile)) {
-                return;
-            }
-
-            // Disable button and input during sending
-            sendButton.disabled = true;
-            messageInput.disabled = true;
-
-            const dataToSend = {
-                chatId: chatId,
-                text: text,
-                mediaPath: selectedFile ? selectedFile.base64 : null,
-                mediaType: selectedFile ? selectedFile.type : null,
-                filename: selectedFile ? selectedFile.name : null,
-            };
-
-            try {
-                // Emit the reply over Socket.io
-                socket.emit('admin_reply', dataToSend, (response) => {
-                    if (response.success) {
-                        // Success: Clear input fields, update UI immediately
-                        messageInput.value = '';
-                        clearFileSelection();
-                        
-                        // Local echo (The server handles saving to Firestore, but we echo instantly)
-                        const now = new Date().toISOString();
-                        renderMessage({
-                            sender: 'admin',
-                            text: dataToSend.text,
-                            mediaPath: dataToSend.mediaPath, // Base64 for local echo
-                            filename: dataToSend.filename,
-                            timestamp: now
-                        });
-
-                        // Also update the chat list item's last message text and time
-                        const chatItem = document.querySelector(`#chat-item-${chatId} [data-last-message="${chatId}"]`);
-                        const timestampEl = document.querySelector(`#chat-item-${chatId} [data-timestamp="${chatId}"]`);
-                        if (chatItem) chatItem.textContent = dataToSend.text || (dataToSend.filename ? `Sent: ${dataToSend.filename}` : 'Sent Media');
-                        if (timestampEl) timestampEl.textContent = formatTimestamp(now);
-
-                    } else {
-                        console.error('Admin reply failed:', response.error);
-                        alert(`Failed to send message: ${response.error}`);
-                    }
-                    // Re-enable input fields regardless of success
-                    messageInput.disabled = false;
-                    updateSendButtonState();
+                chats.forEach(chat => {
+                    // Initialize unreadCounts with the count from the server if available
+                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
+                    chatListElement.appendChild(createChatListItem(chat));
                 });
+
+                updateTotalUnreadBadge();
+
             } catch (error) {
-                console.error('Socket emission error:', error);
-                alert('A critical error occurred while sending the message.');
-                messageInput.disabled = false;
-                updateSendButtonState();
+                console.error("Error fetching chat list:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
+                updateTotalUnreadBadge();
             }
         }
 
-        // --- File Handling ---
+        async function selectChat(chatId, username) {
+            currentChatId = chatId;
+            
+            document.getElementById('chatHeader').innerHTML = `
+                <div class="flex flex-col">
+                    <span class="text-xl font-semibold text-gray-300">${username}</span>
+                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
+                </div>
+            `;
+            document.getElementById('chatInputArea').classList.remove('hidden');
+            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
+            document.getElementById('chatHistorySearch').value = ''; 
+            
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+            const activeChatElement = document.getElementById(`chat-${chatId}`);
+            if (activeChatElement) {
+                activeChatElement.classList.add('active');
+                
+                // Clear unread count for the selected chat
+                if (unreadCounts[chatId] > 0) {
+                    unreadCounts[chatId] = 0;
+                    const badge = activeChatElement.querySelector('.badge-style');
+                    if (badge) badge.remove();
+                    updateTotalUnreadBadge(); // Update sidebar badge after clearing
+                }
+            }
+            
+            clearFileSelection(); 
 
-        /** Handles file selection from the input field */
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
+                if (!response.ok) throw new Error('Failed to load history');
+                const history = await response.json();
+
+                historyContainer.innerHTML = '';
+                history.forEach(msg => {
+                    historyContainer.prepend(createMessageBubble(msg));
+                });
+                
+                historyContainer.scrollTop = 0; 
+
+            } catch (error) {
+                console.error(`Error fetching chat history for ${chatId}:`, error);
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+            }
+        }
+        
+        /**
+         * Clears all file-related state and UI elements.
+         */
+        function clearFileSelection() {
+            selectedFile = null;
+            mediaPath = null;
+            mediaType = null;
+            filename = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+        }
+
+        /**
+         * Handles file selection, converts to Base64, and updates the preview.
+         */
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                alert("File size exceeds 5MB limit.");
-                event.target.value = '';
-                return;
+            // Max file size 5MB
+            if (file.size > 5 * 1024 * 1024) {
+                 // Replaced alert() with console log
+                 console.log("File size exceeds 5MB transmission limit.");
+                 event.target.value = ''; 
+                 return;
             }
 
             const reader = new FileReader();
-            reader.onloadend = () => {
-                const mimeType = file.type.startsWith('image/') ? 'photo' : 'document';
+            reader.onload = (e) => {
+                mediaPath = e.target.result; // Base64 Data URL
+                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
+                filename = file.name;
                 
-                selectedFile = {
-                    name: file.name,
-                    base64: reader.result, // Contains the data URL
-                    type: mimeType
-                };
+                // Update Preview UI
+                document.getElementById('fileName').textContent = filename;
+                document.getElementById('fileSize').textContent = formatBytes(file.size);
+                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
+                document.getElementById('filePreview').classList.remove('hidden');
                 
-                fileNameDisplay.textContent = `${selectedFile.type.toUpperCase()}: ${selectedFile.name}`;
-                filePreviewArea.classList.remove('hidden');
-                updateSendButtonState();
+                if (mediaType === 'photo') {
+                    // Optional: Show actual image preview
+                }
+            };
+            reader.onerror = (e) => {
+                console.error("File reading error:", e);
+                clearFileSelection();
             };
             reader.readAsDataURL(file);
         }
 
-        /** Clears the selected file */
-        function clearFileSelection() {
-            selectedFile = null;
-            document.getElementById('file-upload').value = '';
-            filePreviewArea.classList.add('hidden');
-            fileNameDisplay.textContent = '';
-            updateSendButtonState();
+
+        /**
+         * Sends admin reply to the server via Socket.io.
+         */
+        function sendReply() {
+            if (!currentChatId || !socket) return;
+
+            const replyInput = document.getElementById('replyText');
+            const text = replyInput.value.trim();
+
+            if (!text && !mediaPath) {
+                console.warn("Transmission aborted: Empty data packet.");
+                return;
+            }
+
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
+
+            const data = {
+                chatId: currentChatId,
+                text: text,
+                mediaPath: mediaPath, 
+                mediaType: mediaType, 
+                filename: filename 
+            };
+
+            socket.emit('admin_reply', data, (response) => {
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+                
+                if (response.success) {
+                    // Local Echo
+                    const tempMsg = {
+                        chatId: currentChatId,
+                        sender: 'admin',
+                        text: text,
+                        mediaPath: mediaPath, 
+                        filename: filename,
+                        timestamp: new Date().toISOString()
+                    };
+                    const historyContainer = document.getElementById('messageHistory');
+                    historyContainer.prepend(createMessageBubble(tempMsg));
+                    historyContainer.scrollTop = 0;
+                    
+                    // Clear state after successful send
+                    replyInput.value = '';
+                    clearFileSelection();
+
+                } else {
+                    console.error("Failed to transmit data packet:", response.error);
+                }
+            });
         }
 
-        // --- Socket.io Handlers ---
 
-        socket.on('connect', () => {
-            statusIndicator.classList.remove('bg-red-500', 'bg-yellow-500');
-            statusIndicator.classList.add('bg-green-500');
-            statusText.textContent = 'Connected';
-            fetchChats(); // Refresh chat list on connect
-        });
+        // ------------------------------------------------------------------
+        // CORE FIX: Handling Real-time Updates (Socket.io)
+        // ------------------------------------------------------------------
 
-        socket.on('disconnect', () => {
-            statusIndicator.classList.remove('bg-green-500', 'bg-yellow-500');
-            statusIndicator.classList.add('bg-red-500');
-            statusText.textContent = 'Disconnected';
-        });
-
-        socket.on('new_message', (data) => {
-            const { chatId, message, user } = data;
-            console.log('Received new message:', message);
-
-            // 1. Update/Add chat item in the list
-            let chatItem = document.getElementById(`chat-item-${chatId}`);
-            if (!chatItem) {
-                // If it's a new chat, refresh the whole list to maintain sorting
-                fetchChats(); 
-            } else {
-                // Update existing item's text and time
-                const lastMessageEl = document.querySelector(`#chat-item-${chatId} [data-last-message="${chatId}"]`);
-                const timestampEl = document.querySelector(`#chat-item-${chatId} [data-timestamp="${chatId}"]`);
-                if (lastMessageEl) lastMessageEl.textContent = message.text || (message.filename || 'Media Received');
-                if (timestampEl) timestampEl.textContent = formatTimestamp(message.timestamp);
-
-                // Re-order the item to the top (simple DOM manipulation)
-                chatListEl.prepend(chatItem);
+        function setupSocketListeners() {
+            if (typeof io !== 'function') {
+                console.error("Socket.io library not found.");
+                return;
             }
-
-            // 2. Render message if this chat is currently open
-            if (currentChatId === chatId) {
-                renderMessage(message);
-            }
-        });
-
-
-        // --- Event Listeners and Initialization ---
-        
-        // Auto-resize textarea and enable send button check
-        messageInput.addEventListener('input', () => {
-            messageInput.style.height = 'auto'; // Reset height
-            messageInput.style.height = messageInput.scrollHeight + 'px'; // Set to fit content
-            updateSendButtonState();
-        });
-
-        // Send message on Enter key press (Shift+Enter for new line)
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!sendButton.disabled) {
-                    sendMessage();
+            socket = io();
+            
+            socket.on('new_message', (data) => {
+                const chatId = String(data.chatId);
+                const user = data.user;
+                const message = data.message;
+                
+                const chatList = document.getElementById('chatList');
+                
+                // 1. Find and REMOVE the old entry to prevent duplicates
+                const existingChatElement = document.getElementById(`chat-${chatId}`);
+                if (existingChatElement) {
+                    existingChatElement.remove();
                 }
-            }
-        });
 
-        // Initial load
-        document.addEventListener('DOMContentLoaded', fetchChats);
+                // 2. Update allChats data array for search functionality
+                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
+                if (chatIndex !== -1) {
+                    allChats.splice(chatIndex, 1);
+                }
+                user.lastMessageText = message.text;
+                user.lastMessageTime = message.timestamp;
+                allChats.unshift(user);
+
+                // 3. Update Unread Count state
+                if (currentChatId !== chatId) {
+                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                } else {
+                    unreadCounts[chatId] = 0;
+                }
+                
+                updateTotalUnreadBadge(); // Update main badge
+
+                // 4. Update the chat list display
+                if (document.getElementById('chatListSearch').value.trim() === '') {
+                    user.unreadCount = unreadCounts[chatId]; 
+                    const newChatElement = createChatListItem(user);
+                    chatList.prepend(newChatElement);
+
+                    // 5. If it's the current chat, display the new message immediately
+                    if (currentChatId === chatId) {
+                        const historyContainer = document.getElementById('messageHistory');
+                        historyContainer.prepend(createMessageBubble(message));
+                        historyContainer.scrollTop = 0; 
+                        newChatElement.classList.add('active'); 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                    } else {
+                        // Add a temporary subtle glow effect for new messages in the list
+                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
+                        setTimeout(() => {
+                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
+                        }, 1000);
+                    }
+                } else {
+                    filterChatList(document.getElementById('chatListSearch').value);
+                    if (currentChatId === chatId) {
+                        const historyContainer = document.getElementById('messageHistory');
+                        historyContainer.prepend(createMessageBubble(message));
+                        historyContainer.scrollTop = 0; 
+                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                    }
+                }
+
+            });
+        }
+
+
+        // ------------------------------------------------------------------
+        // Initialization
+        // ------------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDarkModePreference();
+            setupSocketListeners();
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showSection(item.getAttribute('data-section'));
+                });
+            });
+
+            showSection('dashboard');
+        });
 
     </script>
 </body>
