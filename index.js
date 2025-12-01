@@ -1,6 +1,6 @@
 import express from 'express';
 import { Telegraf } from 'telegraf';
-import * as admin from 'firebase-admin';
+import { initializeApp, credential, firestore, FieldValue } from 'firebase-admin';
 import 'dotenv/config';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -34,16 +34,18 @@ try {
     process.exit(1);
 }
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+// FIX: Using named imports (credential) and initializing app
+initializeApp({
+    credential: credential.cert(serviceAccount)
 });
 
-const db = admin.firestore();
+const db = firestore();
 console.log("Firebase Admin SDK initialized successfully.");
 
 // --- Telegram Bot Initialization ---
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
-bot.telegram.setWebhook(`https://your-vps-domain.com/webhook`); // **IMPORTANT: Update to your VPS domain**
+// IMPORTANT: Update to your VPS domain
+bot.telegram.setWebhook(`https://your-vps-domain.com/webhook`); 
 console.log(`Telegram Bot initialized. Webhook set to: /webhook`);
 
 // --- Firestore Helpers ---
@@ -62,7 +64,7 @@ async function saveMessage(message, sender) {
     const messageData = {
         text: message.text,
         sender: sender,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(), // Use FieldValue from imported firestore
         // Store original chat info only on user message
         telegramId: message.from.id.toString(),
         username: message.from.username || message.from.first_name || 'N/A'
@@ -184,13 +186,18 @@ app.post('/api/send-message', requireAuth, async (req, res) => {
         const adminMessage = {
             chat: { id: telegramId },
             text: text,
-            from: { id: 'ADMIN_ID', username: 'Admin', first_name: 'Admin' }
+            // Mock object for saveMessage consistency
+            from: { id: 'ADMIN_ID', username: 'Admin', first_name: 'Admin' } 
         };
         await saveMessage(adminMessage, 'admin');
 
         return res.json({ success: true, message: 'Message sent successfully' });
     } catch (error) {
         console.error(`Error sending message to Telegram ID ${telegramId}:`, error);
+        // Check for common errors (e.g., bot blocked by user)
+        if (error.response && error.response.error_code === 403) {
+             return res.status(500).json({ success: false, message: 'Failed to send message: Bot blocked by user.' });
+        }
         return res.status(500).json({ success: false, message: 'Failed to send message via Telegram' });
     }
 });
@@ -199,5 +206,5 @@ app.post('/api/send-message', requireAuth, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Admin Panel running on http://localhost:${PORT}`);
     console.log("-----------------------------------------");
-    console.log("Please make sure your Telegram Webhook is configured correctly.");
+    console.log("Please make sure your Telegram Webhook is configured correctly (e.g., pointing to your VPS URL/webhook).");
 });
