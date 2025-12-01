@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Bot Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .message-box { max-width: 80%; }
+        .user-message { background-color: #e2e8f0; border-radius: 1rem 1rem 1rem 0; }
+        .admin-message { background-color: #2563eb; color: white; border-radius: 1rem 1rem 0 1rem; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="login-screen" class="fixed inset-0 bg-white flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Admin Login</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-semibold transition duration-150 shadow-md">Login to Panel</button>
+            </form>
+            <p id="login-message" class="mt-4 text-center text-red-500 hidden"></p>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden h-screen flex">
+        <!-- Sidebar/Menu -->
+        <aside class="w-64 bg-gray-800 flex flex-col p-4 shadow-xl">
+            <div class="text-2xl font-bold text-white mb-8">Telegram Admin</div>
+            <nav class="flex-grow">
+                <a href="#" id="menu-dashboard" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150 mb-2 active-menu-item bg-gray-900">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7-8v8m14-8v8"></path></svg>
+                    Dashboard
+                </a>
+                <a href="#" id="menu-chat" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150 mb-2">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C5.354 5.964 8.65 4 12 4c4.97 0 9 3.582 9 8z"></path></svg>
+                    Chat
+                </a>
+                <a href="#" id="menu-broadcast" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150 mb-2">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24m2-13.358v13.358m-8 3h16a1 1 0 001-1V5a1 1 0 00-1-1H3a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
+                    Broadcast
+                </a>
+                <a href="#" id="menu-settings" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150 mb-2">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.526.471.865 1.13 1.066 2.572z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Settings
+                </a>
+            </nav>
+            <div class="mt-auto text-gray-500 text-sm">
+                User ID: <span id="current-user-id" class="text-xs text-gray-400 break-all">Loading...</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area (Chat Panel) -->
+        <main class="flex-grow flex bg-white rounded-l-xl shadow-inner overflow-hidden">
+            <!-- Chat List (Dashboard) -->
+            <section id="chat-list" class="w-1/3 border-r border-gray-200 flex flex-col">
+                <header class="p-4 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-700">User Chats</h2>
+                </header>
+                <div id="users-container" class="flex-grow overflow-y-auto">
+                    <!-- User items will be loaded here -->
+                    <div id="loading-chats" class="p-4 text-center text-gray-500">Loading chats...</div>
+                </div>
+            </section>
+
+            <!-- Message Area -->
+            <section id="message-area" class="w-2/3 flex flex-col hidden">
+                <header id="chat-header" class="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-700">Select a Chat</h2>
+                    <span id="chat-header-id" class="text-sm text-gray-400"></span>
+                </header>
+                
+                <!-- Messages -->
+                <div id="messages-container" class="flex-grow p-4 overflow-y-auto flex flex-col space-y-4 bg-gray-50">
+                    <p id="chat-placeholder" class="m-auto text-gray-400">Select a user on the left to start chatting.</p>
+                </div>
+
+                <!-- Input/Reply Form -->
+                <footer id="reply-footer" class="p-4 border-t border-gray-200 bg-white hidden">
+                    <form id="reply-form" class="flex items-center space-x-3">
+                        <textarea id="reply-input" class="flex-grow p-3 border border-gray-300 rounded-xl resize-none focus:ring-blue-500 focus:border-blue-500 transition duration-150" rows="1" placeholder="Type your reply..." required></textarea>
+                        <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition duration-150 shadow-lg flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                    </form>
+                </footer>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Configuration Variables (provided by the Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Backend API endpoint for sending Telegram replies
+        const API_URL = '/send_telegram_message'; 
+        
+        let app, db, auth;
+        let userId = null;
+        let selectedChatId = null;
+        let currentAuthToken = null; // Store the Basic Auth token
+        let unsubscribeMessages = null; // To manage the real-time listener
+
+        setLogLevel('debug');
+
+        // --- UI Elements ---
+        const loginScreen = document.getElementById('login-screen');
+        const loginForm = document.getElementById('login-form');
+        const loginMessage = document.getElementById('login-message');
+        const appContainer = document.getElementById('app-container');
+        const usersContainer = document.getElementById('users-container');
+        const messagesContainer = document.getElementById('messages-container');
+        const chatHeader = document.getElementById('chat-header').querySelector('h2');
+        const chatHeaderId = document.getElementById('chat-header-id');
+        const chatPlaceholder = document.getElementById('chat-placeholder');
+        const replyFooter = document.getElementById('reply-footer');
+        const replyForm = document.getElementById('reply-form');
+        const replyInput = document.getElementById('reply-input');
+        const messageArea = document.getElementById('message-area');
+        const chatList = document.getElementById('chat-list');
+        const loadingChats = document.getElementById('loading-chats');
+
+        // --- Basic Auth / Login Handler (MANDATORY for Admin Backend) ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // In a real application, you'd verify credentials against the backend.
+            // For this setup, we store the Basic Auth token based on provided .env values.
+            // NOTE: The server.js uses the hardcoded values from .env.
+            // For a successful login, the user must enter the hardcoded admin/password.
+            const expectedUsername = "admin";
+            const expectedPassword = "Paing@123";
+
+            if (username === expectedUsername && password === expectedPassword) {
+                // Generate and store the Basic Auth token
+                const token = btoa(`${username}:${password}`);
+                currentAuthToken = `Basic ${token}`;
+                console.log("Admin Login Successful. Basic Auth Token set.");
+                
+                // Proceed to Firebase Auth and App Initialization
+                await initializeAndAuthenticateFirebase();
+                
+            } else {
+                loginMessage.textContent = "Invalid credentials.";
+                loginMessage.classList.remove('hidden');
+            }
+        });
+
+        // --- Firebase Initialization and Authentication ---
+        async function initializeAndAuthenticateFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Authenticate using the provided token or anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('current-user-id').textContent = userId;
+                        loginScreen.classList.add('hidden');
+                        appContainer.classList.remove('hidden');
+                        startChatListeners();
+                    } else {
+                        // User logged out or failed initial anonymous login
+                        if (loginScreen.classList.contains('hidden')) {
+                            console.error("Firebase Authentication Failed/Logged Out.");
+                            // For this admin panel, we rely on the custom auth, so we just wait.
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                loginMessage.textContent = `Firebase Init Error: ${error.message}`;
+                loginMessage.classList.remove('hidden');
+            }
+        }
+
+        // --- Main Listener to fetch User List (Dashboard/Chat List) ---
+        function startChatListeners() {
+            if (!db || !userId) return;
+
+            const chatsCollectionRef = collection(db, `artifacts/${appId}/public/data/chats`);
+            const q = query(chatsCollectionRef, orderBy('lastActivity', 'desc'), limit(50));
+
+            onSnapshot(q, (snapshot) => {
+                loadingChats.classList.add('hidden');
+                usersContainer.innerHTML = '';
+                let chatsHtml = '';
+
+                snapshot.docs.forEach(doc => {
+                    const chat = doc.data();
+                    const chatId = doc.id;
+                    const unread = chat.unreadCount || 0;
+                    const isActive = selectedChatId === chatId ? 'bg-blue-100 border-blue-500' : 'hover:bg-gray-50 border-transparent';
+                    
+                    const time = chat.lastActivity ? new Date(chat.lastActivity.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    
+                    chatsHtml += `
+                        <div data-chat-id="${chatId}" 
+                             data-chat-name="${chat.telegramUsername}"
+                             class="chat-item flex items-start p-4 border-b border-gray-100 cursor-pointer transition duration-150 ${isActive}">
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center">
+                                    <p class="font-semibold text-gray-800">${chat.telegramUsername}</p>
+                                    <span class="text-xs text-gray-500">${time}</span>
+                                </div>
+                                <p class="text-sm text-gray-500 truncate mt-1">${chat.lastMessage || 'Start conversation...'}</p>
+                            </div>
+                            ${unread > 0 ? `<span class="ml-3 mt-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">${unread}</span>` : ''}
+                        </div>
+                    `;
+                });
+                usersContainer.innerHTML = chatsHtml;
+                // Reattach click listeners
+                usersContainer.querySelectorAll('.chat-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const chatId = item.dataset.chatId;
+                        const chatName = item.dataset.chatName;
+                        loadChatMessages(chatId, chatName);
+                    });
+                });
+            }, (error) => {
+                console.error("Error fetching chats:", error);
+                usersContainer.innerHTML = `<div class="p-4 text-red-500">Error loading chats: ${error.message}</div>`;
+            });
+        }
+
+        // --- Listener to fetch Messages for a specific Chat ---
+        function loadChatMessages(chatId, chatName) {
+            if (unsubscribeMessages) {
+                unsubscribeMessages(); // Stop listening to previous chat
+            }
+            
+            // Update UI to show selected chat
+            selectedChatId = chatId;
+            chatHeader.textContent = chatName;
+            chatHeaderId.textContent = `ID: ${chatId}`;
+            messageArea.classList.remove('hidden');
+            chatPlaceholder.classList.add('hidden');
+            replyFooter.classList.remove('hidden');
+            messagesContainer.innerHTML = ''; // Clear old messages
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Highlight the selected chat item
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('bg-blue-100', 'border-blue-500');
+                if (item.dataset.chatId === chatId) {
+                    item.classList.add('bg-blue-100', 'border-blue-500');
+                    // Remove unread count visually (it will be reset by the server on reply)
+                    const badge = item.querySelector('.bg-red-500');
+                    if (badge) badge.remove();
+                }
+            });
+
+            // Start new listener for messages
+            const messagesRef = collection(db, `artifacts/${appId}/public/data/chats/${chatId}/messages`);
+            const q = query(messagesRef, orderBy('timestamp', 'asc'), limit(100));
+
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                messagesContainer.innerHTML = '';
+                snapshot.docs.forEach(doc => {
+                    const msg = doc.data();
+                    const isAdmin = msg.sender === 'admin';
+                    const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...';
+
+                    messagesContainer.innerHTML += `
+                        <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
+                            <div class="message-box p-3 shadow-md text-sm break-words ${isAdmin ? 'admin-message' : 'user-message'}">
+                                ${msg.text}
+                                <span class="block text-xs mt-1 ${isAdmin ? 'text-gray-200' : 'text-gray-600'} text-right">${time}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                // Auto-scroll to bottom after loading new messages
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, (error) => {
+                console.error("Error fetching messages:", error);
+                messagesContainer.innerHTML = `<p class="p-4 text-red-500">Error loading messages: ${error.message}</p>`;
+            });
+        }
+
+        // --- Admin Reply Submission Handler ---
+        replyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = replyInput.value.trim();
+            if (!text || !selectedChatId || !currentAuthToken) return;
+
+            // Temporarily disable input/button and show loading
+            replyInput.disabled = true;
+            const originalButtonContent = replyForm.querySelector('button').innerHTML;
+            replyForm.querySelector('button').innerHTML = 'Sending...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': currentAuthToken // Send Basic Auth token to backend
+                    },
+                    body: JSON.stringify({ chatId: selectedChatId, text: text })
+                });
+
+                if (response.ok) {
+                    replyInput.value = ''; // Clear input on success
+                } else {
+                    const errorData = await response.json();
+                    console.error("Reply API Error:", errorData);
+                    alert(`Failed to send message: ${errorData.message || 'Check backend logs.'}`);
+                }
+            } catch (error) {
+                console.error("Network or Fetch Error:", error);
+                alert('A network error occurred. Check server status.');
+            } finally {
+                replyInput.disabled = false;
+                replyForm.querySelector('button').innerHTML = originalButtonContent;
+                replyInput.focus();
+            }
+        });
+
+        // --- Menu Navigation (Placeholder) ---
+        document.querySelectorAll('a[id^="menu-"]').forEach(menuItem => {
+            menuItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.active-menu-item').forEach(item => item.classList.remove('active-menu-item', 'bg-gray-900'));
+                menuItem.classList.add('active-menu-item', 'bg-gray-900');
+                
+                const menuId = menuItem.id.split('-')[1];
+
+                // Simple content switching for the core layout
+                if (menuId === 'chat' || menuId === 'dashboard') {
+                    // Show chat/dashboard view
+                    chatList.classList.remove('hidden');
+                    if (!selectedChatId) {
+                       messageArea.classList.remove('hidden');
+                    }
+                } else {
+                    // For Broadcast/Settings (show a generic message)
+                    chatHeader.textContent = `${menuId.charAt(0).toUpperCase() + menuId.slice(1)} View`;
+                    chatHeaderId.textContent = '';
+                    messagesContainer.innerHTML = `<p class="m-auto text-gray-400">This section is for ${menuId}. Functionality is currently focused on the real-time Chat.</p>`;
+                    chatList.classList.add('hidden');
+                    messageArea.classList.remove('hidden');
+                    replyFooter.classList.add('hidden');
+                    chatPlaceholder.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+    <!-- Note: Initial Firebase authentication happens on successful Admin login -->
+</body>
+</html>
