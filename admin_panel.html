@@ -3,925 +3,615 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdminPlan - Multi-Channel Messenger</title>
+    <title>FB Page Messenger Admin Panel</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <!-- Load Socket.IO for Realtime Communication -->
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Load Socket.io Client -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <!-- Phosphor Icons for modern look -->
-    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/dist/p.js"></script>
+    <!-- Load Phosphor Icons for a clean, modern look -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --dark-bg: #111827;
-            --dark-card: #1f2937;
-            --dark-text: #e5e7eb;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
+            --fb-blue: #0A66FF;
+            --fb-light-blue: #E7F3FF;
+            --sidebar-width: 280px;
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--dark-text);
-        }
-        /* Custom Scrollbar for dark theme */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--dark-bg); }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
+        .sidebar { width: var(--sidebar-width); transition: transform 0.3s ease; }
+        .chat-area { min-height: 80vh; max-height: 80vh; overflow-y: auto; }
+        .chat-input-area { border-top: 1px solid #e5e7eb; }
+        .message-bubble.user { background-color: var(--fb-blue); color: white; border-bottom-right-radius: 0.5rem; }
+        .message-bubble.admin { background-color: #fff; color: #1c1e21; border: 1px solid #e5e7eb; border-bottom-left-radius: 0.5rem; }
+        .menu-item.active { background-color: var(--fb-light-blue); color: var(--fb-blue); font-weight: 600; border-right: 4px solid var(--fb-blue); }
+        /* Scrollbar styling for modern look */
+        .chat-area::-webkit-scrollbar, .chat-list-area::-webkit-scrollbar { width: 8px; }
+        .chat-area::-webkit-scrollbar-thumb, .chat-list-area::-webkit-scrollbar-thumb { background-color: #c4c4c4; border-radius: 10px; }
+        .chat-area::-webkit-scrollbar-track, .chat-list-area::-webkit-scrollbar-track { background-color: #f0f2f5; }
 
-        /* Style for active sidebar item */
-        .sidebar-item.active {
-            background-color: var(--primary-color);
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
-        }
-        /* Custom message bubble styles */
-        .message-bubble {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 18px;
-            word-wrap: break-word;
-        }
-        .user-message {
-            background-color: #374151; /* Darker gray for user/external */
-            border-bottom-left-radius: 4px;
-        }
-        .admin-message {
-            background-color: var(--primary-color);
-            border-bottom-right-radius: 4px;
-        }
-        /* Media specific styles */
-        .media-container {
-            max-width: 300px;
-            max-height: 400px;
-            overflow: hidden;
-            border-radius: 8px;
-            margin-top: 4px;
+        /* Custom file input appearance */
+        .file-input-label { cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 50;
+                height: 100%;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
-<body class="min-h-screen flex antialiased">
+<body class="flex h-screen overflow-hidden">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 shadow-xl flex flex-col p-4 fixed h-full z-10 lg:relative">
-        <div class="text-xl font-bold text-white mb-8 p-2 border-b border-gray-700">AdminPlan AI</div>
-
-        <nav class="flex flex-col space-y-2 flex-grow">
-            <!-- Menu Items -->
-            <a href="#" class="sidebar-item active" data-view="dashboard">
-                <i class="ph ph-gauge text-xl"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="#" class="sidebar-item" data-view="facebook-messenger">
-                <i class="ph ph-messenger-logo text-xl"></i>
-                <span>FB Page Messager</span>
-                <span id="fb-unread-badge" class="ml-auto px-2 py-0.5 text-xs font-semibold bg-accent-green text-gray-900 rounded-full hidden">0</span>
-            </a>
-            <a href="#" class="sidebar-item" data-view="telegram-chats">
-                <i class="ph ph-telegram-logo text-xl"></i>
-                <span>Telegram Chats</span>
-                <span id="tg-unread-badge" class="ml-auto px-2 py-0.5 text-xs font-semibold bg-accent-green text-gray-900 rounded-full hidden">0</span>
-            </a>
-            <a href="#" class="sidebar-item" data-view="broadcast">
-                <i class="ph ph-megaphone text-xl"></i>
-                <span>Broadcast</span>
-            </a>
-            <a href="#" class="sidebar-item" data-view="settings">
-                <i class="ph ph-gear-six text-xl"></i>
-                <span>Settings</span>
-            </a>
+    <!-- Sidebar (Left Menu) -->
+    <div id="sidebar" class="sidebar bg-white shadow-xl flex-shrink-0 flex flex-col justify-between overflow-y-auto z-50 md:static md:translate-x-0">
+        <div class="p-6 border-b border-gray-100">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                <i class="ph-chats text-3xl mr-2 text-blue-600"></i>
+                Page Manager
+            </h1>
+        </div>
+        
+        <!-- Menu Items -->
+        <nav class="flex-grow p-4 space-y-2">
+            <!-- Items are mapped to different views/functionality -->
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="dashboard">
+                <i class="ph-chart-bar text-xl mr-3"></i>
+                Dashboard
+            </button>
+            <button class="menu-item active flex items-center w-full p-3 rounded-xl text-gray-800 hover:bg-gray-100" data-view="messenger">
+                <i class="ph-messenger-logo text-xl mr-3"></i>
+                FB Page Messager
+            </button>
+            <!-- NOTE: 'Chats' is the same view as Messenger for this demo, keeping the structure -->
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="chats">
+                <i class="ph-chats text-xl mr-3"></i>
+                Chats
+            </button>
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="broadcast">
+                <i class="ph-megaphone text-xl mr-3"></i>
+                Broadcast
+            </button>
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="settings">
+                <i class="ph-gear-six text-xl mr-3"></i>
+                Settings
+            </button>
         </nav>
 
-        <div class="mt-auto text-xs text-gray-400 p-2">
-            User ID: <span id="current-user-id" class="font-mono text-gray-300 break-all">Authenticating...</span>
+        <div class="p-4 border-t border-gray-100 text-sm text-gray-500">
+            <p>Admin ID: <span id="current-user-id" class="font-mono text-gray-700">Loading...</span></p>
+            <p>&copy; 2024 Page Manager</p>
         </div>
-    </aside>
+    </div>
 
     <!-- Main Content Area -->
-    <main class="flex-grow flex flex-col min-h-screen overflow-hidden">
-        <header class="p-4 bg-gray-900 shadow-md flex justify-between items-center z-10">
-            <h1 id="view-title" class="text-2xl font-semibold text-white">Dashboard</h1>
-            <div id="status-bar" class="text-sm text-gray-400 flex items-center space-x-4">
-                <span id="connection-status" class="flex items-center">
-                    <span class="w-3 h-3 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
-                    Connecting...
-                </span>
-            </div>
+    <div class="flex-grow flex flex-col">
+        <!-- Header (Only visible on Mobile) -->
+        <header class="bg-white shadow-md p-4 flex items-center justify-between md:hidden">
+            <h2 class="text-lg font-semibold text-gray-800">FB Page Messager</h2>
+            <button id="menu-toggle" class="text-gray-700 hover:text-blue-600">
+                <i class="ph-list text-2xl"></i>
+            </button>
         </header>
 
-        <!-- Dynamic Content Views Container -->
-        <div id="content-container" class="flex-grow p-4 overflow-y-auto">
+        <!-- Dynamic Content Views -->
+        <div id="content-container" class="flex-grow overflow-y-auto p-4 md:p-6">
+            <!-- Messenger View (Default) -->
+            <div id="view-messenger" class="h-full flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-6">
 
-            <!-- 1. Dashboard View (Initial View) -->
-            <div id="dashboard-view" class="content-view">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <p class="text-sm text-gray-400">Total Conversations</p>
-                        <p class="text-3xl font-bold text-white mt-1">245</p>
+                <!-- 1. Chat List (Left Panel) -->
+                <div class="bg-white rounded-xl shadow-lg w-full lg:w-96 flex-shrink-0 overflow-hidden h-full">
+                    <div class="p-4 border-b">
+                        <h3 class="font-semibold text-lg text-gray-800">Customer Chats</h3>
+                        <input type="text" id="search-input" placeholder="Search chats..." class="mt-2 w-full p-2 text-sm border rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <p class="text-sm text-gray-400">Unread Telegram</p>
-                        <p id="dashboard-tg-unread" class="text-3xl font-bold text-accent-green mt-1">0</p>
-                    </div>
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <p class="text-sm text-gray-400">Unread Facebook</p>
-                        <p id="dashboard-fb-unread" class="text-3xl font-bold text-accent-green mt-1">0</p>
+                    <div id="chat-list-area" class="chat-list-area overflow-y-auto max-h-[70vh] lg:max-h-[80vh]">
+                        <!-- Chat items will be injected here -->
+                        <div class="p-4 text-center text-gray-500">Chats loading...</div>
                     </div>
                 </div>
-                <div class="mt-6 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                    <h2 class="text-xl font-semibold mb-4">Latest Activity</h2>
-                    <p class="text-gray-400">Detailed logs and charts will appear here.</p>
-                </div>
-            </div>
 
-            <!-- 2. FB Page Messenger View (NEW) -->
-            <div id="facebook-messenger-view" class="content-view hidden h-full flex flex-col lg:flex-row">
-                <!-- Facebook Chat List (Left Panel) -->
-                <div id="fb-chat-list" class="w-full lg:w-80 lg:min-w-80 bg-gray-800 rounded-xl shadow-inner border border-gray-700 flex-shrink-0 mb-4 lg:mb-0 lg:mr-4 overflow-y-auto" style="height: calc(100vh - 100px);">
-                    <div class="p-4 sticky top-0 bg-gray-800 z-10 border-b border-gray-700">
-                        <input type="text" placeholder="Search Facebook Chats..." class="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-color">
+                <!-- 2. Chat Window (Right Panel) -->
+                <div class="bg-white rounded-xl shadow-lg flex-grow flex flex-col h-full">
+                    <div id="chat-header" class="p-4 border-b flex items-center">
+                        <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3 text-gray-500">
+                            <i class="ph-user text-xl"></i>
+                        </div>
+                        <h3 id="current-chat-title" class="font-semibold text-gray-800">Select a Chat to start messaging</h3>
                     </div>
-                    <ul id="fb-user-list" class="divide-y divide-gray-700">
-                        <!-- Facebook User Items will be injected here -->
-                        <li class="p-4 text-center text-gray-500">
-                            <i class="ph ph-facebook-logo-fill text-2xl mb-2"></i>
-                            <p>Loading Facebook chats...</p>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Facebook Chat History (Right Panel) -->
-                <div id="fb-chat-detail-panel" class="flex-grow flex flex-col bg-gray-800 rounded-xl shadow-lg border border-gray-700" style="height: calc(100vh - 100px);">
-                    <!-- Chat Header -->
-                    <div id="fb-chat-header" class="p-4 border-b border-gray-700 bg-gray-900 rounded-t-xl hidden">
-                        <h2 class="text-lg font-semibold text-white truncate"><i class="ph ph-user-circle text-xl mr-2"></i><span id="fb-recipient-name">Select a Chat</span></h2>
-                        <p class="text-sm text-gray-400">Page ID: <span id="fb-page-id" class="font-mono">N/A</span> | PSID: <span id="fb-psid" class="font-mono">N/A</span></p>
-                    </div>
-
-                    <!-- Message History -->
-                    <div id="fb-message-history" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col-reverse">
-                        <div class="text-center p-8 text-gray-500" id="fb-placeholder-message">
-                            <i class="ph ph-chat-circle-dots text-5xl mb-3"></i>
-                            <p class="text-lg">Select a conversation from the left to start messaging.</p>
-                            <p class="text-sm">Server-side setup for Facebook Webhooks and Graph API is required.</p>
+                    
+                    <!-- Message Display Area -->
+                    <div id="message-container" class="chat-area p-4 flex-grow flex flex-col space-y-4">
+                        <!-- Messages will be injected here -->
+                        <div id="initial-message" class="text-center text-gray-500 mt-24">
+                            Your conversations with FB Users will appear here.
                         </div>
                     </div>
 
-                    <!-- Input Area -->
-                    <div id="fb-input-area" class="p-4 border-t border-gray-700 bg-gray-900 rounded-b-xl hidden">
-                        <form id="fb-send-form" class="flex space-x-3">
-                            <input type="file" id="fb-media-input" class="hidden" accept="image/*, application/pdf, .zip, .doc, .docx">
-                            <button type="button" id="fb-media-upload-btn" class="p-3 text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition duration-200">
-                                <i class="ph ph-paperclip text-xl"></i>
-                            </button>
-                            <input type="text" id="fb-message-input" placeholder="Type a message to the Facebook user..." class="flex-grow p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-color" required>
-                            <button type="submit" id="fb-send-btn" class="p-3 text-white bg-primary-color hover:bg-indigo-600 rounded-lg font-semibold transition duration-200">
-                                <i class="ph ph-paper-plane-right text-xl"></i>
-                            </button>
-                        </form>
-                        <p id="fb-file-name-display" class="text-sm text-gray-400 mt-2 hidden">File Attached: <span class="font-medium text-white"></span></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Telegram Chats View (Refactored Existing Logic) -->
-            <div id="telegram-chats-view" class="content-view hidden h-full flex flex-col lg:flex-row">
-                <!-- Telegram Chat List (Left Panel) -->
-                <div id="tg-chat-list" class="w-full lg:w-80 lg:min-w-80 bg-gray-800 rounded-xl shadow-inner border border-gray-700 flex-shrink-0 mb-4 lg:mb-0 lg:mr-4 overflow-y-auto" style="height: calc(100vh - 100px);">
-                    <div class="p-4 sticky top-0 bg-gray-800 z-10 border-b border-gray-700">
-                        <input type="text" placeholder="Search Telegram Chats..." class="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-color" id="tg-chat-search">
-                    </div>
-                    <ul id="tg-user-list" class="divide-y divide-gray-700">
-                        <!-- Telegram User Items will be injected here -->
-                        <li class="p-4 text-center text-gray-500">
-                            <i class="ph ph-telegram-logo-fill text-2xl mb-2"></i>
-                            <p>Loading Telegram chats...</p>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Telegram Chat History (Right Panel) -->
-                <div id="tg-chat-detail-panel" class="flex-grow flex flex-col bg-gray-800 rounded-xl shadow-lg border border-gray-700" style="height: calc(100vh - 100px);">
-                    <!-- Chat Header -->
-                    <div id="tg-chat-header" class="p-4 border-b border-gray-700 bg-gray-900 rounded-t-xl hidden">
-                        <h2 class="text-lg font-semibold text-white truncate"><i class="ph ph-user-circle text-xl mr-2"></i><span id="tg-recipient-name">Select a Chat</span></h2>
-                        <p class="text-sm text-gray-400">Telegram ID: <span id="tg-chat-id" class="font-mono">N/A</span> | Username: <span id="tg-username" class="font-mono">N/A</span></p>
-                    </div>
-
-                    <!-- Message History -->
-                    <div id="tg-message-history" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col-reverse">
-                        <div class="text-center p-8 text-gray-500" id="tg-placeholder-message">
-                            <i class="ph ph-chat-circle-dots text-5xl mb-3"></i>
-                            <p class="text-lg">Select a conversation from the left to start messaging.</p>
+                    <!-- Message Input Area -->
+                    <div id="chat-input-area" class="chat-input-area p-4" style="display:none;">
+                        <div id="file-preview-area" class="mb-2 p-2 border border-gray-200 rounded-lg hidden">
+                            <span id="file-preview-name" class="text-sm font-medium text-gray-700"></span>
+                            <button id="clear-file-btn" class="ml-3 text-red-500 hover:text-red-700 text-sm">Clear</button>
                         </div>
-                    </div>
+                        
+                        <div class="flex items-end">
+                            <label for="file-upload" class="file-input-label text-gray-500 hover:text-fb-blue p-2 rounded-full transition duration-150">
+                                <i class="ph-paperclip text-2xl"></i>
+                                <input type="file" id="file-upload" class="hidden">
+                            </label>
 
-                    <!-- Input Area -->
-                    <div id="tg-input-area" class="p-4 border-t border-gray-700 bg-gray-900 rounded-b-xl hidden">
-                        <form id="tg-send-form" class="flex space-x-3">
-                            <input type="file" id="tg-media-input" class="hidden" accept="image/*, application/pdf, .zip, .doc, .docx">
-                            <button type="button" id="tg-media-upload-btn" class="p-3 text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition duration-200">
-                                <i class="ph ph-paperclip text-xl"></i>
+                            <textarea id="message-input" class="flex-grow resize-none border rounded-xl p-3 mr-3 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Type a message..." rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'"></textarea>
+
+                            <button id="send-button" class="bg-fb-blue text-white p-3 rounded-full shadow-md hover:bg-blue-700 transition duration-150 flex items-center justify-center disabled:opacity-50" disabled>
+                                <i class="ph-paper-plane-tilt text-xl"></i>
                             </button>
-                            <input type="text" id="tg-message-input" placeholder="Type a message to the Telegram user..." class="flex-grow p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-color" required>
-                            <button type="submit" id="tg-send-btn" class="p-3 text-white bg-primary-color hover:bg-indigo-600 rounded-lg font-semibold transition duration-200">
-                                <i class="ph ph-paper-plane-right text-xl"></i>
-                            </button>
-                        </form>
-                        <p id="tg-file-name-display" class="text-sm text-gray-400 mt-2 hidden">File Attached: <span class="font-medium text-white"></span></p>
+                        </div>
+                        <p id="error-message" class="text-red-500 text-xs mt-1 hidden">Error sending message.</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- 4. Broadcast View (Placeholder) -->
-            <div id="broadcast-view" class="content-view hidden">
-                <div class="bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700">
-                    <h2 class="text-2xl font-semibold mb-4 text-white">Broadcast Messages</h2>
-                    <p class="text-gray-400">This feature will allow you to send mass messages to all or selected users across Telegram and Facebook.</p>
+            </div>
+            
+            <!-- Other Views (Placeholders) -->
+            <div id="view-dashboard" class="hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold">Dashboard</h2>
+                    <p class="mt-4 text-gray-600">Overview of FB Page performance and messaging metrics will be shown here.</p>
                 </div>
             </div>
-
-            <!-- 5. Settings View (Placeholder) -->
-            <div id="settings-view" class="content-view hidden">
-                <div class="bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700">
-                    <h2 class="text-2xl font-semibold mb-4 text-white">Application Settings</h2>
-                    <p class="text-gray-400">Configure API keys, bot tokens, and user preferences here.</p>
+            <div id="view-chats" class="hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold">Chats (Combined)</h2>
+                    <p class="mt-4 text-gray-600">This section could combine messages from Messenger, Instagram, or other sources.</p>
                 </div>
             </div>
-
-            <!-- Custom Modal for Alerts/Confirmations -->
-            <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-                <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
-                    <h3 id="modal-title" class="text-xl font-bold mb-4 text-white">Alert</h3>
-                    <p id="modal-message" class="text-gray-300 mb-6">Message content.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition duration-200 hidden">Cancel</button>
-                        <button id="modal-ok-btn" class="px-4 py-2 bg-primary-color text-white rounded-lg hover:bg-indigo-600 transition duration-200">OK</button>
-                    </div>
+            <div id="view-broadcast" class="hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold">Broadcast Messages</h2>
+                    <p class="mt-4 text-gray-600">Send bulk messages or notifications to segments of your users (FB Messenger Rules Apply).</p>
                 </div>
             </div>
-
+            <div id="view-settings" class="hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold">Settings</h2>
+                    <p class="mt-4 text-gray-600">Configure Page API keys, auto-reply settings, and webhook details.</p>
+                </div>
+            </div>
         </div>
-    </main>
+    </div>
 
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, onSnapshot, collection, query, where, orderBy, limit, getDocs, runTransaction, FieldValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Modal for showing error/info messages -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
+            <h3 id="modal-title" class="text-lg font-semibold mb-2">Notice</h3>
+            <p id="modal-content" class="text-gray-600 mb-4"></p>
+            <button onclick="document.getElementById('modal').classList.add('hidden')" class="bg-fb-blue text-white px-4 py-2 rounded-lg float-right hover:bg-blue-700">Close</button>
+        </div>
+    </div>
 
-        // --- GLOBAL VARIABLES ---
-        const apiUrl = '/api'; // Base API URL
-        const socket = io();
-        let currentTgChat = null; // Currently selected Telegram Chat ID
-        let currentFbChat = null; // Currently selected Facebook Chat ID
-        const MAX_RETRIES = 5;
-        const INITIAL_BACKOFF_MS = 1000;
+    <script>
+        // Global State
+        let currentChatId = null;
+        let socket = null;
+        let authUserId = 'admin-user-1234'; // Mock admin ID for display
+        let selectedFile = null;
+        let isSending = false;
+        
+        // --- Utility Functions ---
 
-        // Firebase Globals (Mandatory Canvas Variables)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let db, auth;
-        let userId = 'unknown';
-
-        // --- UI ELEMENTS ---
-        const viewContainer = document.getElementById('content-container');
-        const sidebarItems = document.querySelectorAll('.sidebar-item');
-        const viewTitle = document.getElementById('view-title');
-        const connectionStatus = document.getElementById('connection-status');
-        const currentUserIdElement = document.getElementById('current-user-id');
-
-        // Telegram UI Elements
-        const tgUserList = document.getElementById('tg-user-list');
-        const tgMessageHistory = document.getElementById('tg-message-history');
-        const tgChatHeader = document.getElementById('tg-chat-header');
-        const tgRecipientName = document.getElementById('tg-recipient-name');
-        const tgChatIdSpan = document.getElementById('tg-chat-id');
-        const tgUsernameSpan = document.getElementById('tg-username');
-        const tgInputArea = document.getElementById('tg-input-area');
-        const tgSendForm = document.getElementById('tg-send-form');
-        const tgMessageInput = document.getElementById('tg-message-input');
-        const tgMediaInput = document.getElementById('tg-media-input');
-        const tgMediaUploadBtn = document.getElementById('tg-media-upload-btn');
-        const tgFileNameDisplay = document.getElementById('tg-file-name-display');
-        const tgChatSearch = document.getElementById('tg-chat-search');
-
-        // Facebook UI Elements (NEW)
-        const fbUserList = document.getElementById('fb-user-list');
-        const fbMessageHistory = document.getElementById('fb-message-history');
-        const fbChatHeader = document.getElementById('fb-chat-header');
-        const fbRecipientName = document.getElementById('fb-recipient-name');
-        const fbPageIdSpan = document.getElementById('fb-page-id');
-        const fbPsidSpan = document.getElementById('fb-psid');
-        const fbInputArea = document.getElementById('fb-input-area');
-        const fbSendForm = document.getElementById('fb-send-form');
-        const fbMessageInput = document.getElementById('fb-message-input');
-        const fbMediaInput = document.getElementById('fb-media-input');
-        const fbMediaUploadBtn = document.getElementById('fb-media-upload-btn');
-        const fbFileNameDisplay = document.getElementById('fb-file-name-display');
-
-        // --- UTILITY FUNCTIONS ---
-
-        /**
-         * Generic function for making API calls with exponential backoff.
-         */
-        async function fetchWithBackoff(url, options = {}, retries = MAX_RETRIES) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                } catch (error) {
-                    console.error(`Attempt ${i + 1} failed: ${error.message}`);
-                    if (i === retries - 1) throw error; // Re-throw on last attempt
-
-                    const delay = INITIAL_BACKOFF_MS * Math.pow(2, i) + Math.random() * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-            }
+        /** Shows a custom modal message. */
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').textContent = content;
+            document.getElementById('modal').classList.remove('hidden');
         }
 
-        /**
-         * Custom Modal for alert/confirmation (replaces browser alerts)
-         */
-        function showModal(title, message, isConfirm = false) {
-            return new Promise(resolve => {
-                const modal = document.getElementById('custom-modal');
-                document.getElementById('modal-title').textContent = title;
-                document.getElementById('modal-message').textContent = message;
-                const okBtn = document.getElementById('modal-ok-btn');
-                const cancelBtn = document.getElementById('modal-cancel-btn');
+        /** Formats timestamps for display. */
+        function formatTimestamp(isoString) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            if (isNaN(date)) return isoString;
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' - ' +
+                   date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
 
-                if (isConfirm) {
-                    cancelBtn.classList.remove('hidden');
-                    okBtn.textContent = 'Confirm';
-                    okBtn.onclick = () => { modal.classList.add('hidden'); resolve(true); };
-                    cancelBtn.onclick = () => { modal.classList.add('hidden'); resolve(false); };
-                } else {
-                    cancelBtn.classList.add('hidden');
-                    okBtn.textContent = 'OK';
-                    okBtn.onclick = () => { modal.classList.add('hidden'); resolve(true); };
-                }
-
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+        /** Converts a File object to a Base64 Data URL. */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
             });
         }
 
-        // --- DATE & TIME UTILITY ---
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            const today = new Date();
-            const isToday = date.toDateString() === today.toDateString();
+        // --- UI Rendering Functions ---
 
-            if (isToday) {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } else {
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        /** Renders a single chat item in the left list. */
+        function renderChatItem(chat) {
+            const container = document.createElement('button');
+            container.className = 'chat-item flex items-center w-full p-3 text-left border-b hover:bg-gray-50 transition duration-150';
+            container.setAttribute('data-chat-id', chat.telegramId);
+            container.onclick = () => selectChat(chat.telegramId);
+
+            // Active/Unread Styling
+            if (chat.telegramId === currentChatId) {
+                container.classList.add('bg-fb-light-blue', 'border-l-4', 'border-fb-blue');
+            } else if (chat.unreadCount > 0) {
+                 container.classList.add('bg-yellow-50');
             }
+
+            const avatar = `<div class="w-10 h-10 bg-fb-blue rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 flex-shrink-0">
+                ${chat.username ? chat.username[0].toUpperCase() : 'U'}
+            </div>`;
+            
+            const unreadBadge = chat.unreadCount > 0 ? 
+                `<span id="badge-${chat.telegramId}" class="bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full ml-2">${chat.unreadCount}</span>` : 
+                `<span id="badge-${chat.telegramId}" class="hidden"></span>`;
+
+            container.innerHTML = `
+                ${avatar}
+                <div class="flex-grow overflow-hidden">
+                    <div class="flex justify-between items-center">
+                        <p class="font-semibold text-gray-800 truncate">${chat.username || 'User ' + chat.telegramId}</p>
+                        ${unreadBadge}
+                    </div>
+                    <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'Media received/sent'}</p>
+                </div>
+            `;
+            return container;
+        }
+        
+        /** Renders a single message bubble. */
+        function renderMessage(message) {
+            const isUser = message.sender === 'user';
+            const alignmentClass = isUser ? 'justify-start' : 'justify-end';
+            const bubbleClass = isUser ? 'message-bubble user' : 'message-bubble admin';
+            const marginClass = isUser ? 'mr-auto' : 'ml-auto';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${alignmentClass} max-w-3/4 mb-2`;
+
+            let contentHTML = '';
+
+            if (message.mediaPath) {
+                const mediaUrl = isUser 
+                    ? `/api/get-media?file_id=${message.mediaPath}` // Telegram media endpoint
+                    : message.mediaPath; // Admin sent base64 data
+
+                const isImage = mediaUrl.startsWith('data:image') || message.mediaPath.match(/\.(jpg|jpeg|png|gif)$/i) || !message.filename;
+                
+                if (isImage) {
+                    // Image display
+                    contentHTML = `<img src="${mediaUrl}" alt="Media" class="max-w-xs md:max-w-sm rounded-lg shadow-md" onerror="this.onerror=null;this.src='https://placehold.co/200x150/f0f2f5/a8a8a8?text=Cannot+Load+Media'">`;
+                } else {
+                    // Document/File display
+                    const icon = message.filename.endsWith('.pdf') ? 'ph-file-pdf' : 'ph-file-text';
+                    contentHTML = `
+                        <a href="${mediaUrl}" target="_blank" class="flex items-center p-3 bg-white text-gray-800 rounded-lg border border-gray-300 hover:bg-gray-100 transition duration-150">
+                            <i class="${icon} text-xl mr-2"></i>
+                            <span class="truncate max-w-[200px]">${message.filename || 'File Download'}</span>
+                        </a>
+                    `;
+                }
+            }
+            
+            // Add text if present
+            if (message.text) {
+                const textContent = `<p class="${message.mediaPath ? 'mt-1' : ''}">${message.text}</p>`;
+                if (message.mediaPath) {
+                    contentHTML += textContent;
+                } else {
+                    contentHTML = textContent;
+                }
+            }
+
+            const timestamp = formatTimestamp(message.timestamp);
+
+            messageDiv.innerHTML = `
+                <div class="${bubbleClass} ${marginClass} max-w-[75%] px-4 py-2 rounded-xl text-sm shadow-sm flex flex-col">
+                    <div>${contentHTML}</div>
+                    <span class="text-xs ${isUser ? 'text-blue-200' : 'text-gray-400'} self-end mt-1">${timestamp}</span>
+                </div>
+            `;
+            return messageDiv;
         }
 
-        // --- FIREBASE INITIALIZATION AND AUTH ---
-        async function initFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
 
-                // Sign in with custom token or anonymously
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+        // --- Core Logic ---
 
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        currentUserIdElement.textContent = userId;
-                        connectionStatus.innerHTML = '<span class="w-3 h-3 rounded-full bg-accent-green mr-2"></span>Connected';
+        /** Initializes Firebase Auth and displays the mock user ID. */
+        function initAuth() {
+             // In a real app, this would initialize Firebase auth and get the real user ID.
+             // Mocking based on the server's expected behavior (assuming admin is authenticated via Basic Auth)
+             document.getElementById('current-user-id').textContent = authUserId;
+        }
 
-                        // Start fetching data only after auth is ready
-                        loadChatLists();
-                    } else {
-                        // User is signed out (shouldn't happen in canvas)
-                        userId = 'unauthenticated';
-                        currentUserIdElement.textContent = userId;
+        /** Sets up Socket.io connection and listeners. */
+        function setupSocket() {
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Socket.io connected.');
+            });
+
+            socket.on('new_message', (data) => {
+                console.log('Real-time new message:', data);
+                // 1. Update chat list (or refresh list)
+                fetchChatList(); 
+                
+                // 2. If it's the currently selected chat, display the message
+                if (data.chatId === currentChatId) {
+                    displayMessage(data.message);
+                    // Ensure unread count is reset visually, even if the user hasn't explicitly clicked 'read'
+                    const badge = document.getElementById(`badge-${data.chatId}`);
+                    if (badge) {
+                        badge.classList.add('hidden');
+                        badge.textContent = 0;
                     }
+                }
+            });
+
+            socket.on('chat_read_status', (data) => {
+                const badge = document.getElementById(`badge-${data.chatId}`);
+                if (badge) {
+                    badge.textContent = data.unreadCount;
+                    if (data.unreadCount > 0) {
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            });
+
+            socket.on('error', (data) => {
+                showModal('API Error', data.message || 'An unknown error occurred with the message sending process.');
+            });
+        }
+
+        /** Fetches and displays the list of chats. */
+        async function fetchChatList() {
+            const chatListArea = document.getElementById('chat-list-area');
+            chatListArea.innerHTML = '<div class="p-4 text-center text-gray-500"><i class="ph-spinner-gap animate-spin mr-2"></i>Loading chats...</div>';
+            
+            try {
+                const response = await fetch('/api/chats');
+                if (!response.ok) throw new Error('Failed to fetch chat list');
+                const chats = await response.json();
+                
+                chatListArea.innerHTML = '';
+                chats.forEach(chat => {
+                    chatListArea.appendChild(renderChatItem(chat));
                 });
 
             } catch (error) {
-                console.error("Firebase Initialization or Auth Error:", error);
-                connectionStatus.innerHTML = `<span class="w-3 h-3 rounded-full bg-accent-red mr-2"></span>Auth Error`;
-                showModal("System Error", "Failed to initialize Firebase or authenticate. Check console for details.");
+                console.error('Error fetching chat list:', error);
+                chatListArea.innerHTML = '<div class="p-4 text-center text-red-500">Failed to load chats. Check server status.</div>';
+            }
+        }
+        
+        /** Selects a chat, loads history, and updates UI. */
+        async function selectChat(chatId) {
+            currentChatId = chatId;
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('bg-fb-light-blue', 'border-l-4', 'border-fb-blue', 'bg-yellow-50');
+                if (item.getAttribute('data-chat-id') === chatId) {
+                    item.classList.add('bg-fb-light-blue', 'border-l-4', 'border-fb-blue');
+                }
+            });
+
+            const currentChatTitle = document.getElementById('current-chat-title');
+            const chatInputArea = document.getElementById('chat-input-area');
+            const messageContainer = document.getElementById('message-container');
+            const selectedChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+            const chatName = selectedChat ? selectedChat.querySelector('.font-semibold').textContent : 'Unknown User';
+
+            currentChatTitle.textContent = chatName;
+            chatInputArea.style.display = 'block';
+            messageContainer.innerHTML = '<div class="text-center text-gray-500 mt-24"><i class="ph-spinner-gap animate-spin mr-2"></i>Loading history...</div>';
+            
+            // Mark chat as read
+            await fetch(`/api/chats/${chatId}/read`, { method: 'PUT' });
+            socket.emit('chat_read_status', { chatId, unreadCount: 0 }); // Local echo for immediate badge clear
+            
+            try {
+                const response = await fetch(`/api/chats/${chatId}/history?limit=50`);
+                if (!response.ok) throw new Error('Failed to fetch chat history');
+                const history = await response.json();
+
+                messageContainer.innerHTML = '';
+                history.forEach(message => displayMessage(message, false));
+                
+                // Scroll to bottom after loading
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+
+            } catch (error) {
+                console.error('Error fetching chat history:', error);
+                messageContainer.innerHTML = `<div class="text-center text-red-500 mt-24">Failed to load chat history.</div>`;
             }
         }
 
-        // --- VIEW MANAGEMENT ---
-
-        function switchView(viewId) {
-            // Hide all views
-            document.querySelectorAll('.content-view').forEach(view => {
-                view.classList.add('hidden');
-            });
-
-            // Show the requested view
-            const activeView = document.getElementById(viewId);
-            if (activeView) {
-                activeView.classList.remove('hidden');
-                // Update header title
-                viewTitle.textContent = activeView.id.replace(/-/g, ' ').split(' ')[0] === 'telegram' ? 'Telegram Chats' : activeView.id.replace(/-/g, ' ').replace('view', '').trim().split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+        /** Appends a message to the message container and scrolls to the bottom. */
+        function displayMessage(message, shouldScroll = true) {
+            document.getElementById('initial-message')?.remove();
+            const messageContainer = document.getElementById('message-container');
+            messageContainer.appendChild(renderMessage(message));
+            if (shouldScroll) {
+                messageContainer.scrollTop = messageContainer.scrollHeight;
             }
+        }
 
-            // Update sidebar active state
-            sidebarItems.forEach(item => {
+        /** Handles sending the message (text or media). */
+        async function sendMessage() {
+            if (isSending || !currentChatId) return;
+
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const text = input.value.trim();
+            const media = selectedFile;
+
+            if (!text && !media) return;
+
+            isSending = true;
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="ph-spinner-gap animate-spin text-xl"></i>';
+            document.getElementById('error-message').classList.add('hidden');
+
+            try {
+                let mediaPath = null;
+                let mediaType = null;
+                let filename = null;
+                
+                if (media) {
+                    mediaPath = await fileToBase64(media);
+                    mediaType = media.type.startsWith('image/') ? 'photo' : 'document';
+                    filename = media.name;
+                }
+                
+                const dataToSend = { 
+                    chatId: currentChatId, 
+                    text: text, 
+                    mediaPath: mediaPath, 
+                    mediaType: mediaType, 
+                    filename: filename 
+                };
+
+                // Emit to Socket.io for server processing (Telegram sending)
+                socket.emit('admin_reply', dataToSend, (response) => {
+                    if (response.success) {
+                        console.log('Message sent successfully via Socket.io.');
+                        // Local echo (The server will save it, but we echo instantly for better UX)
+                        const now = new Date().toISOString();
+                        const localMessage = { 
+                            sender: 'admin', 
+                            text: text, 
+                            mediaPath: mediaPath, 
+                            filename: filename,
+                            timestamp: now 
+                        };
+                        displayMessage(localMessage);
+                        
+                        // Clear input fields
+                        input.value = '';
+                        input.style.height='auto';
+                        clearFileSelection();
+                        
+                    } else {
+                        throw new Error(response.error || 'Server failed to process the message.');
+                    }
+
+                    isSending = false;
+                    updateSendButtonState();
+                    sendButton.innerHTML = '<i class="ph-paper-plane-tilt text-xl"></i>';
+                });
+
+            } catch (error) {
+                console.error('Error in sendMessage:', error);
+                document.getElementById('error-message').textContent = `Error: ${error.message}`;
+                document.getElementById('error-message').classList.remove('hidden');
+                isSending = false;
+                updateSendButtonState();
+                sendButton.innerHTML = '<i class="ph-paper-plane-tilt text-xl"></i>';
+            }
+        }
+        
+        /** Updates the send button state based on input. */
+        function updateSendButtonState() {
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const text = input.value.trim();
+            
+            if (isSending) return;
+
+            if (text || selectedFile) {
+                sendButton.disabled = false;
+            } else {
+                sendButton.disabled = true;
+            }
+        }
+
+        /** Clears the file selection state. */
+        function clearFileSelection() {
+            selectedFile = null;
+            document.getElementById('file-upload').value = '';
+            document.getElementById('file-preview-area').classList.add('hidden');
+            updateSendButtonState();
+        }
+
+        // --- View Switching ---
+        function switchView(viewName) {
+            // Update Menu Items
+            document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.getAttribute('data-view') === viewId.replace('-view', '')) {
+                if (item.getAttribute('data-view') === viewName) {
                     item.classList.add('active');
                 }
             });
 
-            // Specific logic on view switch
-            if (viewId === 'telegram-chats-view') {
-                // If switching to Telegram, ensure the chat list is visible
-                document.getElementById('tg-chat-list').style.display = 'block';
-                if (currentTgChat) {
-                    // Re-render history if a chat was selected
-                    selectTgChat(currentTgChat.id, currentTgChat.username);
-                }
-            } else if (viewId === 'facebook-messenger-view') {
-                 // If switching to Facebook, ensure the chat list is visible
-                 document.getElementById('fb-chat-list').style.display = 'block';
-                 if (currentFbChat) {
-                    // Load or re-render Facebook chat if one was active
-                    // Since server-side is missing, we'll just show the UI structure
-                    selectFbChat(currentFbChat.id, currentFbChat.name);
-                 } else {
-                    // For demo: populate a mock list for FB
-                    renderMockFbChats();
-                 }
-            }
-        }
-
-        // Attach event listeners for sidebar navigation
-        sidebarItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const viewId = item.getAttribute('data-view') + '-view';
-                switchView(viewId);
-            });
-        });
-
-        // --- CHAT RENDERING FUNCTIONS (Shared Logic) ---
-
-        function renderMessage(message) {
-            const isUser = message.sender === 'user';
-            const alignmentClass = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'user-message' : 'admin-message';
-            const dateStr = formatTime(message.timestamp);
-
-            let content = '';
-
-            // Handle Media
-            if (message.mediaPath) {
-                // If it's a user message, mediaPath is Telegram file_id, use the /api/get-media endpoint
-                // If it's an admin message, mediaPath is Base64 data, display directly
-                const mediaSource = isUser ? `${apiUrl}/get-media?file_id=${message.mediaPath}` : message.mediaPath;
-
-                if (message.mediaPath.startsWith('data:image/') || (!isUser && mediaSource.startsWith('data:image/'))) {
-                    // Display image
-                    content += `<div class="media-container"><img src="${mediaSource}" alt="Media" class="w-full h-auto object-cover rounded-lg" onerror="this.onerror=null; this.src='https://placehold.co/300x200/4f46e5/white?text=Image+Load+Error';"/></div>`;
-                } else if (message.filename) {
-                     // Display document/file link
-                     content += `<a href="${mediaSource}" target="_blank" class="flex items-center space-x-2 text-primary-color hover:text-indigo-400 font-medium p-2 bg-gray-700 rounded-lg max-w-xs transition duration-200">
-                        <i class="ph ph-file-text text-xl"></i>
-                        <span class="truncate">${message.filename}</span>
-                    </a>`;
-                }
-            }
-
-            // Handle Text
-            if (message.text) {
-                content += `<div class="text-sm">${message.text}</div>`;
-            }
-
-            const messageHtml = `
-                <div class="flex ${alignmentClass}">
-                    <div class="message-bubble ${bubbleClass} text-white shadow-lg flex flex-col space-y-1">
-                        ${content}
-                        <span class="text-xs ${isUser ? 'text-gray-400' : 'text-indigo-200'} self-end">${dateStr}</span>
-                    </div>
-                </div>
-            `;
-            return messageHtml;
-        }
-
-        function createChatListItem(chat, type) {
-            const isSelected = type === 'telegram' ? (currentTgChat && currentTgChat.id === chat.telegramId) : (currentFbChat && currentFbChat.id === chat.facebookId);
-            const unreadCount = chat.unreadCount || 0;
-            const name = chat.username || chat.name || `Chat #${chat.telegramId || chat.facebookId}`;
-
-            const li = document.createElement('li');
-            li.id = `${type}-chat-list-item-${chat.telegramId || chat.facebookId}`;
-            li.className = `p-4 flex items-center space-x-3 cursor-pointer hover:bg-gray-700 transition duration-150 ${isSelected ? 'bg-gray-700 border-l-4 border-primary-color' : ''}`;
-            li.setAttribute('data-id', chat.telegramId || chat.facebookId);
-            li.setAttribute('data-name', name);
-
-            const icon = type === 'telegram' ? 'ph-telegram-logo' : 'ph-facebook-logo';
-
-            li.innerHTML = `
-                <i class="ph ${icon} text-2xl text-primary-color"></i>
-                <div class="flex-grow overflow-hidden">
-                    <p class="font-semibold text-white truncate">${name}</p>
-                    <p class="text-xs text-gray-400 truncate">${chat.lastMessageText || 'No message yet'}</p>
-                </div>
-                <div class="flex flex-col items-end space-y-1 flex-shrink-0">
-                    <p class="text-xs text-gray-500">${formatTime(chat.lastMessageTime)}</p>
-                    <span class="unread-badge ${unreadCount > 0 ? 'bg-accent-green text-gray-900' : 'hidden bg-gray-600' } px-2 py-0.5 text-xs font-bold rounded-full">${unreadCount}</span>
-                </div>
-            `;
-
-            return li;
-        }
-
-        // --- TELEGRAM CHAT LOGIC ---
-
-        async function loadChatLists() {
-            try {
-                // Fetch Telegram Chats
-                const tgChats = await fetchWithBackoff(`${apiUrl}/chats`);
-                renderTgChatList(tgChats);
-
-                // For a real-world app, you would fetch Facebook chats here too:
-                // const fbChats = await fetchWithBackoff(`${apiUrl}/facebook/chats`);
-                // renderFbChatList(fbChats); // If server endpoint existed
-
-                // Calculate total unread count for badges
-                updateGlobalBadges(tgChats);
-
-            } catch (error) {
-                console.error("Failed to load chat lists:", error);
-                // Render an error message if loading fails
-                tgUserList.innerHTML = `<li class="p-4 text-center text-accent-red">Failed to load Telegram chats. Server error.</li>`;
-            }
-        }
-
-        function updateGlobalBadges(tgChats, fbChats = []) {
-            const totalTgUnread = tgChats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
-            const totalFbUnread = fbChats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
-
-            const tgBadge = document.getElementById('tg-unread-badge');
-            const fbBadge = document.getElementById('fb-unread-badge');
-            const dashboardTgUnread = document.getElementById('dashboard-tg-unread');
-            const dashboardFbUnread = document.getElementById('dashboard-fb-unread');
-
-            tgBadge.textContent = totalTgUnread;
-            tgBadge.classList.toggle('hidden', totalTgUnread === 0);
-            dashboardTgUnread.textContent = totalTgUnread;
-
-            fbBadge.textContent = totalFbUnread;
-            fbBadge.classList.toggle('hidden', totalFbUnread === 0);
-            dashboardFbUnread.textContent = totalFbUnread;
-        }
-
-        function renderTgChatList(chats) {
-            tgUserList.innerHTML = ''; // Clear previous list
-            chats.forEach(chat => {
-                const li = createChatListItem(chat, 'telegram');
-                li.addEventListener('click', () => selectTgChat(chat.telegramId, chat.username));
-                tgUserList.appendChild(li);
-            });
-        }
-
-        async function selectTgChat(chatId, username) {
-            // 1. Update selection visual
-            document.querySelectorAll('#tg-user-list li').forEach(item => {
-                item.classList.remove('bg-gray-700', 'border-l-4', 'border-primary-color');
-                if (item.getAttribute('data-id') === chatId) {
-                    item.classList.add('bg-gray-700', 'border-l-4', 'border-primary-color');
-                    // Hide the badge visually
-                    const badge = item.querySelector('.unread-badge');
-                    if (badge) badge.classList.add('hidden');
+            // Update Content Views
+            document.querySelectorAll('#content-container > div').forEach(view => {
+                if (view.id === 'view-' + viewName) {
+                    view.classList.remove('hidden');
+                } else {
+                    view.classList.add('hidden');
                 }
             });
-
-            // 2. Set current chat context
-            currentTgChat = { id: chatId, username: username };
             
-            // 3. Mark chat as read on server/db
-            await fetchWithBackoff(`${apiUrl}/chats/${chatId}/read`, { method: 'PUT' });
-
-            // 4. Update Header
-            tgChatHeader.classList.remove('hidden');
-            tgInputArea.classList.remove('hidden');
-            document.getElementById('tg-placeholder-message').classList.add('hidden');
-            tgRecipientName.textContent = username || `Chat #${chatId}`;
-            tgChatIdSpan.textContent = chatId;
-            tgUsernameSpan.textContent = username || 'N/A';
-            tgMessageHistory.innerHTML = '<div class="text-center text-gray-500">Loading history...</div>';
-
-            // 5. Fetch and Render History
-            try {
-                const history = await fetchWithBackoff(`${apiUrl}/chats/${chatId}/history`);
-                tgMessageHistory.innerHTML = ''; // Clear loading message
-
-                // Append messages in reverse order (to maintain the flex-col-reverse stack)
-                history.forEach(message => {
-                    tgMessageHistory.insertAdjacentHTML('afterbegin', renderMessage(message));
-                });
-
-                // Scroll to bottom (which is the top due to flex-col-reverse)
-                tgMessageHistory.scrollTop = 0;
-
-            } catch (error) {
-                console.error("Failed to load Telegram chat history:", error);
-                tgMessageHistory.innerHTML = `<div class="text-center p-4 text-accent-red">Failed to load history.</div>`;
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('open');
             }
         }
 
-        // Telegram Send Message Handler
-        tgSendForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = tgMessageInput.value.trim();
-            const file = tgMediaInput.files[0];
 
-            if (!currentTgChat) {
-                return showModal("Error", "Please select a chat before sending a message.");
-            }
-
-            if (!text && !file) {
-                return showModal("Error", "Message or file required.");
-            }
-
-            tgSendForm.querySelector('button[type="submit"]').disabled = true;
-
-            let mediaPath = null;
-            let mediaType = null;
-            let filename = file ? file.name : null;
-
-            if (file) {
-                // Convert file to Base64 for socket transmission (and saving to Firestore)
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    mediaPath = event.target.result; // Base64 Data URL
-                    mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
-                    await sendTgMessage(currentTgChat.id, text, mediaPath, mediaType, filename);
-                    tgSendForm.querySelector('button[type="submit"]').disabled = false;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                await sendTgMessage(currentTgChat.id, text, mediaPath, mediaType, filename);
-                tgSendForm.querySelector('button[type="submit"]').disabled = false;
-            }
-        });
-
-        async function sendTgMessage(chatId, text, mediaPath = null, mediaType = null, filename = null) {
-            try {
-                // The server.js socket handler handles sending to Telegram and saving to Firestore
-                socket.emit('admin_reply', { chatId, text, mediaPath, mediaType, filename }, (response) => {
-                    if (response.success) {
-                        tgMessageInput.value = '';
-                        tgMediaInput.value = '';
-                        tgFileNameDisplay.classList.add('hidden');
-                        // Local echo is handled by Firestore snapshot/Socket.io 'new_message' broadcast
-                    } else {
-                        showModal("Sending Failed", response.error || "The message failed to send to Telegram.");
-                    }
-                });
-
-                // Manually push a temporary admin message for immediate echo
-                const tempMsg = {
-                    sender: 'admin',
-                    text: text,
-                    mediaPath: mediaPath,
-                    filename: filename,
-                    timestamp: new Date().toISOString()
-                };
-                tgMessageHistory.insertAdjacentHTML('afterbegin', renderMessage(tempMsg));
-                tgMessageHistory.scrollTop = 0; // Scroll to bottom
-
-            } catch (error) {
-                console.error("Error sending message:", error);
-                showModal("System Error", "A network error occurred while trying to send the message.");
-            }
-        }
-
-        // File input change handler for Telegram
-        tgMediaUploadBtn.addEventListener('click', () => tgMediaInput.click());
-        tgMediaInput.addEventListener('change', () => {
-            const file = tgMediaInput.files[0];
-            if (file) {
-                tgFileNameDisplay.querySelector('span').textContent = file.name;
-                tgFileNameDisplay.classList.remove('hidden');
-            } else {
-                tgFileNameDisplay.classList.add('hidden');
-            }
-        });
-
-
-        // --- FACEBOOK CHAT LOGIC (Mocked Client-Side) ---
-
-        const mockFbChats = [
-            { id: '1001', name: 'Zin Mar Lwin', pageId: '4567', psid: '12345', lastMessageText: 'Can I get a quote?', lastMessageTime: Date.now() - 60000, unreadCount: 1 },
-            { id: '1002', name: 'Aung Ko Ko', pageId: '4567', psid: '23456', lastMessageText: 'Thanks for the info.', lastMessageTime: Date.now() - 3600000, unreadCount: 0 },
-            { id: '1003', name: 'Kyaw Htet', pageId: '4567', psid: '34567', lastMessageText: 'Received payment.', lastMessageTime: Date.now() - 86400000, unreadCount: 3 }
-        ];
-
-        function renderMockFbChats() {
-             fbUserList.innerHTML = ''; // Clear previous list
-            mockFbChats.forEach(chat => {
-                // We use telegramId field in createChatListItem for the ID, but it's used for facebookId here
-                const chatWithFbKeys = {
-                    facebookId: chat.id,
-                    name: chat.name,
-                    lastMessageText: chat.lastMessageText,
-                    lastMessageTime: chat.lastMessageTime,
-                    unreadCount: chat.unreadCount
-                };
-                const li = createChatListItem(chatWithFbKeys, 'facebook');
-                li.addEventListener('click', () => selectFbChat(chat.id, chat.name, chat.pageId, chat.psid));
-                fbUserList.appendChild(li);
-            });
-
-            updateGlobalBadges([], mockFbChats);
-        }
-
-        function selectFbChat(chatId, name, pageId = 'N/A', psid = 'N/A') {
-            // 1. Update selection visual
-            document.querySelectorAll('#fb-user-list li').forEach(item => {
-                item.classList.remove('bg-gray-700', 'border-l-4', 'border-primary-color');
-                if (item.getAttribute('data-id') === chatId) {
-                    item.classList.add('bg-gray-700', 'border-l-4', 'border-primary-color');
-                    // Mock: Hide the badge visually
-                    const badge = item.querySelector('.unread-badge');
-                    if (badge) badge.classList.add('hidden');
-                }
-            });
-
-            // 2. Set current chat context
-            currentFbChat = { id: chatId, name, pageId, psid };
-
-            // 3. Mark chat as read (Mocked)
-            const chatIndex = mockFbChats.findIndex(c => c.id === chatId);
-            if(chatIndex !== -1) {
-                mockFbChats[chatIndex].unreadCount = 0;
-                updateGlobalBadges([], mockFbChats);
-            }
-
-            // 4. Update Header
-            fbChatHeader.classList.remove('hidden');
-            fbInputArea.classList.remove('hidden');
-            document.getElementById('fb-placeholder-message').classList.add('hidden');
-            fbRecipientName.textContent = name || `Chat #${chatId}`;
-            fbPageIdSpan.textContent = pageId;
-            fbPsidSpan.textContent = psid;
-
-            // 5. Render Mock History
-            fbMessageHistory.innerHTML = '';
-            const mockMessages = [
-                { sender: 'user', text: 'How much does it cost to build a small website?', timestamp: Date.now() - 1800000 },
-                { sender: 'admin', text: 'It depends on features. I will send you our standard price list shortly.', timestamp: Date.now() - 1750000 },
-                { sender: 'user', text: 'Sounds good! Thank you.', timestamp: Date.now() - 60000 }
-            ];
-
-            mockMessages.forEach(message => {
-                fbMessageHistory.insertAdjacentHTML('afterbegin', renderMessage(message));
-            });
-            fbMessageHistory.scrollTop = 0;
-        }
-
-        // Facebook Send Message Handler (Mocked)
-        fbSendForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = fbMessageInput.value.trim();
-            const file = fbMediaInput.files[0];
-
-            if (!currentFbChat) {
-                return showModal("Error", "Please select a Facebook chat first.");
-            }
-
-            if (!text && !file) {
-                return showModal("Error", "Message or file required.");
-            }
-
-            fbSendForm.querySelector('button[type="submit"]').disabled = true;
-
-            // In a real app, this would be a secure API call to your server which calls the Graph API
-            const simulatedDelay = 1500;
+        // --- Event Listeners and Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+            setupSocket();
+            fetchChatList(); // Initial chat list load
             
-            // Manually push an admin message for immediate echo
-            const tempMsg = {
-                sender: 'admin',
-                text: text || 'Media sent via Facebook (Mock)',
-                mediaPath: file ? 'data:image/svg+xml;base64,...' : null, // Simplified mock media
-                filename: file ? file.name : null,
-                timestamp: new Date().toISOString()
-            };
-            fbMessageHistory.insertAdjacentHTML('afterbegin', renderMessage(tempMsg));
-            fbMessageHistory.scrollTop = 0;
+            // Menu Item Click Handlers
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', () => switchView(item.getAttribute('data-view')));
+            });
 
-            await new Promise(resolve => setTimeout(resolve, simulatedDelay));
-            showModal("Success (Mock)", `Message sent to Facebook PSID ${currentFbChat.psid} (via simulated server call).`);
-
-            fbMessageInput.value = '';
-            fbMediaInput.value = '';
-            fbFileNameDisplay.classList.add('hidden');
-            fbSendForm.querySelector('button[type="submit"]').disabled = false;
-        });
-        
-        // File input change handler for Facebook
-        fbMediaUploadBtn.addEventListener('click', () => fbMediaInput.click());
-        fbMediaInput.addEventListener('change', () => {
-            const file = fbMediaInput.files[0];
-            if (file) {
-                fbFileNameDisplay.querySelector('span').textContent = file.name;
-                fbFileNameDisplay.classList.remove('hidden');
-            } else {
-                fbFileNameDisplay.classList.add('hidden');
-            }
-        });
+            // Mobile Menu Toggle
+            document.getElementById('menu-toggle').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+            });
 
 
-        // --- REALTIME SOCKET.IO HANDLERS ---
-        socket.on('connect', () => {
-            connectionStatus.innerHTML = '<span class="w-3 h-3 rounded-full bg-accent-green mr-2"></span>Realtime Ready';
-        });
-
-        socket.on('disconnect', () => {
-            connectionStatus.innerHTML = '<span class="w-3 h-3 rounded-full bg-accent-red mr-2"></span>Disconnected';
-        });
-
-        // Handler for new messages from Telegram users (or admin replies being echoed)
-        socket.on('new_message', (data) => {
-            const { chatId, message, user } = data;
+            // Message Input/Send Handlers
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+            document.getElementById('message-input').addEventListener('input', updateSendButtonState);
+            document.getElementById('message-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
             
-            // 1. Update the chat list item
-            const chatItem = document.getElementById(`tg-chat-list-item-${chatId}`);
-            if (chatItem) {
-                chatItem.querySelector('p:nth-child(2)').textContent = message.text || (message.filename || 'Media received/sent');
-                chatItem.querySelector('.text-xs.text-gray-500').textContent = formatTime(message.timestamp);
-                
-                // If it's a user message and not the currently selected chat, update badge
-                if (message.sender === 'user' && currentTgChat?.id !== chatId) {
-                    const badge = chatItem.querySelector('.unread-badge');
-                    if (badge) {
-                         badge.textContent = user.unreadCount; // Use the count sent by the server
-                         badge.classList.remove('hidden');
-                    }
+            // File Upload Handler
+            document.getElementById('file-upload').addEventListener('change', (event) => {
+                selectedFile = event.target.files[0];
+                if (selectedFile) {
+                    document.getElementById('file-preview-name').textContent = selectedFile.name;
+                    document.getElementById('file-preview-area').classList.remove('hidden');
+                } else {
+                    clearFileSelection();
                 }
+                updateSendButtonState();
+            });
+            
+            document.getElementById('clear-file-btn').addEventListener('click', clearFileSelection);
 
-                // Move item to the top
-                tgUserList.prepend(chatItem);
-
-                // Re-calculate global badge for dashboard
-                loadChatLists(); 
-
-            } else {
-                // If new chat, reload list to include it
-                loadChatLists();
-            }
-
-            // 2. Render in history if selected
-            if (currentTgChat && currentTgChat.id === chatId) {
-                 // The server marking as read will ensure the badge is cleared if it was user message
-                 if (message.sender === 'user') {
-                    // Since admin is currently viewing, immediately mark as read
-                    fetchWithBackoff(`${apiUrl}/chats/${chatId}/read`, { method: 'PUT' });
-                 }
-                 tgMessageHistory.insertAdjacentHTML('afterbegin', renderMessage(message));
-                 tgMessageHistory.scrollTop = 0;
-            }
         });
-
-        // Handler for chat read status changes (e.g., another admin cleared the badge)
-        socket.on('chat_read_status', ({ chatId, unreadCount }) => {
-            const chatItem = document.getElementById(`tg-chat-list-item-${chatId}`);
-            if (chatItem) {
-                const badge = chatItem.querySelector('.unread-badge');
-                if (badge) {
-                    badge.textContent = unreadCount;
-                    badge.classList.toggle('hidden', unreadCount === 0);
-                }
-            }
-            // Update global badge
-            loadChatLists();
-        });
-
-
-        // --- INITIALIZATION ---
-        window.onload = () => {
-            // Start Firebase and auth process
-            initFirebase();
-
-            // Default to Dashboard view
-            switchView('dashboard-view');
-        };
 
     </script>
 </body>
