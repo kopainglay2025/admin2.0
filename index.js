@@ -7,19 +7,28 @@ const http = require('http');
 const { Server } = require('socket.io');
 const admin = require('firebase-admin');
 const auth = require('basic-auth');
-const path = require('path');
+const path = require 'path');
 
 // --- 1. Firebase Initialization (DB Setup) ---
 try {
-    const serviceAccountKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    const serviceAccountKeyString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    
+    if (!serviceAccountKeyString || typeof serviceAccountKeyString !== 'string') {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is missing or not a string.");
+    }
+    
+    // JSON string ကို parse လုပ်ပါ (ဒီအဆင့်မှာ \\n တွေက \n အဖြစ် ပြောင်းသွားပါမယ်)
+    const serviceAccountKey = JSON.parse(serviceAccountKeyString);
+    
     admin.initializeApp({
+        // Firebase Admin SDK က Private Key ကို စနစ်တကျ လက်ခံနိုင်အောင် cert() ကို သုံးပါ
         credential: admin.credential.cert(serviceAccountKey),
-        databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com" // Replace with your actual database URL
+        databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com" // သင့်ရဲ့ Database URL ကို ဒီမှာ ထည့်ပေးပါ
     });
     console.log("Firebase initialized successfully.");
 } catch (error) {
     console.error("Firebase initialization failed:", error);
-    process.exit(1);
+    process.exit(1); // Initialization မအောင်မြင်ရင် app ကို ရပ်လိုက်ပါ
 }
 
 const db = admin.database();
@@ -28,7 +37,9 @@ const messagesRef = db.ref('messages');
 
 // --- 2. Telegram Bot Setup ---
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-const ADMIN_CHAT_ID = "YOUR_ADMIN_TELEGRAM_ID"; // Admin ရဲ့ Telegram ID ကို ဒီမှာထည့်ပါ (Broadcast/Alert အတွက်)
+// Admin ရဲ့ Telegram ID ကို ဒီမှာ ထည့်ပါ။ (Broadcast/Alert အတွက်)
+// လက်ရှိအသုံးပြုသူ ID ကို စမ်းသပ်ရန် သို့မဟုတ် သီးခြား Admin Group ID ကို ထည့်ပါ။
+const ADMIN_CHAT_ID = "YOUR_ADMIN_TELEGRAM_ID"; 
 
 // Custom Menu Keyboard
 const menuKeyboard = Markup.keyboard([
@@ -51,7 +62,7 @@ bot.start(async (ctx) => {
     ctx.reply(`မင်္ဂလာပါ ${username}။ 👋\n\nမည်သည့် အကူအညီ လိုအပ်ပါသလဲ? Admin နဲ့ တိုက်ရိုက် စကားပြောလိုပါက **Chat** ကို နှိပ်ပါ သို့မဟုတ် တိုက်ရိုက် စာပို့နိုင်ပါတယ်။`, menuKeyboard);
 });
 
-bot.command('dashboard', (ctx) => ctx.reply('Dashboard အချက်အလက်များ... (e.g., website link)'));
+bot.command('dashboard', (ctx) => ctx.reply('Dashboard အချက်အလက်များ... (Admin panel ကို ကြည့်ရှုရန်)'));
 bot.command('chat', (ctx) => ctx.reply('Admin နဲ့ စကားစပြောနိုင်ပါပြီ။ စာရေးပြီး ပို့နိုင်ပါတယ်။ Admin ဘက်မှ အမြန်ဆုံး ပြန်ဖြေပေးပါမယ်။'));
 bot.command('broadcast', (ctx) => ctx.reply('Broadcast လုပ်ရန် Admin Panel ကို အသုံးပြုပါ။'));
 bot.command('settings', (ctx) => ctx.reply('Bot ဆက်တင်များ...'));
@@ -71,6 +82,7 @@ bot.on('text', async (ctx) => {
         sender: 'user', // 'user' or 'admin'
         timestamp: timestamp
     };
+    // Child key (userId) အောက်မှာ message တွေကို push ဖြင့် သိမ်းဆည်းခြင်း
     await messagesRef.child(userId).push(newMessage);
     
     // 2. Notify Admin Panel via Socket.IO
@@ -80,13 +92,9 @@ bot.on('text', async (ctx) => {
         message: messageText, 
         time: new Date().toLocaleTimeString() 
     });
-
-    // 3. (Optional) Auto-reply for non-chat messages
-    if (ctx.message.text.startsWith('/')) {
-        // Command တွေကို စစ်ပြီး start က reply ပြီးသားမို့ ဘာမှ မလုပ်ပါ
-    } else {
-        // စကားပြောမုဒ်လို သဘောထားပြီး auto-reply မလုပ်တော့ပါ
-    }
+    
+    // 3. (Optional) Admin ကို Telegram ကနေ Notification ပို့ပါ
+    // bot.telegram.sendMessage(ADMIN_CHAT_ID, `New message from ${username} (${userId}): ${messageText}`);
 });
 
 bot.launch();
@@ -100,11 +108,12 @@ process.once('SIGTERM', () => bot.stop('SIGTERM'));
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 // Basic HTTP Authentication Middleware
 const basicAuth = (req, res, next) => {
     const user = auth(req);
+    // Basic Auth စစ်ဆေးခြင်း
     if (!user || user.name !== process.env.ADMIN_USERNAME || user.pass !== process.env.ADMIN_PASSWORD) {
         res.set('WWW-Authenticate', 'Basic realm="Admin Access"');
         return res.status(401).send('Authentication required.');
@@ -114,7 +123,9 @@ const basicAuth = (req, res, next) => {
 
 // Serve static files (HTML, CSS, JS) from the public folder
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(basicAuth); // Protect all routes with basic auth
+
+// Apply Basic Auth to all routes
+app.use(basicAuth); 
 
 // Routes
 app.get('/', (req, res) => {
@@ -137,25 +148,26 @@ io.on('connection', (socket) => {
         
         // 1. Send message via Telegram Bot
         try {
+            // bot.telegram.sendMessage() ကို သုံးပြီး user ဆီ စာပို့ပါ
             await bot.telegram.sendMessage(userId, message);
             console.log(`Sent message to user ${userId}: ${message}`);
 
             // 2. Save admin message to Firebase
             const newMessage = {
                 userId: userId,
-                username: 'Admin', // For display purposes in chat history
+                username: 'Admin', // Admin ကိုယ်စားပြုအမည်
                 message: message,
                 sender: 'admin',
                 timestamp: admin.database.ServerValue.TIMESTAMP
             };
             await messagesRef.child(userId).push(newMessage);
 
-            // 3. Acknowledge back to admin panel (to display the message immediately)
+            // 3. Acknowledge back to admin panel (စာပို့ပြီးကြောင်း UI မှာ ပြသနိုင်ရန်)
             socket.emit('message_sent_success', newMessage);
 
         } catch (error) {
             console.error(`Error sending message to user ${userId}:`, error);
-            socket.emit('message_sent_error', { error: 'Failed to send message.' });
+            socket.emit('message_sent_error', { error: 'Failed to send message via Telegram.' });
         }
     });
 
@@ -167,7 +179,7 @@ io.on('connection', (socket) => {
             const messageList = [];
             
             if (messages) {
-                // Convert Firebase object to a sorted array
+                // Firebase object ကို array အဖြစ် ပြောင်းပြီး အချိန်အလိုက် စီပါ
                 Object.keys(messages).forEach(key => {
                     messageList.push(messages[key]);
                 });
@@ -191,7 +203,7 @@ io.on('connection', (socket) => {
                 Object.keys(users).forEach(key => {
                     userList.push(users[key]);
                 });
-                // Sort by last active time
+                // နောက်ဆုံး လှုပ်ရှားမှုအချိန် (lastActive) အလိုက် စီပါ
                 userList.sort((a, b) => b.lastActive - a.lastActive);
             }
             socket.emit('active_users_list', userList);
@@ -199,6 +211,31 @@ io.on('connection', (socket) => {
             console.error('Error fetching active users:', error);
         }
     });
+
+    // Broadcast message to all users (TODO: ဤလုပ်ဆောင်ချက်ကို chat.html တွင် ထပ်ထည့်ရန်လိုသည်)
+    socket.on('broadcast_message', async (message) => {
+         try {
+            const snapshot = await usersRef.once('value');
+            const users = snapshot.val();
+            let successCount = 0;
+            
+            if (users) {
+                const userIds = Object.keys(users);
+                for (const userId of userIds) {
+                    try {
+                        await bot.telegram.sendMessage(userId, `📣 Broadcast Message: ${message}`);
+                        successCount++;
+                    } catch (e) {
+                        console.error(`Failed to send broadcast to user ${userId}:`, e.message);
+                    }
+                }
+            }
+            socket.emit('broadcast_result', { success: true, count: successCount });
+         } catch (error) {
+             socket.emit('broadcast_result', { success: false, error: 'Database error.' });
+         }
+    });
+
 
     socket.on('disconnect', () => {
         console.log('Admin disconnected from socket.io');
