@@ -1,5 +1,3 @@
-// server.js
-
 // 1. Environment Variables Loading
 require('dotenv').config();
 
@@ -23,6 +21,11 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
+// === NEW FACEBOOK CONSTANTS (Requires .env updates) ===
+const FB_PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
+const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
+const FB_CHAT_COLLECTION = 'facebook_chats'; // New collection for FB messages
+
 // 3. Robust Firebase Admin Initialization (Fixes UNAUTHENTICATED Code 16)
 let serviceAccount;
 try {
@@ -44,7 +47,7 @@ try {
 }
 
 const db = admin.firestore();
-const CHAT_COLLECTION = 'telegram_chats';
+const TELEGRAM_CHAT_COLLECTION = 'telegram_chats'; // Renamed for clarity
 const MESSAGE_SUB_COLLECTION = 'messages';
 
 
@@ -54,7 +57,7 @@ console.log(`Telegram Bot is polling with token: ${TELEGRAM_BOT_TOKEN ? 'Ready' 
 
 // 5. Express Middleware
 app.use(bodyParser.json({ limit: '50mb' })); // Increase limit for Base64 image/file data
-app.use(express.static(path.join(__dirname, 'public'))); // Assuming admin_panel.html is served from root or a 'public' dir
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 // Basic Authentication Middleware for Admin Panel
 const basicAuthMiddleware = basicAuth({
@@ -69,18 +72,18 @@ const basicAuthMiddleware = basicAuth({
 // ------------------------------------------------------------------
 
 /**
- * Saves a message (user or admin) to Firestore.
- * NOTE: If sender is 'user', unreadCount is incremented.
- * @param {string} chatId - Telegram chat ID.
+ * Saves a message (user or admin) to Firestore in a specified collection.
+ * @param {string} chatId - Chat ID (Telegram or Facebook PSID).
  * @param {string} sender - 'user' or 'admin'.
  * @param {string | null} text - Message text (caption).
- * @param {string | null} mediaPath - File ID (for user) or Base64 (for admin).
- * @param {string | null} username - Telegram username (only for user message on first contact).
- * @param {string | null} filename - Original filename (for admin document replies).
+ * @param {string | null} mediaPath - File ID (user Telegram) or Base64 (admin reply/FB).
+ * @param {string | null} username - User identifier.
+ * @param {string | null} filename - Original filename.
+ * @param {string} collectionName - Which top-level collection to use (Telegram or FB).
  * @returns {Promise<object>} The saved message data.
  */
-async function saveMessage(chatId, sender, text, mediaPath = null, username = 'Unknown User', filename = null) {
-    const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
+async function saveMessage(chatId, sender, text, mediaPath = null, username = 'Unknown User', filename = null, collectionName = TELEGRAM_CHAT_COLLECTION) {
+    const chatRef = db.collection(collectionName).doc(String(chatId));
 
     // Update the main chat document with last message info
     const chatUpdate = {
@@ -91,7 +94,7 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = 'U
 
     if (sender === 'user') {
         chatUpdate.username = username; // Update username on user contact
-        // === NEW: Increment unread count for admin ===
+        // Increment unread count for admin
         chatUpdate.unreadCount = admin.firestore.FieldValue.increment(1);
     }
     
@@ -103,8 +106,8 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = 'U
         chatId: String(chatId),
         sender: sender,
         text: text,
-        mediaPath: mediaPath, // Used for file_id (user) or base64 (admin)
-        filename: filename, // New field for admin side document/file display
+        mediaPath: mediaPath, 
+        filename: filename, 
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -150,14 +153,14 @@ bot.on('message', async (msg) => {
 
     try {
         // For user messages, save the file_id in mediaPath and the original filename
-        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename);
+        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename, TELEGRAM_CHAT_COLLECTION);
 
         // 1. Fetch the updated chat data to get the new unreadCount
-        const chatDoc = await db.collection(CHAT_COLLECTION).doc(String(chatId)).get();
+        const chatDoc = await db.collection(TELEGRAM_CHAT_COLLECTION).doc(String(chatId)).get();
         const chatData = chatDoc.data();
 
         // 2. Notify Admin Panel (All connected sockets)
-        io.emit('new_message', { 
+        io.emit('new_telegram_message', { 
             chatId: chatId,
             message: savedMessage,
             user: {
@@ -165,7 +168,7 @@ bot.on('message', async (msg) => {
                 username: chatData.username,
                 lastMessageTime: savedMessage.timestamp,
                 lastMessageText: savedMessage.text,
-                unreadCount: chatData.unreadCount || 0, // === NEW: Send unreadCount ===
+                unreadCount: chatData.unreadCount || 0, // Send unreadCount
             }
         });
         console.log(`New user message saved and broadcasted: ${username}`);
@@ -179,50 +182,45 @@ bot.on('message', async (msg) => {
 // 8. Admin Panel API Endpoints (Admin required)
 // ------------------------------------------------------------------
 
-// API to get all active chat users (sorted by last message time)
-app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
+// API to get all active chat users (Default: Telegram)
+app.get('/api/chats/:channel', basicAuthMiddleware, async (req, res) => {
+    const { channel } = req.params;
+    const collectionName = channel === 'facebook' ? FB_CHAT_COLLECTION : TELEGRAM_CHAT_COLLECTION;
+
     try {
-        // Fetch all documents in the CHAT_COLLECTION, ordered by last activity
-        const snapshot = await db.collection(CHAT_COLLECTION)
+        // Fetch all documents in the determined collection, ordered by last activity
+        const snapshot = await db.collection(collectionName)
             .orderBy('lastMessageTime', 'desc')
             .get();
 
         const chats = snapshot.docs.map(doc => ({
-            telegramId: doc.id,
+            id: doc.id, // Use generic 'id' instead of telegramId
             ...doc.data(),
             // Ensure timestamp fields are serialized correctly
             lastMessageTime: doc.data().lastMessageTime ? doc.data().lastMessageTime.toDate().toISOString() : new Date().toISOString(),
-            unreadCount: doc.data().unreadCount || 0 // === NEW: Include unreadCount ===
+            unreadCount: doc.data().unreadCount || 0 // Include unreadCount
         }));
 
         res.json(chats);
     } catch (error) {
-        console.error("Error fetching chat list:", error.message); 
-        console.error(error); 
-        
-        if (error.code === 16) {
-             console.error("Firestore Error Code 16: UNAUTHENTICATED. Check service account credentials parsing in server.js!");
-        } else if (error.code === 7) {
-             console.error("Firestore Error Code 7: SERVICE_DISABLED. Check if Cloud Firestore API is enabled in your Google Cloud project.");
-        } else if (error.code === 9) {
-             console.error("Firestore Error Code 9: FAILED_PRECONDITION (Missing Index). Check the full error message above for the index creation URL!");
-        }
+        console.error(`Error fetching chat list for ${channel}:`, error.message);
         res.status(500).json({ error: 'Failed to retrieve chat list.' });
     }
 });
 
-// === NEW: API to mark a chat as read (resetting unreadCount) ===
-app.put('/api/chats/:chatId/read', basicAuthMiddleware, async (req, res) => {
-    const { chatId } = req.params;
+// API to mark a chat as read (resetting unreadCount)
+app.put('/api/chats/:channel/:chatId/read', basicAuthMiddleware, async (req, res) => {
+    const { chatId, channel } = req.params;
+    const collectionName = channel === 'facebook' ? FB_CHAT_COLLECTION : TELEGRAM_CHAT_COLLECTION;
 
     try {
-        const chatRef = db.collection(CHAT_COLLECTION).doc(chatId);
+        const chatRef = db.collection(collectionName).doc(chatId);
         await chatRef.update({
             unreadCount: 0,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-        // Broadcast an update to all connected admins to instantly clear the badge
-        io.emit('chat_read_status', { chatId, unreadCount: 0 });
+        // Broadcast an update
+        io.emit('chat_read_status', { chatId, unreadCount: 0, channel });
         res.json({ success: true, message: `Chat ${chatId} marked as read.` });
     } catch (error) {
         console.error(`Error marking chat ${chatId} as read:`, error);
@@ -231,14 +229,15 @@ app.put('/api/chats/:chatId/read', basicAuthMiddleware, async (req, res) => {
 });
 
 
-// API to get chat history for a specific user (with pagination)
-app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
-    const { chatId } = req.params;
+// API to get chat history for a specific user
+app.get('/api/chats/:channel/:chatId/history', basicAuthMiddleware, async (req, res) => {
+    const { chatId, channel } = req.params;
     const limit = parseInt(req.query.limit) || 30;
     const offset = parseInt(req.query.offset) || 0;
+    const collectionName = channel === 'facebook' ? FB_CHAT_COLLECTION : TELEGRAM_CHAT_COLLECTION;
 
     try {
-        let query = db.collection(CHAT_COLLECTION).doc(chatId)
+        let query = db.collection(collectionName).doc(chatId)
             .collection(MESSAGE_SUB_COLLECTION)
             .orderBy('timestamp', 'desc'); // Newest first
 
@@ -253,16 +252,16 @@ app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
         return res.json(history);
 
     } catch (error) {
-        console.error(`Error fetching history for chat ${chatId}:`, error);
+        console.error(`Error fetching history for chat ${chatId} (${channel}):`, error);
         res.status(500).json({ error: 'Failed to retrieve chat history.' });
     }
 });
 
 
-// API to get Telegram Media (Image/Photo/Document)
-app.get('/api/get-media', basicAuthMiddleware, async (req, res) => {
+// API to get Telegram Media (Image/Photo/Document) - FB uses Graph API/download
+app.get('/api/get-telegram-media', basicAuthMiddleware, async (req, res) => {
     const fileId = req.query.file_id;
-
+    // ... Existing Telegram media logic ...
     if (!fileId) {
         return res.status(400).json({ error: 'Missing file_id parameter.' });
     }
@@ -284,13 +283,81 @@ app.get('/api/get-media', basicAuthMiddleware, async (req, res) => {
     }
 });
 
+// === NEW: Placeholder API for sending Facebook replies from Admin Panel ===
+app.post('/api/fb/send', basicAuthMiddleware, async (req, res) => {
+    const { chatId, text, mediaPath, mediaType, filename } = req.body;
 
-// 9. Socket.io Handler (Admin Reply)
+    if (!FB_PAGE_ACCESS_TOKEN) {
+        return res.status(500).json({ error: "Facebook Page Access Token is missing. Cannot send." });
+    }
+    
+    // --- TODO: Full implementation of Facebook Graph API POST request (send message) here ---
+    // The front-end is ready to send the data. You must implement the POST request to FB.
+    
+    try {
+        // Simulating the successful send response from Facebook
+        console.log(`[FB Proxy] Attempting to send message to PSID ${chatId}...`);
+
+        // Save admin's message to Firestore (using FB_CHAT_COLLECTION)
+        const savedMessage = await saveMessage(chatId, 'admin', text, mediaPath, null, filename, FB_CHAT_COLLECTION);
+        
+        // Broadcast the update via Socket.io to other admins
+        io.emit('new_fb_message', { chatId: chatId, message: savedMessage });
+        io.emit('chat_read_status', { chatId, unreadCount: 0, channel: 'facebook' });
+
+
+        res.json({ success: true, message: "FB send proxy placeholder processed successfully." });
+
+    } catch (error) {
+        console.error("Error processing Facebook admin reply:", error);
+        res.status(500).json({ error: 'Failed to proxy message to Facebook Graph API.' });
+    }
+});
+
+
+// ------------------------------------------------------------------
+// 9. Facebook Messenger Webhook Endpoint (External Access)
+// ------------------------------------------------------------------
+
+// 9a. For Facebook to verify the webhook
+app.get('/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === FB_VERIFY_TOKEN) {
+            console.log('WEBHOOK_VERIFIED');
+            res.status(200).send(challenge);
+        } else {
+            console.log('FB Webhook Verification Failed: Token mismatch.');
+            res.sendStatus(403);
+        }
+    } else {
+        res.sendStatus(404);
+    }
+});
+
+// 9b. For handling incoming messages from Facebook
+app.post('/webhook', (req, res) => {
+    // --- TODO: Full implementation of Facebook message reception logic here ---
+    // You need to parse the incoming message and call saveMessage (with FB_CHAT_COLLECTION)
+    // Then, broadcast via Socket.io: io.emit('new_fb_message', { ... });
+    
+    console.log('[FB Webhook] Received message from Facebook.', JSON.stringify(req.body, null, 2));
+    res.status(200).send('EVENT_RECEIVED');
+});
+
+
+// ------------------------------------------------------------------
+// 10. Socket.io Handler (Admin Reply)
+// ------------------------------------------------------------------
+
 io.on('connection', (socket) => {
     console.log('Admin connected via socket.io');
 
-    // Admin sends a reply
-    socket.on('admin_reply', async (data, callback) => {
+    // Admin sends a reply (Telegram specific)
+    socket.on('admin_reply_telegram', async (data, callback) => { // Renamed event
         // Added mediaType and filename for handling different media types
         const { chatId, text, mediaPath, mediaType, filename } = data; 
 
@@ -330,16 +397,14 @@ io.on('connection', (socket) => {
                 throw new Error("Cannot send empty message or file.");
             }
 
-            // Save admin's message to Firestore (use the original base64/text for local echo)
-            // If media was sent, we save the Base64 in mediaPath for admin side to display.
-            await saveMessage(chatId, 'admin', text, mediaPath, null, filename); 
+            // Save admin's message to Firestore
+            await saveMessage(chatId, 'admin', text, mediaPath, null, filename, TELEGRAM_CHAT_COLLECTION); 
 
-            // Send chat_read_status update since admin just replied (implies reading)
-            // Although /read API is better for click events, this ensures the count is reset on reply.
-            await db.collection(CHAT_COLLECTION).doc(String(chatId)).update({
+            // Reset unread count
+            await db.collection(TELEGRAM_CHAT_COLLECTION).doc(String(chatId)).update({
                 unreadCount: 0
             });
-            io.emit('chat_read_status', { chatId, unreadCount: 0 }); // Broadcast the reset
+            io.emit('chat_read_status', { chatId, unreadCount: 0, channel: 'telegram' }); // Broadcast the reset
 
             if (callback) callback({ success: true });
 
@@ -357,7 +422,7 @@ io.on('connection', (socket) => {
 });
 
 
-// 10. Serve the Admin Panel HTML
+// 11. Serve the Admin Panel HTML
 app.get('/admin', basicAuthMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin_panel.html'));
 });
@@ -368,7 +433,7 @@ app.get('/', (req, res) => {
 });
 
 
-// 11. Start Server
+// 12. Start Server
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Access Admin Panel at: http://localhost:${PORT}/admin`);
