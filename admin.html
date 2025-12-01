@@ -42,13 +42,15 @@
 <body class="min-h-screen">
 
 <div id="app-container">
-    <!-- Content will be rendered here by JavaScript -->
+    <!-- Firebase authentication ပြီးဆုံးသည်အထိ Loading screen ပြသမည်။ -->
+    <div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div><p class="ml-4 text-gray-600">Loading Admin Panel...</p></div>
 </div>
 
 <!-- Firebase Client SDKs -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    // Logout functions များကို ဖယ်ရှားလိုက်ပါပြီ။
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // Set Firestore log level for debugging
@@ -74,7 +76,7 @@
         auth = getAuth(app);
     } 
 
-    // --- Authentication and Setup ---
+    // --- Authentication and Setup (Simplified for Direct Access) ---
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -83,6 +85,7 @@
         } else {
             console.log("No user signed in. Attempting custom/anonymous sign-in.");
             try {
+                // Login မလိုအပ်တော့သောကြောင့် Anonymous Sign-in ကို အသုံးပြုသည်။
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
@@ -93,7 +96,7 @@
             }
         }
         isAuthReady = true;
-        // Rerender the whole app once authentication state is determined
+        // Auth ပြီးသည်နှင့် App ကို တိုက်ရိုက် render လုပ်ပါ။
         renderApp(); 
     });
 
@@ -159,11 +162,15 @@
         if (!text.trim()) return;
 
         const chatBox = document.getElementById('chat-messages');
-        const originalScrollHeight = chatBox.scrollHeight;
-        const originalScrollTop = chatBox.scrollTop;
-        const isScrolledToBottom = (originalScrollTop + chatBox.clientHeight) >= (originalScrollHeight - 20);
+        let isScrolledToBottom = true;
+        if (chatBox) {
+            const originalScrollHeight = chatBox.scrollHeight;
+            const originalScrollTop = chatBox.scrollTop;
+            isScrolledToBottom = (originalScrollTop + chatBox.clientHeight) >= (originalScrollHeight - 20);
+        }
 
         try {
+            // Login စစ်ဆေးမှု မရှိဘဲ API ကို ခေါ်ဆိုသည်။
             const response = await fetch('/api/send-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -189,7 +196,7 @@
             document.getElementById('message-input').value = '';
             
             // Wait for Firestore listener to update UI, but quickly scroll if needed
-            if (isScrolledToBottom) {
+            if (chatBox && isScrolledToBottom) {
                  setTimeout(() => chatBox.scrollTop = chatBox.scrollHeight, 100);
             }
 
@@ -208,122 +215,37 @@
         }
     }
 
-    /**
-     * Handles Admin Logout
-     */
-    async function handleLogout() {
-        try {
-            await signOut(auth);
-            await fetch('/api/logout', { method: 'POST' });
-            navigate('/login');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    }
-
-
-    // --- UI Rendering Functions ---
-
-    function renderLogin() {
-        // --- UPDATED LOGIN UI (Fixed to render immediately) ---
-        document.getElementById('app-container').innerHTML = `
-            <div class="flex items-center justify-center min-h-screen bg-gray-100">
-                <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-2xl border-t-4 border-green-600 transform transition-all duration-300 hover:shadow-3xl">
-                    <div class="text-center">
-                        <svg class="mx-auto w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                        <h2 class="mt-4 text-3xl font-extrabold text-gray-900">
-                            အုပ်ချုပ်သူ ဝင်ရောက်ခြင်း (Admin Login)
-                        </h2>
-                        <p class="mt-2 text-sm text-gray-600">
-                            ဆက်လက်လုပ်ဆောင်ရန် သင့်အချက်အလက်များ ထည့်သွင်းပါ။
-                        </p>
-                    </div>
-                    <form id="login-form" class="mt-8 space-y-6">
-                        <div class="rounded-md shadow-sm">
-                            <div class="mb-4">
-                                <label for="username" class="sr-only">အသုံးပြုသူအမည် (Username)</label>
-                                <input id="username" name="username" type="text" required 
-                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
-                                    placeholder="အသုံးပြုသူအမည် (Username)">
-                            </div>
-                            <div>
-                                <label for="password" class="sr-only">လျှို့ဝှက်နံပါတ် (Password)</label>
-                                <input id="password" name="password" type="password" required 
-                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
-                                    placeholder="လျှို့ဝှက်နံပါတ် (Password)">
-                            </div>
-                        </div>
-
-                        <button type="submit" 
-                            class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out shadow-md hover:shadow-lg">
-                            ဝင်ရောက်မည် (Sign In)
-                        </button>
-                    </form>
-                    <p id="login-error" class="text-sm text-red-600 text-center hidden"></p>
-                </div>
-            </div>
-        `;
-        // --- END UPDATED LOGIN UI ---
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = e.target.username.value;
-            const password = e.target.password.value;
-            const errorElement = document.getElementById('login-error');
-            errorElement.classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    navigate(data.redirect || '/');
-                } else {
-                    errorElement.textContent = data.message || 'Login failed. အချက်အလက်များ မမှန်ကန်ပါ။';
-                    errorElement.classList.remove('hidden');
-                }
-            } catch (error) {
-                errorElement.textContent = 'An error occurred during login. ကွန်ယက်ချို့ယွင်းမှု ရှိပါသည်။';
-                errorElement.classList.remove('hidden');
-            }
-        });
-    }
+    // renderLogin function ကို ဖယ်ရှားလိုက်ပါပြီ။
+    // handleLogout function ကို ဖယ်ရှားလိုက်ပါပြီ။
 
     function renderAdminLayout(contentHTML) {
+        // Logout button ကို ဖယ်ရှားလိုက်ပါပြီ။
         document.getElementById('app-container').innerHTML = `
             <div class="flex h-screen bg-gray-50">
                 <!-- Sidebar -->
                 <aside class="w-64 bg-white shadow-xl flex flex-col">
                     <div class="p-6 border-b border-gray-200">
                         <h1 class="text-2xl font-bold text-green-600">Telegram Admin</h1>
+                        <p class="text-xs text-gray-500 mt-1 break-all">User ID: ${userId || 'Loading...'}</p>
                     </div>
                     <nav class="flex-grow p-4 space-y-2">
                         <a href="/" onclick="event.preventDefault(); navigate('/')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/' ? 'bg-gray-100 font-semibold' : ''}">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0v-4a1 1 0 011-1h2a1 1 0 011 1v4m-6 0h6"></path></svg>
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0v-4a1 1 0 011-1h2a1 1 0 011 1v4m-6 0h6"></path></svg>
                             Dashboard
                         </a>
                         <a href="/chat" onclick="event.preventDefault(); navigate('/chat')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath.startsWith('/chat') ? 'bg-gray-100 font-semibold text-green-600' : ''}">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                             Chat (Real-time)
                         </a>
                         <a href="/broadcast" onclick="event.preventDefault(); navigate('/broadcast')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/broadcast' ? 'bg-gray-100 font-semibold' : ''}">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-2.67 1.054l-5.8-3.793a1 1 0 010-1.748l5.8-3.793A1.76 1.76 0 0111 5.882zM16 4h4a1 1 0 011 1v4a1 1 0 01-1 1h-4m-7 0a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-2.67 1.054l-5.8-3.793a1 1 0 010-1.748l5.8-3.793A1.76 1.76 0 0111 5.882zM16 4h4a1 1 0 011 1v4a1 1 0 01-1 1h-4m-7 0a3 3 0 100-6 3 3 0 000 6z"></path></svg>
                             Broadcast
                         </a>
                         <a href="/settings" onclick="event.preventDefault(); navigate('/settings')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/settings' ? 'bg-gray-100 font-semibold' : ''}">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             Settings
                         </a>
                     </nav>
-                    <div class="p-4 border-t border-gray-200">
-                        <button id="logout-btn" class="w-full py-2 px-4 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition duration-150">
-                            Logout
-                        </button>
-                    </div>
                 </aside>
                 
                 <!-- Main Content -->
@@ -332,7 +254,6 @@
                 </main>
             </div>
         `;
-        document.getElementById('logout-btn').onclick = handleLogout;
     }
 
     function renderDashboard() {
@@ -376,10 +297,10 @@
         return `
             <h2 class="text-3xl font-bold text-gray-800 mb-6">Settings</h2>
             <div class="bg-white p-8 rounded-xl shadow-md max-w-xl">
-                <p class="text-gray-600">ဤနေရာသည် စနစ်ထည့်သွင်းမှုများ (ဥပမာ: Telegram Bot Token ပြောင်းလဲခြင်း၊ Admin Password ပြောင်းလဲခြင်း) ပြုလုပ်ရန် နေရာဖြစ်ပါသည်။ (Backend implementation လိုအပ်ပါသည်)</p>
+                <p class="text-gray-600">ဤနေရာသည် စနစ်ထည့်သွင်းမှုများ (ဥပမာ: Telegram Bot Token ပြောင်းလဲခြင်း) ပြုလုပ်ရန် နေရာဖြစ်ပါသည်။</p>
                 <div class="mt-6 space-y-4">
                     <div class="p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 rounded-md">
-                        <p class="font-medium">Current Admin User ID:</p>
+                        <p class="font-medium">Current User ID (Authenticated for Firestore):</p>
                         <p class="break-all text-sm">${userId || 'Loading...'}</p>
                     </div>
                 </div>
@@ -475,23 +396,15 @@
 
     let currentChats = [];
 
-    // --- Main Renderer ---
+    // --- Main Renderer (Simplified) ---
     function renderApp() {
-        const hasAdminSessionCookie = document.cookie.includes('admin_session');
-
-        if (currentPath.startsWith('/login') || !hasAdminSessionCookie) {
-            // Priority 1: Always show login if on /login path or no session cookie
-            renderLogin();
-            return;
-        }
-
+        
         if (!isAuthReady || !userId) {
-            // Priority 2: Show loading screen while waiting for Firebase Auth
-            document.getElementById('app-container').innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div><p class="ml-4 text-gray-600">Loading Admin Panel...</p></div>`;
-            return;
+            // Firebase authentication ပြီးဆုံးသည်အထိ Loading screen ပြသမည်။
+            return; 
         }
 
-        // Priority 3: Render the main admin panel content
+        // Login မရှိတော့သည့်အတွက် Admin Panel Content ကို တိုက်ရိုက် Render လုပ်သည်။
         let content = '';
         if (currentPath.startsWith('/chat')) {
             // Chat view requires real-time data
@@ -521,7 +434,7 @@
             content = renderSettings();
         } else { // Default to Dashboard
             content = renderDashboard();
-            // Simple dashboard count update (optional: listen to the collection size)
+            // Simple dashboard count update 
             setTimeout(() => {
                 if (document.getElementById('total-chats-count')) {
                     document.getElementById('total-chats-count').textContent = currentChats.length.toString();
@@ -548,10 +461,7 @@
         }
     }
 
-    // --- FINAL INITIALIZATION AND RENDER ---
-    // Start the rendering process immediately on script load. 
-    // renderApp will handle the initial routing (Login vs. Loading Screen).
-    renderApp();
+    // Start the rendering process immediately on script load.
 
 </script>
 </body>
