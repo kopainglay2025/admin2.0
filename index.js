@@ -1,6 +1,6 @@
 import express from 'express';
 import { Telegraf } from 'telegraf';
-import * as admin from 'firebase-admin'; // FIX: Use namespace import for robust ES module compatibility
+import admin from 'firebase-admin'; // FIX: Use default import for robust ES module compatibility
 import 'dotenv/config';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -64,7 +64,7 @@ async function saveMessage(message, sender) {
     const messageData = {
         text: message.text,
         sender: sender,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(), // FIX: Use admin.firestore.FieldValue
+        timestamp: admin.firestore.FieldValue.serverTimestamp(), // Use admin.firestore.FieldValue
         // Store original chat info only on user message
         telegramId: message.from.id.toString(),
         username: message.from.username || message.from.first_name || 'N/A'
