@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const admin = require('firebase-admin');
 const auth = require('basic-auth');
-const path = require 'path');
+const path = require 'path'); // 🛑 WRONG SYNTAX
 
 // --- 1. Firebase Initialization (DB Setup) ---
 try {
