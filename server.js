@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 // --- Environment Variables Configuration ---
 // Note: This script assumes you are running it in a Node.js environment
 // where the environment variables are correctly loaded (e.g., using a .env file and 'dotenv' package, or via VPS settings).
