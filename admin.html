@@ -214,27 +214,45 @@
     // --- UI Rendering Functions ---
 
     function renderLogin() {
+        // --- UPDATED LOGIN UI ---
         document.getElementById('app-container').innerHTML = `
-            <div class="flex items-center justify-center min-h-screen">
-                <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-2xl">
-                    <h2 class="text-3xl font-extrabold text-center text-gray-900">Admin Login</h2>
-                    <form id="login-form" class="space-y-6">
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <input id="username" name="username" type="text" required class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="Enter username">
+            <div class="flex items-center justify-center min-h-screen bg-gray-100">
+                <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-2xl border-t-4 border-green-600 transform transition-all duration-300 hover:shadow-3xl">
+                    <div class="text-center">
+                        <svg class="mx-auto w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        <h2 class="mt-4 text-3xl font-extrabold text-gray-900">
+                            အုပ်ချုပ်သူ ဝင်ရောက်ခြင်း (Admin Login)
+                        </h2>
+                        <p class="mt-2 text-sm text-gray-600">
+                            ဆက်လက်လုပ်ဆောင်ရန် သင့်အချက်အလက်များ ထည့်သွင်းပါ။
+                        </p>
+                    </div>
+                    <form id="login-form" class="mt-8 space-y-6">
+                        <div class="rounded-md shadow-sm -space-y-px">
+                            <div>
+                                <label for="username" class="sr-only">အသုံးပြုသူအမည် (Username)</label>
+                                <input id="username" name="username" type="text" required 
+                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
+                                    placeholder="အသုံးပြုသူအမည် (Username)">
+                            </div>
+                            <div>
+                                <label for="password" class="sr-only">လျှို့ဝှက်နံပါတ် (Password)</label>
+                                <input id="password" name="password" type="password" required 
+                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
+                                    placeholder="လျှို့ဝှက်နံပါတ် (Password)">
+                            </div>
                         </div>
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input id="password" name="password" type="password" required class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="Enter password">
-                        </div>
-                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
-                            Sign In
+
+                        <button type="submit" 
+                            class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out shadow-md hover:shadow-lg">
+                            ဝင်ရောက်မည် (Sign In)
                         </button>
                     </form>
                     <p id="login-error" class="text-sm text-red-600 text-center hidden"></p>
                 </div>
             </div>
         `;
+        // --- END UPDATED LOGIN UI ---
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -254,11 +272,11 @@
                 if (data.success) {
                     navigate(data.redirect || '/');
                 } else {
-                    errorElement.textContent = data.message || 'Login failed.';
+                    errorElement.textContent = data.message || 'Login failed. အချက်အလက်များ မမှန်ကန်ပါ။';
                     errorElement.classList.remove('hidden');
                 }
             } catch (error) {
-                errorElement.textContent = 'An error occurred during login.';
+                errorElement.textContent = 'An error occurred during login. ကွန်ယက်ချို့ယွင်းမှု ရှိပါသည်။';
                 errorElement.classList.remove('hidden');
             }
         });
@@ -447,15 +465,18 @@
 
         // Re-render the chat list to update the active highlight
         // This is necessary because the chat list is inside the layout
-        const chatListContainer = document.getElementById('chat-list').parentNode;
-        chatListContainer.innerHTML = renderChat(currentChats).split('<!-- Chat List Sidebar -->')[1].split('<!-- Chat Window -->')[0];
+        const chatListContainer = document.getElementById('chat-list')?.parentNode;
+        if (chatListContainer) {
+            // Note: This partial re-render logic can be simplified if we just re-run renderApp, but keeping the current structure.
+            chatListContainer.innerHTML = renderChat(currentChats).split('<!-- Chat List Sidebar -->')[1].split('<!-- Chat Window -->')[0];
+        }
     };
 
     let currentChats = [];
 
     // --- Main Renderer ---
     function renderApp() {
-        if (isLoginPage) {
+        if (currentPath.startsWith('/login') || !document.cookie.includes('admin_session')) {
             renderLogin();
             return;
         }
@@ -472,7 +493,8 @@
                 currentChats = chats;
                 // If no chat is selected, automatically select the latest one
                 if (!selectedChatId && chats.length > 0) {
-                    window.selectChat(chats[0].id, chats[0].username);
+                    // Use setTimeout to ensure window.selectChat exists before calling
+                    setTimeout(() => window.selectChat(chats[0].id, chats[0].username), 0);
                 }
                 
                 // Re-render chat UI to update list
@@ -489,6 +511,10 @@
                             const text = document.getElementById('message-input').value;
                             sendMessage(selectedChatId, text);
                         });
+                        // Re-call message listener if chat was previously selected
+                        if (selectedChatId) {
+                            setupMessageListener(selectedChatId, renderMessages);
+                        }
                     }
                 }
             });
@@ -511,13 +537,14 @@
 
         renderAdminLayout(content);
 
-        // Attach form listener only on /chat view initial load
-        if (currentPath.startsWith('/chat')) {
-            document.getElementById('message-form')?.addEventListener('submit', (e) => {
+        // Attach form listener only on /chat view initial load (if not handled inside setupChatListListener)
+        if (currentPath.startsWith('/chat') && !document.getElementById('message-form')?.hasAttribute('data-listener-attached')) {
+             document.getElementById('message-form')?.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const text = document.getElementById('message-input').value;
                 sendMessage(selectedChatId, text);
             });
+            document.getElementById('message-form')?.setAttribute('data-listener-attached', 'true');
         }
     }
 
@@ -526,7 +553,7 @@
         .then(response => {
             // If the server redirects to /login, handle it.
             if (response.redirected && response.url.endsWith('/login')) {
-                // If it's already on /login, let renderApp handle it via isLoginPage check.
+                // If it's already on /login, let renderApp handle it via path check.
                 if (!isLoginPage) {
                     navigate('/login');
                 } else {
