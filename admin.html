@@ -52,7 +52,7 @@
     import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // Set Firestore log level for debugging
-    setLogLevel('error'); // Changed to error to reduce noise
+    setLogLevel('error'); 
 
     // --- Global State and Initialization ---
     const APP_ID = 'telegram-chat-app-v1';
@@ -64,9 +64,6 @@
     let chatListUnsubscribe = null;
     let messageListUnsubscribe = null;
     
-    // Check if on login page
-    const isLoginPage = currentPath.startsWith('/login');
-
     // Get the global variables provided by the Canvas environment
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
@@ -75,11 +72,7 @@
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
-    } else if (!isLoginPage) {
-        document.getElementById('app-container').innerHTML = `
-            <div class="p-6 text-red-600">Error: Firebase config is missing. Cannot initialize client SDK.</div>
-        `;
-    }
+    } 
 
     // --- Authentication and Setup ---
 
@@ -100,7 +93,7 @@
             }
         }
         isAuthReady = true;
-        // Rerender the whole app on auth state change
+        // Rerender the whole app once authentication state is determined
         renderApp(); 
     });
 
@@ -180,13 +173,16 @@
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Failed to send message:', errorData.message);
-                // Use custom modal/message box instead of alert()
-                document.getElementById('app-container').insertAdjacentHTML('beforeend', `
-                    <div class="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-xl z-50 transition-opacity duration-300" id="error-message-box">
-                        Message send failed: ${errorData.message}
+                // Use a custom message box instead of alert()
+                document.getElementById('app-container').insertAdjacentHTML('afterbegin', `
+                    <div id="error-box" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm">
+                            <h4 class="text-xl font-bold text-red-600 mb-4">Message Failed</h4>
+                            <p class="text-gray-700">Message send failed: ${errorData.message || 'Unknown error'}</p>
+                            <button onclick="document.getElementById('error-box').remove()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Close</button>
+                        </div>
                     </div>
                 `);
-                setTimeout(() => document.getElementById('error-message-box')?.remove(), 3000);
                 return;
             }
 
@@ -199,13 +195,16 @@
 
         } catch (error) {
             console.error('Network error sending message:', error);
-            // Use custom modal/message box instead of alert()
-            document.getElementById('app-container').insertAdjacentHTML('beforeend', `
-                <div class="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-xl z-50 transition-opacity duration-300" id="error-message-box">
-                    A network error occurred while sending the message.
+            // Use a custom message box instead of alert()
+            document.getElementById('app-container').insertAdjacentHTML('afterbegin', `
+                <div id="error-box" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm">
+                        <h4 class="text-xl font-bold text-red-600 mb-4">Network Error</h4>
+                        <p class="text-gray-700">A network error occurred while sending the message.</p>
+                        <button onclick="document.getElementById('error-box').remove()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Close</button>
+                    </div>
                 </div>
             `);
-            setTimeout(() => document.getElementById('error-message-box')?.remove(), 3000);
         }
     }
 
@@ -226,7 +225,7 @@
     // --- UI Rendering Functions ---
 
     function renderLogin() {
-        // --- UPDATED LOGIN UI ---
+        // --- UPDATED LOGIN UI (Fixed to render immediately) ---
         document.getElementById('app-container').innerHTML = `
             <div class="flex items-center justify-center min-h-screen bg-gray-100">
                 <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-2xl border-t-4 border-green-600 transform transition-all duration-300 hover:shadow-3xl">
@@ -240,17 +239,17 @@
                         </p>
                     </div>
                     <form id="login-form" class="mt-8 space-y-6">
-                        <div class="rounded-md shadow-sm -space-y-px">
-                            <div>
+                        <div class="rounded-md shadow-sm">
+                            <div class="mb-4">
                                 <label for="username" class="sr-only">အသုံးပြုသူအမည် (Username)</label>
                                 <input id="username" name="username" type="text" required 
-                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
+                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
                                     placeholder="အသုံးပြုသူအမည် (Username)">
                             </div>
                             <div>
                                 <label for="password" class="sr-only">လျှို့ဝှက်နံပါတ် (Password)</label>
                                 <input id="password" name="password" type="password" required 
-                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
+                                    class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition duration-150" 
                                     placeholder="လျှို့ဝှက်နံပါတ် (Password)">
                             </div>
                         </div>
@@ -400,7 +399,7 @@
                                class="chat-item p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition duration-150 ${chat.id === selectedChatId ? 'active-chat font-semibold' : ''}">
                               <p class="text-sm font-bold text-gray-800">${chat.username || 'Telegram User'}</p>
                               <p class="text-xs text-gray-500 truncate">${chat.telegramId}</p>
-                              <p class="text-xs text-gray-400 mt-1">${new Date(chat.lastMessageTime?.seconds * 1000).toLocaleString()}</p>
+                              <p class="text-xs text-gray-400 mt-1">${chat.lastMessageTime?.seconds ? new Date(chat.lastMessageTime.seconds * 1000).toLocaleTimeString() : 'N/A'}</p>
                           </div>
                       `).join('')
                     }
@@ -470,7 +469,7 @@
         // Attach new message listener
         setupMessageListener(chatId, renderMessages);
 
-        // Re-render the chat UI to update list/header/input state
+        // Re-render the chat list to update the active highlight and the header/input status
         renderApp();
     };
 
@@ -478,17 +477,21 @@
 
     // --- Main Renderer ---
     function renderApp() {
-        // RENDER LOGIN IF ON /login PATH OR IF SESSION COOKIE IS MISSING
-        if (currentPath.startsWith('/login') || !document.cookie.includes('admin_session')) {
+        const hasAdminSessionCookie = document.cookie.includes('admin_session');
+
+        if (currentPath.startsWith('/login') || !hasAdminSessionCookie) {
+            // Priority 1: Always show login if on /login path or no session cookie
             renderLogin();
             return;
         }
 
         if (!isAuthReady || !userId) {
-            document.getElementById('app-container').innerHTML = `<div class="p-6 text-center text-gray-600">Loading authentication...</div>`;
+            // Priority 2: Show loading screen while waiting for Firebase Auth
+            document.getElementById('app-container').innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div><p class="ml-4 text-gray-600">Loading Admin Panel...</p></div>`;
             return;
         }
 
+        // Priority 3: Render the main admin panel content
         let content = '';
         if (currentPath.startsWith('/chat')) {
             // Chat view requires real-time data
@@ -496,32 +499,22 @@
                 currentChats = chats;
                 // If no chat is selected, automatically select the latest one
                 if (!selectedChatId && chats.length > 0) {
-                    // Use setTimeout to ensure window.selectChat exists before calling
                     setTimeout(() => window.selectChat(chats[0].id, chats[0].username), 0);
                 }
                 
                 // Re-render chat UI to update list
-                const newChatContent = renderChat(chats);
-                
-                // Only replace the inner content if the path is still /chat
-                if (window.location.pathname.startsWith('/chat')) {
-                    const mainContent = document.querySelector('main');
-                    if (mainContent) {
-                        mainContent.innerHTML = newChatContent;
-                        // Re-attach form listener after rendering
-                        document.getElementById('message-form')?.addEventListener('submit', (e) => {
-                            e.preventDefault();
-                            const text = document.getElementById('message-input').value;
-                            sendMessage(selectedChatId, text);
-                        });
-                        // Re-call message listener if chat was previously selected
-                        if (selectedChatId) {
-                            setupMessageListener(selectedChatId, renderMessages);
-                        }
+                const mainContent = document.querySelector('main');
+                if (mainContent) {
+                    mainContent.innerHTML = renderChat(chats);
+                    // Re-attach form listener after rendering
+                    attachMessageFormListener();
+                    // Re-call message listener if chat was previously selected
+                    if (selectedChatId) {
+                        setupMessageListener(selectedChatId, renderMessages);
                     }
                 }
             });
-            content = renderChat(currentChats); // Initial render with empty/old list
+            content = renderChat(currentChats); // Initial render with empty list
         } else if (currentPath === '/broadcast') {
             content = renderBroadcast();
         } else if (currentPath === '/settings') {
@@ -531,25 +524,33 @@
             // Simple dashboard count update (optional: listen to the collection size)
             setTimeout(() => {
                 if (document.getElementById('total-chats-count')) {
-                    // This is a rough estimation, a more robust way involves an aggregate query
                     document.getElementById('total-chats-count').textContent = currentChats.length.toString();
+                    document.getElementById('pending-messages-count').textContent = 'N/A (check chats)';
                 }
             }, 500); 
         }
 
         renderAdminLayout(content);
-
-        // Attach form listener only on /chat view initial load
         if (currentPath.startsWith('/chat')) {
-             document.getElementById('message-form')?.addEventListener('submit', (e) => {
+            attachMessageFormListener();
+        }
+    }
+
+    function attachMessageFormListener() {
+        const form = document.getElementById('message-form');
+        if (form && !form.hasAttribute('data-listener-attached')) {
+            form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const text = document.getElementById('message-input').value;
                 sendMessage(selectedChatId, text);
             });
+            form.setAttribute('data-listener-attached', 'true');
         }
     }
 
-    // --- FIX: Initial render on page load immediately, letting renderApp handle the path. ---
+    // --- FINAL INITIALIZATION AND RENDER ---
+    // Start the rendering process immediately on script load. 
+    // renderApp will handle the initial routing (Login vs. Loading Screen).
     renderApp();
 
 </script>
