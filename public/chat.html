@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with User</title>
+    <style>
+        /* Basic Messenger Style CSS */
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
+        .chat-container { display: flex; flex-direction: column; max-width: 600px; height: 100vh; margin: 0 auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { background: #5a7dff; color: white; padding: 15px; text-align: center; font-size: 1.2em; }
+        .message-area { flex-grow: 1; padding: 15px; overflow-y: auto; }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 15px; max-width: 70%; line-height: 1.4; }
+        .user-message { background: #5a7dff; color: white; align-self: flex-start; margin-right: auto; }
+        .admin-message { background: #dcf8c6; color: #000; align-self: flex-end; margin-left: auto; }
+        .input-area { padding: 10px; border-top: 1px solid #eee; display: flex; }
+        .input-area input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
+        .input-area button { background: #5a7dff; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            Chatting with <span id="user-display-name">...</span>
+            <a href="/" style="float: left; color: white; text-decoration: none;">&lt; Back to Dashboard</a>
+        </div>
+        <div class="message-area" id="message-area">
+            </div>
+        <div class="input-area">
+            <input type="text" id="message-input" placeholder="Type a message..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const urlSegments = window.location.pathname.split('/');
+        const userId = urlSegments[urlSegments.length - 1]; // Get user ID from URL
+        
+        const messageArea = document.getElementById('message-area');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const userDisplayName = document.getElementById('user-display-name');
+
+        let currentUsername = 'User ' + userId; // Default name until history is loaded
+
+        socket.on('connect', () => {
+            console.log('Connected to socket server.');
+            userDisplayName.textContent = currentUsername;
+            
+            // Request chat history for this user
+            socket.emit('request_chat_history', userId);
+        });
+
+        // Display chat history
+        socket.on('chat_history', (messages) => {
+            messageArea.innerHTML = '';
+            messages.forEach(msg => {
+                displayMessage(msg.message, msg.sender);
+                // Set the correct username from the history
+                if (msg.sender === 'user' && !currentUsername.includes(msg.username)) {
+                    currentUsername = msg.username;
+                    userDisplayName.textContent = currentUsername;
+                }
+            });
+            messageArea.scrollTop = messageArea.scrollHeight; // Scroll to bottom
+        });
+
+        // Function to display a message
+        function displayMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.classList.add(sender === 'user' ? 'user-message' : 'admin-message');
+            msgDiv.textContent = text;
+            messageArea.appendChild(msgDiv);
+        }
+
+        // Handle sending message
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message === '') return;
+
+            // 1. Send to server (which forwards to Telegram and saves to DB)
+            socket.emit('send_message_to_user', {
+                userId: userId,
+                message: message
+            });
+
+            messageInput.value = ''; // Clear input field
+        }
+
+        // When the server successfully saves the admin's message and sends to Telegram
+        socket.on('message_sent_success', (msg) => {
+            displayMessage(msg.message, 'admin');
+            messageArea.scrollTop = messageArea.scrollHeight; // Scroll to bottom
+        });
+
+        // Real-time update when user sends a message while this chat is open
+        socket.on('new_message_from_user', (data) => {
+            if (String(data.userId) === String(userId)) {
+                // If the message is for the currently open chat
+                displayMessage(data.message, 'user');
+                messageArea.scrollTop = messageArea.scrollHeight; // Scroll to bottom
+            } else {
+                 // For other users, you might show a small notification
+                 console.log(`New message from another user (${data.username}): ${data.message}`);
+            }
+        });
+
+        socket.on('message_sent_error', (error) => {
+            alert('Error sending message: ' + error.error);
+        });
+    </script>
+</body>
+</html>
