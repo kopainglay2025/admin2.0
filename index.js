@@ -1,6 +1,6 @@
 import express from 'express';
 import { Telegraf } from 'telegraf';
-import { initializeApp, credential, firestore, FieldValue } from 'firebase-admin';
+import * as admin from 'firebase-admin'; // FIX: Use namespace import for robust ES module compatibility
 import 'dotenv/config';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -34,12 +34,12 @@ try {
     process.exit(1);
 }
 
-// FIX: Using named imports (credential) and initializing app
-initializeApp({
-    credential: credential.cert(serviceAccount)
+// FIX: Using the admin namespace for initialization
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
 });
 
-const db = firestore();
+const db = admin.firestore(); // Use admin.firestore()
 console.log("Firebase Admin SDK initialized successfully.");
 
 // --- Telegram Bot Initialization ---
@@ -64,7 +64,7 @@ async function saveMessage(message, sender) {
     const messageData = {
         text: message.text,
         sender: sender,
-        timestamp: FieldValue.serverTimestamp(), // Use FieldValue from imported firestore
+        timestamp: admin.firestore.FieldValue.serverTimestamp(), // FIX: Use admin.firestore.FieldValue
         // Store original chat info only on user message
         telegramId: message.from.id.toString(),
         username: message.from.username || message.from.first_name || 'N/A'
