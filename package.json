@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Telegram bot connected to a real-time admin panel via Firebase.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
