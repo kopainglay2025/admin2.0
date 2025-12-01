@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> AdminPlan</title>
+    <title>Cross-Platform AdminPlan</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -13,6 +13,8 @@
             --secondary-neon: #ff00ff; /* Fuchsia */
             --dark-bg: #0d0c1d; /* Very deep indigo/slate */
             --card-bg: #1a192b; /* Slightly lighter card background */
+            --telegram-blue: #0088cc;
+            --facebook-blue: #1877f2;
         }
 
         body { 
@@ -22,18 +24,17 @@
             color: #E2E8F0; /* Light text */
         }
         
-        /* Sidebar: Base for the dark, futuristic look */
+        /* Sidebar and General Styles (retained from previous version) */
         .sidebar {
-            background-color: #121021; /* Slightly darker than body for depth */
+            background-color: #121021; 
             box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
             border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Nav Item Styling */
         .nav-item {
             position: relative;
             transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 14px; /* Aggressive rounding */
+            border-radius: 14px; 
         }
 
         .nav-item:hover {
@@ -42,18 +43,16 @@
             transform: scale(1.02);
         }
 
-        /* Active Nav Item - Neon Glow Effect */
         .active-nav {
             background-color: var(--card-bg) !important;
             color: var(--primary-neon) !important;
             border: 1px solid var(--primary-neon);
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); /* Subtle glow */
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5); 
         }
         .active-nav svg {
             color: var(--primary-neon) !important;
         }
 
-        /* Chat Item Styling */
         .chat-item {
             background-color: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -68,9 +67,8 @@
             box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
         }
         
-        /* Active Chat Item - Secondary Neon Accent */
         .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
+            background-color: #581c87; 
             color: white !important; 
             border: 2px solid var(--secondary-neon);
             box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
@@ -83,9 +81,7 @@
              background-color: var(--primary-neon) !important; 
         }
 
-        /* Message History container */
         .chat-messages {
-            /* Adjusted height calculation: 100vh - (Header h-20: 80px) - (Search Area p-3: ~50px) - (Input Area min-h-[100px]: ~100px) = ~100vh - 230px */
             max-height: calc(100vh - 230px); 
             overflow-y: auto;
             display: flex;
@@ -93,7 +89,6 @@
             padding: 1rem;
         }
 
-        /* Custom Scrollbar - Neon look */
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-thumb { 
             background-color: var(--primary-neon); 
@@ -103,7 +98,6 @@
              background-color: var(--card-bg);
         }
         
-        /* Unread Badge - Sharp and secondary neon */
         .badge-style {
             background-color: var(--secondary-neon); 
             color: var(--dark-bg); 
@@ -111,19 +105,17 @@
             box-shadow: 0 0 8px var(--secondary-neon);
         }
 
-        /* Message Bubbles */
         .admin-bubble {
-            background-color: #312e81; /* Indigo-700 */
+            background-color: #312e81; 
             color: white;
             border-bottom-right-radius: 8px !important;
         }
         .user-bubble {
-            background-color: #374151; /* Slate-700 */
+            background-color: #374151; 
             color: #F9FAFB; 
             border-bottom-left-radius: 8px !important;
         }
         
-        /* Card Styles for Dashboard */
         .stat-card {
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s;
@@ -131,45 +123,30 @@
             overflow: hidden;
             position: relative;
         }
-        .stat-card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
-        }
 
-        /* Input/Textarea Focus Glow */
-        input:focus, textarea:focus {
-            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
-            border-color: var(--primary-neon) !important;
+        /* Source Indicator Styles */
+        .source-indicator {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            line-height: 1;
         }
-
-        /* Send Button Glow */
-        #sendButton {
-            background-color: var(--primary-neon);
-            color: var(--dark-bg);
-            font-weight: 700;
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
-            transition: all 0.2s;
+        .source-telegram {
+            background-color: var(--telegram-blue);
+            color: white;
         }
-        #sendButton:hover {
-             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
-             background-color: #00ffff;
+        .source-facebook {
+            background-color: var(--facebook-blue);
+            color: white;
         }
-
+        
     </style>
 </head>
 <!-- Main container uses the very dark background -->
 <body class="bg-[var(--dark-bg)] h-screen overflow-hidden flex">
 
-    <!-- 1. Full Sidebar (w-64) - Sleek Sidebar Menu -->
+    <!-- 1. Full Sidebar (w-64) -->
     <div class="w-64 sidebar text-white flex flex-col flex-shrink-0 z-20 transition-all duration-400">
         <!-- Logo/Title: Neon Emphasis -->
         <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-gray-700/30">
@@ -177,7 +154,7 @@
             <span class="tracking-widest">Admin Plan</span>
         </div>
 
-        <!-- Navigation Menu with Neon Indicators -->
+        <!-- Navigation Menu -->
         <nav id="mainNav" class="p-4 space-y-2 flex-grow">
             
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 active-nav" data-section="dashboard">
@@ -189,7 +166,7 @@
             <a href="#" class="nav-item flex items-center p-3 transition-all duration-200 justify-between" data-section="chat">
                 <div class="flex items-center">
                     <svg class="w-6 h-6 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    <span class="font-medium">Chats</span>
+                    <span class="font-medium">Cross-Chats</span>
                 </div>
                 <!-- Total Unread Count Badge -->
                 <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
@@ -206,12 +183,11 @@
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button (The theme is already dark, this could switch to light or toggle effects) -->
+        <!-- Dark Mode Toggle Button -->
         <div class="p-6 border-t border-gray-700/30">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700 transition duration-150 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-700/50">
                 <svg id="themeIcon" class="w-6 h-6 text-[var(--secondary-neon)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Default to Sun icon as the theme is fixed dark -->
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
                 <span class="font-medium text-sm hidden sm:inline">Theme Control</span>
@@ -219,7 +195,7 @@
         </div>
     </div>
 
-    <!-- 2. Chat List Panel (w-80) - Chat List with Card Background -->
+    <!-- 2. Chat List Panel (w-80) -->
     <div id="chatListPanel" class="w-80 bg-[var(--card-bg)] border-r border-gray-700/30 flex-col flex-shrink-0 transition-colors duration-400 shadow-xl hidden">
         <!-- Chat List Header -->
         <div class="p-6 text-xl font-extrabold border-b border-gray-700/30 text-white h-20 flex items-center transition-colors duration-400">
@@ -228,7 +204,7 @@
 
         <!-- Chat List Search Input -->
         <div class="p-4 border-b border-gray-700/30">
-            <input type="text" id="chatListSearch" placeholder="Search Chat/User ID..."
+            <input type="text" id="chatListSearch" placeholder="Search User/ID or Source..."
                    onkeyup="filterChatList(this.value)"
                    class="w-full p-3 border border-gray-700 bg-gray-900 rounded-xl text-gray-200 focus:ring-[var(--primary-neon)] focus:border-[var(--primary-neon)] transition duration-200 text-sm">
         </div>
@@ -239,7 +215,7 @@
         </div>
     </div>
 
-    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
+    <!-- 3. Main Content Area (flex-grow) -->
     <div class="flex-grow flex flex-col bg-[var(--dark-bg)] transition-colors duration-400">
         
         <!-- === SECTION: Dashboard === -->
@@ -263,8 +239,8 @@
                 </div>
                 <!-- Card 3 (Neon Magenta/Red Gradient) -->
                 <div class="stat-card p-8 bg-gradient-to-br from-fuchsia-900 to-red-900 text-white cursor-pointer">
-                    <div class="text-6xl font-black">156</div>
-                    <div class="text-sm mt-3 opacity-90 tracking-wider">Pending Support Tickets</div>
+                    <div class="text-6xl font-black" id="totalUnreadCountDisplay">0</div>
+                    <div class="text-sm mt-3 opacity-90 tracking-wider">Total Unread Messages</div>
                 </div>
             </div>
             
@@ -383,18 +359,32 @@
 
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic (Unchanged from previous logic) -->
+    <!-- 4. Socket.io and JavaScript Logic (Updated to include Firebase and Multi-Source) -->
     <script src="/socket.io/socket.io.js"></script>
-    <script>
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
         // --- Client-side State Management ---
         const apiKey = ""; 
         const BASE_URL = ''; 
         let socket;
         
-        let currentChatId = null;
+        let currentChatId = null; // Format: [source]:[source_id] e.g., 'telegram:1234567'
+        let currentChatSource = null; // e.g., 'telegram' or 'facebook'
         let unreadCounts = {}; 
         let allChats = []; 
         const htmlElement = document.documentElement;
+
+        // --- Firebase State Variables ---
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
 
         // --- File State Variables ---
         let selectedFile = null;
@@ -427,29 +417,24 @@
         function toggleDarkMode() {
             // Since the theme is fixed dark, this can trigger a special effect or log a message.
             console.log("Theme is locked to Quantum Dark Mode for optimal performance.");
-            // Replaced alert() with a console log as per instructions
             console.log("Theme is locked to Quantum Dark Mode.");
-        }
-
-        function updateThemeIcon() {
-            // Theme is fixed dark, so icon is fixed to Sun (representing the current 'light' status of the dark mode)
         }
 
         function loadDarkModePreference() {
             htmlElement.classList.add('dark'); // Force dark mode
-            updateThemeIcon();
         }
 
-        // --- Unread Count Logic (NEW) ---
+        // --- Unread Count Logic ---
         function updateTotalUnreadBadge() {
             const badge = document.getElementById('totalUnreadBadge');
+            const display = document.getElementById('totalUnreadCountDisplay');
             let totalCount = 0;
             
-            // Calculate total count from the unreadCounts map
             for (const chatId in unreadCounts) {
                 totalCount += unreadCounts[chatId];
             }
             
+            // 1. Sidebar Badge
             if (badge) {
                 if (totalCount > 0) {
                     badge.textContent = totalCount > 99 ? '99+' : totalCount;
@@ -459,8 +444,13 @@
                     badge.classList.add('hidden');
                 }
             }
+            
+            // 2. Dashboard Display
+            if (display) {
+                display.textContent = totalCount;
+            }
         }
-        // --- End New Unread Count Logic ---
+        // --- End Unread Count Logic ---
 
 
         // --- Navigation Functions ---
@@ -487,14 +477,13 @@
             const chatListPanel = document.getElementById('chatListPanel');
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
-                if (allChats.length === 0) {
-                    fetchChats();
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
+                if (isAuthReady) {
+                    fetchChats(); 
                 }
             } else {
                 chatListPanel.classList.add('hidden');
                 currentChatId = null; 
+                currentChatSource = null;
                 document.getElementById('chatHistorySearch').value = ''; 
                 clearFileSelection(); 
             }
@@ -503,17 +492,50 @@
 
         // --- Chat Specific Functions ---
 
+        /**
+         * Parses a Firestore Document ID (e.g., 'telegram:1234567') into source and ID.
+         * @param {string} docId 
+         * @returns {{source: string, sourceId: string}}
+         */
+        function parseChatId(docId) {
+            const parts = docId.split(':');
+            if (parts.length >= 2) {
+                return { source: parts[0], sourceId: parts.slice(1).join(':') };
+            }
+            return { source: 'unknown', sourceId: docId };
+        }
+        
+        function getSourceIndicator(source) {
+            let icon, className, label;
+            if (source === 'telegram') {
+                icon = '✈️'; 
+                className = 'source-telegram';
+                label = 'Telegram';
+            } else if (source === 'facebook') {
+                icon = '👤'; 
+                className = 'source-facebook';
+                label = 'Meta';
+            } else {
+                icon = '❓';
+                className = 'bg-gray-500 text-white';
+                label = 'Unknown';
+            }
+            return `<span class="source-indicator ${className}">${icon} ${label}</span>`;
+        }
+
+
         function createChatListItem(chat) {
-            const chatId = chat.telegramId;
-            const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
+            // chat.id is the Firestore doc ID (e.g., 'telegram:1234567')
+            const chatId = chat.id; 
+            const { source, sourceId } = parseChatId(chatId);
             const username = chat.username || 'Unknown Entity';
-            // Use unreadCounts state for real-time updates after fetching
             const count = unreadCounts[chatId] || 0; 
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl';
+            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-200 shadow-lg hover:shadow-2xl cursor-pointer';
             chatElement.setAttribute('data-chat-id', chatId);
+            chatElement.setAttribute('data-source', source);
             chatElement.setAttribute('data-username', username.toLowerCase());
 
             const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
@@ -524,26 +546,30 @@
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </div>
             `;
+            
+            const sourceInd = getSourceIndicator(source);
+
 
             chatElement.innerHTML = `
                 ${avatar}
                 <div class="flex-grow min-w-0">
-                    <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${displayId}</p>
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="font-bold truncate text-base mr-2">${username}</p>
+                        ${sourceInd}
+                    </div>
+                    <p class="text-xs text-[var(--primary-neon)] opacity-70 mt-0.5">ID: ${sourceId}</p>
                     <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
                 </div>
                 ${unreadBadge}
             `;
 
             chatElement.addEventListener('click', () => {
-                selectChat(chatId, username);
+                selectChat(chatId, source, username);
             });
 
-            // Ensure active chat style is applied on creation if needed (e.g. on filter)
             if (currentChatId === chatId) {
                  chatElement.classList.add('active');
             }
-
 
             return chatElement;
         }
@@ -556,8 +582,9 @@
 
             const filteredChats = allChats.filter(chat => {
                 const username = (chat.username || '').toLowerCase();
-                const chatId = String(chat.telegramId);
-                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+                const chatId = chat.id;
+                const { source, sourceId } = parseChatId(chatId);
+                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery) || source.includes(lowerCaseQuery);
             });
             
             if (filteredChats.length > 0) {
@@ -570,7 +597,7 @@
         }
 
         /**
-         * Renders a single message bubble.
+         * Renders a single message bubble. (No change needed here as it handles sender=user/admin)
          */
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
@@ -584,12 +611,10 @@
 
             let mediaContent = '';
             
-            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
             const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
             const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
 
             if (isUserMedia) {
-                // User sent media (image/file from Telegram, displayed via API)
                 const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
                 mediaContent = `
                     <img src="${imageUrl}" 
@@ -599,9 +624,7 @@
                          alt="Chat Media"/>
                 `;
             } else if (isAdminMedia) {
-                 // Admin sent media (Base64 data URL, directly displayed)
                  if (msg.mediaPath.startsWith('data:image/')) {
-                     // Image display
                      mediaContent = `
                         <img src="${msg.mediaPath}" 
                             class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-700/50" 
@@ -609,7 +632,6 @@
                             alt="Admin Image"/>
                      `;
                  } else {
-                    // Document/File display (using icon and name)
                     const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
                     mediaContent = `
                         <div class="flex items-center space-x-2 p-3 bg-indigo-900 rounded-lg mb-2 border border-[var(--primary-neon)]">
@@ -664,50 +686,131 @@
         }
 
 
-        async function fetchChats() {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Fetching orbital data streams...</div>';
-            unreadCounts = {}; 
-            allChats = []; 
-            updateTotalUnreadBadge(); // Reset badge immediately
+        // --- Firestore Helpers ---
+        function getPublicChatCollectionRef() {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // Path: /artifacts/{appId}/public/data/chats
+            return collection(db, `artifacts/${appId}/public/data/chats`);
+        }
 
+        // --- Core Firebase Logic ---
+
+        async function initializeFirebase() {
+            setLogLevel('Debug');
             try {
-                // Simplified mock fetching (replace with actual API call)
-                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
-                if (!response.ok) throw new Error('Authentication failure or offline');
-                const chats = await response.json();
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
 
-                allChats = chats; 
-                chatListElement.innerHTML = '';
-                
-                if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
-                    updateTotalUnreadBadge();
-                    return;
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Firebase signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Firebase signed in anonymously.");
                 }
-                
-                chats.forEach(chat => {
-                    // Initialize unreadCounts with the count from the server if available
-                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        console.log("Auth State Ready. User ID:", userId);
+                        if (document.querySelector('.nav-item[data-section="chat"]').classList.contains('active-nav')) {
+                             fetchChats();
+                        }
+                    } else {
+                        userId = null;
+                        isAuthReady = true; 
+                        console.log("User logged out or unauthorized. Data fetching disabled.");
+                    }
                 });
 
-                updateTotalUnreadBadge();
-
             } catch (error) {
-                console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
-                updateTotalUnreadBadge();
+                console.error("Firebase Initialization Error:", error);
+                isAuthReady = true;
             }
         }
 
-        async function selectChat(chatId, username) {
+
+        // --- Chat List Fetching (Uses onSnapshot for real-time updates) ---
+
+        let unsubscribeChats = null;
+
+        function fetchChats() {
+            if (!db || !isAuthReady) {
+                 console.warn("Firestore or Auth not ready. Aborting chat fetch.");
+                 return;
+            }
+
+            if (unsubscribeChats) {
+                 unsubscribeChats(); // Clean up previous listener
+            }
+
+            const chatListElement = document.getElementById('chatList');
+            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-300">Establishing real-time link...</div>';
+            
+            const chatCollectionRef = getPublicChatCollectionRef();
+            const q = query(chatCollectionRef); 
+
+            unsubscribeChats = onSnapshot(q, (snapshot) => {
+                allChats = [];
+                unreadCounts = {};
+
+                snapshot.docs.forEach(doc => {
+                    const chatData = doc.data();
+                    const chatId = doc.id; // Format: [source]:[source_id]
+                    
+                    chatData.id = chatId; 
+                    
+                    allChats.push(chatData);
+                    unreadCounts[chatId] = chatData.unreadCount || 0;
+                });
+                
+                // Sort by last message time (descending) in memory
+                allChats.sort((a, b) => {
+                    const timeA = a.lastMessageTime ? (a.lastMessageTime.toDate ? a.lastMessageTime.toDate().getTime() : new Date(a.lastMessageTime).getTime()) : 0;
+                    const timeB = b.lastMessageTime ? (b.lastMessageTime.toDate ? b.lastMessageTime.toDate().getTime() : new Date(b.lastMessageTime).getTime()) : 0;
+                    return timeB - timeA;
+                });
+                
+                renderChatList();
+                updateTotalUnreadBadge();
+
+            }, (error) => {
+                console.error("Firestore onSnapshot error:", error);
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error streaming chat data. Check console.</div>`;
+            });
+        }
+        
+        function renderChatList() {
+             const chatListElement = document.getElementById('chatList');
+             chatListElement.innerHTML = '';
+             
+             if (allChats.length === 0) {
+                 chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
+                 return;
+             }
+             
+             // Re-render based on current search query
+             filterChatList(document.getElementById('chatListSearch').value);
+        }
+
+        async function selectChat(chatId, source, username) {
             currentChatId = chatId;
+            currentChatSource = source;
+            const { sourceId } = parseChatId(chatId);
+            const sourceLabel = getSourceIndicator(source);
             
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
                     <span class="text-xl font-semibold text-gray-300">${username}</span>
-                    <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${chatId} | Online</span>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <span class="text-sm font-medium text-[var(--primary-neon)] opacity-80">ID: ${sourceId}</span>
+                        ${sourceLabel}
+                    </div>
                 </div>
             `;
             document.getElementById('chatInputArea').classList.remove('hidden');
@@ -719,26 +822,32 @@
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
                 
-                // Clear unread count for the selected chat
+                // --- Mark as Read Logic (Firestore Update) ---
                 if (unreadCounts[chatId] > 0) {
-                    unreadCounts[chatId] = 0;
-                    const badge = activeChatElement.querySelector('.badge-style');
-                    if (badge) badge.remove();
-                    updateTotalUnreadBadge(); // Update sidebar badge after clearing
+                    try {
+                        const chatRef = doc(getPublicChatCollectionRef(), chatId);
+                        await setDoc(chatRef, { unreadCount: 0 }, { merge: true }); 
+                        console.log(`Chat ${chatId} marked as read in Firestore.`);
+                    } catch (error) {
+                        console.error("Failed to mark chat as read:", error);
+                    }
                 }
             }
             
             clearFileSelection(); 
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
+            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history... (Mock Data)</div>';
 
+            // Mock Data for History - Replace with API call to server
+            // API call must now include the source and sourceId
             try {
-                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
+                const response = await fetch(`${BASE_URL}/api/chats/${source}/${sourceId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
                 const history = await response.json();
 
                 historyContainer.innerHTML = '';
+                // Since the history array usually returns oldest first, we prepend them:
                 history.forEach(msg => {
                     historyContainer.prepend(createMessageBubble(msg));
                 });
@@ -747,7 +856,7 @@
 
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets from API. (Mocked History Fetch)</div>`;
             }
         }
         
@@ -770,9 +879,7 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 // Replaced alert() with console log
                  console.log("File size exceeds 5MB transmission limit.");
                  event.target.value = ''; 
                  return;
@@ -789,10 +896,6 @@
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
-                
-                if (mediaType === 'photo') {
-                    // Optional: Show actual image preview
-                }
             };
             reader.onerror = (e) => {
                 console.error("File reading error:", e);
@@ -806,7 +909,8 @@
          * Sends admin reply to the server via Socket.io.
          */
         function sendReply() {
-            if (!currentChatId || !socket) return;
+            // Check if both ID and Source are known
+            if (!currentChatId || !currentChatSource || !socket) return;
 
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
@@ -821,7 +925,8 @@
             sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
 
             const data = {
-                chatId: currentChatId,
+                chatId: currentChatId, // Full document ID: [source]:[source_id]
+                source: currentChatSource, // Crucial for backend routing
                 text: text,
                 mediaPath: mediaPath, 
                 mediaType: mediaType, 
@@ -869,64 +974,31 @@
             socket = io();
             
             socket.on('new_message', (data) => {
-                const chatId = String(data.chatId);
-                const user = data.user;
-                const message = data.message;
+                const chatId = String(data.chatId); // The full document ID from Firestore (e.g., 'facebook:user123')
                 
-                const chatList = document.getElementById('chatList');
-                
-                // 1. Find and REMOVE the old entry to prevent duplicates
-                const existingChatElement = document.getElementById(`chat-${chatId}`);
-                if (existingChatElement) {
-                    existingChatElement.remove();
-                }
-
-                // 2. Update allChats data array for search functionality
-                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
-                if (chatIndex !== -1) {
-                    allChats.splice(chatIndex, 1);
-                }
-                user.lastMessageText = message.text;
-                user.lastMessageTime = message.timestamp;
-                allChats.unshift(user);
-
-                // 3. Update Unread Count state
-                if (currentChatId !== chatId) {
-                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                } else {
-                    unreadCounts[chatId] = 0;
-                }
-                
-                updateTotalUnreadBadge(); // Update main badge
-
-                // 4. Update the chat list display
-                if (document.getElementById('chatListSearch').value.trim() === '') {
-                    user.unreadCount = unreadCounts[chatId]; 
-                    const newChatElement = createChatListItem(user);
-                    chatList.prepend(newChatElement);
-
-                    // 5. If it's the current chat, display the new message immediately
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        newChatElement.classList.add('active'); 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                    } else {
-                        // Add a temporary subtle glow effect for new messages in the list
-                        newChatElement.classList.add('ring-4', 'ring-[var(--secondary-neon)]/50');
-                        setTimeout(() => {
-                            newChatElement.classList.remove('ring-4', 'ring-[var(--secondary-neon)]/50');
-                        }, 1000);
+                // If the new message is for the currently active chat
+                if (currentChatId === chatId) {
+                    const historyContainer = document.getElementById('messageHistory');
+                    historyContainer.prepend(createMessageBubble(data.message));
+                    historyContainer.scrollTop = 0; 
+                    filterChatHistory(document.getElementById('chatHistorySearch').value); 
+                    
+                    // Immediately mark as read via Firestore. 
+                    if (db) {
+                         try {
+                            const chatRef = doc(getPublicChatCollectionRef(), chatId);
+                            setDoc(chatRef, { unreadCount: 0 }, { merge: true }); 
+                            console.log(`New message received, auto-marking chat ${chatId} as read.`);
+                         } catch(e) {
+                             console.error("Auto-mark-as-read failed:", e);
+                         }
                     }
+
                 } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                    }
+                    // For non-active chats, the Firestore onSnapshot listener (fetchChats) handles 
+                    // updating the unread count badge and list re-sorting automatically 
+                    // when the backend updates the Firestore document.
+                    console.log(`New message received for non-active chat ${chatId}. Waiting for Firestore update...`);
                 }
 
             });
@@ -938,6 +1010,7 @@
         // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
             loadDarkModePreference();
+            initializeFirebase(); 
             setupSocketListeners();
             
             document.querySelectorAll('.nav-item').forEach(item => {
