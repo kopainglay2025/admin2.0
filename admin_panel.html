@@ -3,834 +3,545 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard (Telegram Gateway)</title>
+    <title>Telegram Admin Panel - Realtime Chat</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter Font -->
     <style>
-        /* Custom styles for professional appearance */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7;
+            background-color: #f7f7f9;
         }
-        .chat-area {
-            height: calc(100vh - 120px); /* Adjust height for header/footer */
-        }
-        .message-box {
+        .message-bubble {
             max-width: 80%;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
+            padding: 8px 12px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
         }
-        .user-message {
-            background-color: #e5e7eb; /* Light gray */
-            border-bottom-left-radius: 0;
+        .user-bubble {
+            background-color: #ffffff;
+            color: #1f2937;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
-        .admin-message {
-            background-color: #3b82f6; /* Blue */
+        .admin-bubble {
+            background-color: #10b981;
             color: white;
-            border-bottom-right-radius: 0;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        .file-preview-card {
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .file-preview-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
-        }
-        .active-nav {
-            border-bottom: 3px solid #10b981; /* Emerald green accent */
-            color: #10b981;
+        .active-chat {
+            background-color: #e5e7eb;
+            border-left: 4px solid #10b981;
         }
     </style>
 </head>
-<body class="antialiased">
+<body class="min-h-screen">
 
-    <!-- Global Variables & Library Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit, serverTimestamp, setLogLevel, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Socket.io for real-time updates
-        if (typeof io === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-            document.head.appendChild(script);
-        }
-        
-        setLogLevel('Debug');
-        
-        // --- MANDATORY GLOBAL VARIABLES ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+<div id="app-container">
+    <!-- Content will be rendered here by JavaScript -->
+</div>
 
-        let db, auth, socket;
-        let userId = 'admin_user'; // Static ID for admin operations
+<!-- Firebase Client SDKs -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONSTANTS ---
-        const CHAT_COLLECTION = 'telegram_chats';
-        const MESSAGE_SUB_COLLECTION = 'messages';
-        
-        let currentChatId = null;
-        const chatsList = document.getElementById('chats-list');
-        const chatHistoryContainer = document.getElementById('chat-history');
-        const chatInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-button');
-        const attachButton = document.getElementById('attach-file-button');
-        const fileInput = document.getElementById('file-input');
-        const chatHeader = document.getElementById('chat-header');
-        const broadcastForm = document.getElementById('broadcast-form');
-        const broadcastStatusDiv = document.getElementById('broadcast-status');
-        const filePreviewDiv = document.getElementById('file-preview-div');
-        const removeFileButton = document.getElementById('remove-file-button');
+    // Set Firestore log level for debugging
+    setLogLevel('error'); // Changed to error to reduce noise
 
-        let attachedFile = {
-            dataURL: null, // Base64 Data URL
-            type: null,    // 'photo' or 'document'
-            mimeType: null,
-            filename: null
-        };
+    // --- Global State and Initialization ---
+    const APP_ID = 'telegram-chat-app-v1';
+    let db, auth;
+    let userId = null;
+    let isAuthReady = false;
+    let selectedChatId = null;
+    let currentPath = window.location.pathname;
+    let chatListUnsubscribe = null;
+    let messageListUnsubscribe = null;
+    
+    // Check if on login page
+    const isLoginPage = currentPath.startsWith('/login');
 
-        // Utility to escape HTML
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, (m) => map[m]);
-        }
+    // Get the global variables provided by the Canvas environment
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- 1. FIREBASE & SOCKET INIT ---
-        async function initializeAppAndAuth() {
+    if (firebaseConfig) {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+    } else if (!isLoginPage) {
+        document.getElementById('app-container').innerHTML = `
+            <div class="p-6 text-red-600">Error: Firebase config is missing. Cannot initialize client SDK.</div>
+        `;
+    }
+
+    // --- Authentication and Setup ---
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            userId = user.uid;
+            console.log("Firebase Auth Ready. User ID:", userId);
+        } else {
+            console.log("No user signed in. Attempting custom/anonymous sign-in.");
             try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // Sign in with custom token (if available) or anonymously
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
                     await signInAnonymously(auth);
                 }
-                
-                // Get the user ID after sign-in
-                userId = auth.currentUser?.uid || 'admin_user';
-                console.log("Admin Firebase Auth successful. User ID:", userId);
-
-                // Initialize Socket.io only after Firebase is ready
-                socket = io();
-                socket.on('connect', () => console.log('Socket.io connected.'));
-                socket.on('disconnect', () => console.log('Socket.io disconnected.'));
-                socket.on('new_message', handleNewIncomingMessage);
-                socket.on('message_sent', handleAdminMessageSent);
-                socket.on('error', (err) => {
-                    console.error("Socket Error:", err);
-                    showToast(`Error: ${err.message}`, 'bg-red-500');
-                });
-
-                // Start fetching chats
-                setupChatListener();
-                
             } catch (error) {
-                console.error("Firebase Initialization or Auth Failed:", error);
-                showToast(`Initialization Error: ${error.message}`, 'bg-red-500');
-                // Display error on screen if possible
-                document.getElementById('chats-list').innerHTML = `<li class="text-red-500 p-4">Error loading system. Check console for Firebase/Auth errors.</li>`;
+                console.error("Firebase Sign-In Error:", error);
             }
         }
+        isAuthReady = true;
+        // Rerender the whole app on auth state change
+        renderApp(); 
+    });
 
-        // --- 2. SOCKET HANDLERS ---
-        function handleNewIncomingMessage(data) {
-            // Find the chat in the list and move it to the top
-            const chatId = data.chatId;
-            const user = data.user;
-            const chatElement = document.getElementById(`chat-${chatId}`);
-            
-            // If chat element exists, update it and move to top
-            if (chatElement) {
-                chatElement.querySelector('.last-message').textContent = user.lastMessageText;
-                chatsList.prepend(chatElement);
-            } else {
-                // If new chat, render it
-                renderChatListItem(user, true);
-            }
+    // --- Router and State Management ---
 
-            // If the message is for the currently viewed chat, display it immediately
-            if (chatId === currentChatId) {
-                renderMessage(data.message);
-                scrollToBottom();
-            }
-            showToast(`New message from ${user.username}`, 'bg-yellow-500');
-        }
+    const navigate = (path) => {
+        window.history.pushState({}, '', path);
+        currentPath = path;
+        renderApp();
+    };
 
-        function handleAdminMessageSent(message) {
-            // Echo the message locally to the currently viewed chat history
-            if (message.chatId === currentChatId) {
-                renderMessage(message);
-                scrollToBottom();
-            }
-            // Update the chat list item to show the admin's reply as the last message
-            const chatElement = document.getElementById(`chat-${message.chatId}`);
-             if (chatElement) {
-                chatElement.querySelector('.last-message').textContent = message.text || (message.filename ? `Sent file: ${message.filename}` : 'Sent media');
-                chatsList.prepend(chatElement);
-            }
-        }
+    window.onpopstate = () => {
+        currentPath = window.location.pathname;
+        renderApp();
+    };
 
-        // --- 3. CHAT LIST LOGIC ---
+    // --- Firebase Logic ---
 
-        function setupChatListener() {
-            if (!db) return;
+    // Path to store public chat data
+    const CHATS_COLLECTION_PATH = `artifacts/${APP_ID}/public/data/telegram_chats`;
 
-            const chatsQuery = query(
-                collection(db, CHAT_COLLECTION),
-                orderBy('lastMessageTime', 'desc'),
-                limit(50) // Limit the number of active chats shown
-            );
+    /**
+     * Attaches a real-time listener for the chat list.
+     */
+    function setupChatListListener(renderFn) {
+        if (!isAuthReady || !db) return;
+        if (chatListUnsubscribe) chatListUnsubscribe();
 
-            // Real-time listener for the chat list
-            onSnapshot(chatsQuery, (snapshot) => {
-                const existingChatIds = Array.from(chatsList.children).map(li => li.id.replace('chat-', ''));
-                const incomingChatIds = snapshot.docs.map(doc => doc.id);
-
-                // Clear list only if it's a completely new state or reset
-                // For real-time updates, iterate over changes
-                snapshot.docChanges().forEach(change => {
-                    const chatData = change.doc.data();
-                    const chatId = change.doc.id;
-                    const chatUser = {
-                        telegramId: chatId,
-                        username: chatData.username || chatId,
-                        lastMessageTime: chatData.lastMessageTime?.toDate().toISOString(),
-                        lastMessageText: chatData.lastMessageText
-                    };
-                    
-                    if (change.type === "added" || change.type === "modified") {
-                        const existingEl = document.getElementById(`chat-${chatId}`);
-                        if (existingEl) {
-                            // Update existing and move to top (handled by prepend)
-                            existingEl.remove();
-                        }
-                        renderChatListItem(chatUser, false);
-                    } else if (change.type === "removed") {
-                        const existingEl = document.getElementById(`chat-${chatId}`);
-                        if (existingEl) {
-                            existingEl.remove();
-                        }
-                    }
-                });
-            }, (error) => {
-                console.error("Error listening to chat list:", error);
-                showToast("Failed to load chat list in real-time.", 'bg-red-500');
-            });
-        }
-
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            const now = new Date();
-            
-            // Check if it's today
-            if (date.toDateString() === now.toDateString()) {
-                return date.toLocaleTimeString('my', { hour: '2-digit', minute: '2-digit' });
-            }
-            // Otherwise, show date
-            return date.toLocaleDateString('my');
-        }
-
-        function renderChatListItem(chat, prepend = false) {
-            const { telegramId, username, lastMessageText, lastMessageTime } = chat;
-            
-            if (telegramId === 'BROADCAST_TRIGGER') return; // Ignore broadcast trigger chat
-
-            const isActive = telegramId === currentChatId;
-            const listItem = document.createElement('li');
-            listItem.id = `chat-${telegramId}`;
-            listItem.className = `p-4 flex justify-between items-center border-b border-gray-200 cursor-pointer transition duration-150 ease-in-out ${isActive ? 'bg-indigo-100 border-indigo-500' : 'hover:bg-gray-50'}`;
-            listItem.innerHTML = `
-                <div>
-                    <div class="font-semibold text-gray-800">${escapeHtml(username)}</div>
-                    <p class="text-sm text-gray-500 truncate last-message">${escapeHtml(lastMessageText || 'No text')}</p>
-                    <p class="text-xs text-gray-400 mt-1">ID: ${telegramId}</p>
-                </div>
-                <div class="text-xs text-gray-500 whitespace-nowrap">${formatTime(lastMessageTime)}</div>
-            `;
-            listItem.onclick = () => loadChatHistory(telegramId, username);
-
-            if (prepend) {
-                chatsList.prepend(listItem);
-            } else {
-                chatsList.appendChild(listItem);
-            }
-
-            // Set active style
-            if (isActive) {
-                // Remove active class from all others
-                document.querySelectorAll('#chats-list li').forEach(li => li.classList.remove('bg-indigo-100', 'border-indigo-500'));
-                listItem.classList.add('bg-indigo-100', 'border-indigo-500');
-            }
-        }
-
-        // --- 4. CHAT HISTORY LOGIC ---
-
-        function loadChatHistory(chatId, username) {
-            if (currentChatId === chatId) return; // Already loaded
-
-            // 1. Update UI state
-            currentChatId = chatId;
-            chatHeader.innerHTML = `<h2 class="text-xl font-bold text-gray-800">Chatting with: ${escapeHtml(username)}</h2><p class="text-sm text-gray-500">Telegram ID: ${chatId}</p>`;
-            chatHistoryContainer.innerHTML = '<div class="text-center p-8 text-gray-400">Loading messages...</div>';
-            
-            // Update active state in list
-            document.querySelectorAll('#chats-list li').forEach(li => li.classList.remove('bg-indigo-100', 'border-indigo-500'));
-            const newActiveEl = document.getElementById(`chat-${chatId}`);
-            if (newActiveEl) {
-                newActiveEl.classList.add('bg-indigo-100', 'border-indigo-500');
-            }
-
-            // 2. Set up real-time listener for history
-            const messagesQuery = query(
-                collection(db, CHAT_COLLECTION, chatId, MESSAGE_SUB_COLLECTION),
-                orderBy('timestamp', 'asc')
-            );
-            
-            // Clear old listener if needed (Firebase manages this implicitly when a new snapshot is created, but good practice to handle explicitly if this were a service)
-            // For simplicity in a single-file app, we let Firebase manage this.
-
-            onSnapshot(messagesQuery, (snapshot) => {
-                chatHistoryContainer.innerHTML = ''; // Clear existing messages
-                snapshot.docs.forEach(doc => {
-                    const messageData = doc.data();
-                    messageData.id = doc.id;
-                    // Convert timestamp to ISO string for consistent handling
-                    messageData.timestamp = messageData.timestamp ? messageData.timestamp.toDate().toISOString() : new Date().toISOString();
-                    renderMessage(messageData);
-                });
-                scrollToBottom();
-            }, (error) => {
-                console.error(`Error listening to chat history for ${chatId}:`, error);
-                chatHistoryContainer.innerHTML = `<div class="text-center p-8 text-red-500">Failed to load chat history.</div>`;
-            });
-
-            // Make sure the chat view is visible if we were on broadcast view
-            window.location.hash = '#chat';
-            chatInput.focus();
-        }
-
-        function renderMessage(message) {
-            const { sender, text, mediaPath, filename, timestamp } = message;
-            
-            const isUser = sender === 'user';
-            const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bgColor = isUser ? 'user-message' : 'admin-message';
-            const alignCorner = isUser ? 'rounded-tl-none' : 'rounded-tr-none';
-            const time = formatTime(timestamp);
-
-            const messageEl = document.createElement('div');
-            messageEl.className = `flex ${alignment} mb-4`;
-            
-            let contentHTML = '';
-
-            // 1. Handle Media (Photo/Document)
-            if (mediaPath) {
-                if (isUser) {
-                    // User message: mediaPath is a Telegram file_id. We fetch it via API.
-                    const mediaType = filename ? 'document' : 'photo';
-                    
-                    if (mediaType === 'photo') {
-                         contentHTML += `
-                            <div class="p-2 bg-white shadow-lg rounded-lg max-w-xs">
-                                <img src="/api/get-media?file_id=${mediaPath}" alt="User Photo" class="rounded-lg max-h-60 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/240x160/ef4444/ffffff?text=Image+Load+Fail';" />
-                            </div>`;
-                    } else if (mediaType === 'document') {
-                         contentHTML += `
-                            <a href="/api/get-media?file_id=${mediaPath}" target="_blank" class="p-3 bg-white shadow-lg rounded-lg text-blue-600 hover:text-blue-800 transition file-preview-card max-w-xs">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                <span>${escapeHtml(filename || 'Document')}</span>
-                            </a>`;
-                    }
-                } else {
-                    // Admin message: mediaPath is Base64 Data URL. Display it directly.
-                    const isImage = mediaPath.startsWith('data:image/');
-                    const base64Type = attachedFile.type || (isImage ? 'photo' : 'document'); // Fallback in case of broadcast log
-
-                    if (isImage) {
-                         contentHTML += `
-                            <div class="p-2 bg-white shadow-lg rounded-lg max-w-xs">
-                                <img src="${mediaPath}" alt="Admin Photo" class="rounded-lg max-h-60 object-cover" />
-                            </div>`;
-                    } else {
-                        // Document preview (not clickable link as it's base64)
-                         contentHTML += `
-                            <div class="p-3 bg-white shadow-lg rounded-lg text-blue-600 file-preview-card max-w-xs">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                <span>${escapeHtml(filename || 'Document Sent')}</span>
-                            </div>`;
-                    }
-                }
-            }
-            
-            // 2. Handle Text (always included)
-            if (text && text.trim().length > 0) {
-                contentHTML += `<p class="message-box text-sm whitespace-pre-wrap ${bgColor} ${alignCorner}">${escapeHtml(text)}</p>`;
-            } else if (!mediaPath) {
-                // Should not happen if server validates, but good to prevent empty bubbles
-                return;
-            }
-
-            messageEl.innerHTML = `
-                <div class="flex flex-col max-w-lg">
-                    ${contentHTML}
-                    <span class="text-xs text-gray-500 mt-1 ${isUser ? 'text-left' : 'text-right'}">${time}</span>
-                </div>
-            `;
-            
-            chatHistoryContainer.appendChild(messageEl);
-        }
-
-        function scrollToBottom() {
-            chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
-        }
-
-
-        // --- 5. ADMIN REPLY LOGIC (Chat) ---
-
-        sendButton.addEventListener('click', () => {
-            handleSendMessage();
-        });
-
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-            }
-        });
+        const q = query(collection(db, CHATS_COLLECTION_PATH), orderBy('lastMessageTime', 'desc'));
         
-        attachButton.addEventListener('click', () => {
-            fileInput.click();
+        chatListUnsubscribe = onSnapshot(q, (snapshot) => {
+            const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderFn(chats);
+        }, (error) => {
+            console.error("Error fetching chat list:", error);
         });
+    }
 
-        fileInput.addEventListener('change', handleFileAttachment);
-        removeFileButton.addEventListener('click', clearAttachedFile);
+    /**
+     * Attaches a real-time listener for the messages of a specific chat.
+     */
+    function setupMessageListener(chatId, renderFn) {
+        if (!isAuthReady || !db || !chatId) return;
+        if (messageListUnsubscribe) messageListUnsubscribe();
 
-        function handleFileAttachment(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        const messagesRef = collection(db, CHATS_COLLECTION_PATH, chatId, 'messages');
+        const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const dataURL = e.target.result;
-                let fileType = 'document';
-                
-                if (file.type.startsWith('image/')) {
-                    fileType = 'photo';
-                }
+        messageListUnsubscribe = onSnapshot(q, (snapshot) => {
+            const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderFn(messages);
+        }, (error) => {
+            console.error("Error fetching messages:", error);
+        });
+    }
 
-                attachedFile = {
-                    dataURL: dataURL,
-                    type: fileType,
-                    mimeType: file.type,
-                    filename: file.name
-                };
-                
-                // Update UI to show preview
-                renderFilePreview();
-            };
-            reader.readAsDataURL(file);
-        }
+    // --- Utility Functions ---
 
-        function clearAttachedFile() {
-            attachedFile = { dataURL: null, type: null, mimeType: null, filename: null };
-            fileInput.value = ''; // Reset input field
-            renderFilePreview();
-        }
-        
-        function renderFilePreview() {
-            if (attachedFile.dataURL) {
-                filePreviewDiv.classList.remove('hidden');
-                
-                let previewHTML = '';
-                if (attachedFile.type === 'photo') {
-                    previewHTML = `<img src="${attachedFile.dataURL}" class="h-10 w-10 object-cover rounded mr-2" alt="Preview"/>`;
-                } else {
-                    previewHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`;
-                }
-                
-                filePreviewDiv.querySelector('#file-details').innerHTML = `${previewHTML} <span class="text-sm">${escapeHtml(attachedFile.filename)}</span>`;
+    /**
+     * Sends a message to the backend API, which forwards it to Telegram.
+     */
+    async function sendMessage(telegramId, text) {
+        if (!text.trim()) return;
 
-            } else {
-                filePreviewDiv.classList.add('hidden');
-            }
-        }
+        const chatBox = document.getElementById('chat-messages');
+        const originalScrollHeight = chatBox.scrollHeight;
+        const originalScrollTop = chatBox.scrollTop;
+        const isScrolledToBottom = (originalScrollTop + chatBox.clientHeight) >= (originalScrollHeight - 20);
 
-
-        async function handleSendMessage() {
-            if (!currentChatId) {
-                showToast("Please select a user to reply to.", 'bg-red-500');
-                return;
-            }
-            
-            const text = chatInput.value.trim();
-            const mediaPath = attachedFile.dataURL;
-            
-            if (!text && !mediaPath) {
-                showToast("Message cannot be empty.", 'bg-yellow-500');
-                return;
-            }
-            
-            chatInput.value = ''; // Clear input immediately
-            clearAttachedFile(); // Clear file attachment
-            
-            const messageData = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: mediaPath,
-                mediaType: attachedFile.type,
-                filename: attachedFile.filename
-            };
-            
-            // Send the message via Socket.io to the server
-            socket.emit('admin_reply', messageData, (response) => {
-                if (!response.success) {
-                    showToast(`Failed to send message: ${response.error}`, 'bg-red-500');
-                    // Re-populate input fields if sending failed
-                    chatInput.value = text;
-                    attachedFile.dataURL = mediaPath;
-                    attachedFile.type = messageData.mediaType;
-                    attachedFile.filename = messageData.filename;
-                    renderFilePreview();
-                } else {
-                    showToast("Message sent successfully!", 'bg-green-500');
-                }
+        try {
+            const response = await fetch('/api/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegramId, text })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Failed to send message:', errorData.message);
+                alert('Message send failed: ' + errorData.message);
+                return;
+            }
+
+            document.getElementById('message-input').value = '';
+            
+            // Wait for Firestore listener to update UI, but quickly scroll if needed
+            if (isScrolledToBottom) {
+                 setTimeout(() => chatBox.scrollTop = chatBox.scrollHeight, 100);
+            }
+
+        } catch (error) {
+            console.error('Network error sending message:', error);
+            alert('A network error occurred while sending the message.');
         }
+    }
+
+    /**
+     * Handles Admin Logout
+     */
+    async function handleLogout() {
+        try {
+            await signOut(auth);
+            await fetch('/api/logout', { method: 'POST' });
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
 
 
-        // --- 6. BROADCAST LOGIC ---
+    // --- UI Rendering Functions ---
 
-        broadcastForm.addEventListener('submit', async (e) => {
+    function renderLogin() {
+        document.getElementById('app-container').innerHTML = `
+            <div class="flex items-center justify-center min-h-screen">
+                <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-2xl">
+                    <h2 class="text-3xl font-extrabold text-center text-gray-900">Admin Login</h2>
+                    <form id="login-form" class="space-y-6">
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <input id="username" name="username" type="text" required class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="Enter username">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input id="password" name="password" type="password" required class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="Enter password">
+                        </div>
+                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                            Sign In
+                        </button>
+                    </form>
+                    <p id="login-error" class="text-sm text-red-600 text-center hidden"></p>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const text = document.getElementById('broadcast-text').value.trim();
-            const mediaPath = document.getElementById('broadcast-file-data').value; // Hidden field for Base64
-            const mediaType = document.getElementById('broadcast-file-type').value;
-            const filename = document.getElementById('broadcast-file-name').value;
-            
-            if (!text && !mediaPath) {
-                showToast("Broadcast message cannot be empty.", 'bg-yellow-500');
-                return;
-            }
-
-            broadcastStatusDiv.innerHTML = `<p class="text-indigo-600">Sending broadcast... Please wait.</p>`;
-            document.getElementById('broadcast-send-button').disabled = true;
-
-            const broadcastData = {
-                text: text,
-                mediaPath: mediaPath,
-                mediaType: mediaType,
-                filename: filename
-            };
+            const username = e.target.username.value;
+            const password = e.target.password.value;
+            const errorElement = document.getElementById('login-error');
+            errorElement.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/broadcast', {
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(broadcastData)
+                    body: JSON.stringify({ username, password })
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`Server returned status ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                document.getElementById('broadcast-text').value = '';
-                clearBroadcastFile();
 
-                let statusText = `<p class="text-lg font-semibold mb-2">Broadcast Complete</p>`;
-                statusText += `<p>Total Users: ${result.totalUsers}</p>`;
-                statusText += `<p class="text-green-600">Successfully Sent: ${result.totalSent}</p>`;
-                
-                if (result.totalFailed > 0) {
-                    statusText += `<p class="text-red-600">Failed: ${result.totalFailed} (See console for details)</p>`;
-                    console.error("Broadcast Failures:", result.failures);
-                    showToast("Broadcast finished with some failures.", 'bg-red-500');
+                const data = await response.json();
+                if (data.success) {
+                    navigate(data.redirect || '/');
                 } else {
-                    showToast("Broadcast sent to all users successfully!", 'bg-green-500');
+                    errorElement.textContent = data.message || 'Login failed.';
+                    errorElement.classList.remove('hidden');
                 }
-                
-                broadcastStatusDiv.innerHTML = `<div class="p-4 bg-gray-100 rounded-lg">${statusText}</div>`;
-
             } catch (error) {
-                console.error("Broadcast failed:", error);
-                broadcastStatusDiv.innerHTML = `<p class="text-red-600">Broadcast Failed: ${error.message}</p>`;
-                showToast("Broadcast failed due to an error.", 'bg-red-500');
-            } finally {
-                document.getElementById('broadcast-send-button').disabled = false;
+                errorElement.textContent = 'An error occurred during login.';
+                errorElement.classList.remove('hidden');
             }
         });
-        
-        // Broadcast File Attachment Handlers
-        document.getElementById('broadcast-attach-file-button').addEventListener('click', () => {
-            document.getElementById('broadcast-file-input').click();
-        });
-        
-        document.getElementById('broadcast-remove-file-button').addEventListener('click', clearBroadcastFile);
+    }
 
-        document.getElementById('broadcast-file-input').addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const dataURL = e.target.result;
-                let fileType = 'document';
+    function renderAdminLayout(contentHTML) {
+        document.getElementById('app-container').innerHTML = `
+            <div class="flex h-screen bg-gray-50">
+                <!-- Sidebar -->
+                <aside class="w-64 bg-white shadow-xl flex flex-col">
+                    <div class="p-6 border-b border-gray-200">
+                        <h1 class="text-2xl font-bold text-green-600">Telegram Admin</h1>
+                    </div>
+                    <nav class="flex-grow p-4 space-y-2">
+                        <a href="/" onclick="event.preventDefault(); navigate('/')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/' ? 'bg-gray-100 font-semibold' : ''}">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0v-4a1 1 0 011-1h2a1 1 0 011 1v4m-6 0h6"></path></svg>
+                            Dashboard
+                        </a>
+                        <a href="/chat" onclick="event.preventDefault(); navigate('/chat')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath.startsWith('/chat') ? 'bg-gray-100 font-semibold text-green-600' : ''}">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                            Chat (Real-time)
+                        </a>
+                        <a href="/broadcast" onclick="event.preventDefault(); navigate('/broadcast')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/broadcast' ? 'bg-gray-100 font-semibold' : ''}">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-2.67 1.054l-5.8-3.793a1 1 0 010-1.748l5.8-3.793A1.76 1.76 0 0111 5.882zM16 4h4a1 1 0 011 1v4a1 1 0 01-1 1h-4m-7 0a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                            Broadcast
+                        </a>
+                        <a href="/settings" onclick="event.preventDefault(); navigate('/settings')" class="flex items-center p-3 text-gray-700 hover:bg-gray-100 rounded-lg transition duration-150 ${currentPath === '/settings' ? 'bg-gray-100 font-semibold' : ''}">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Settings
+                        </a>
+                    </nav>
+                    <div class="p-4 border-t border-gray-200">
+                        <button id="logout-btn" class="w-full py-2 px-4 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition duration-150">
+                            Logout
+                        </button>
+                    </div>
+                </aside>
                 
-                if (file.type.startsWith('image/')) {
-                    fileType = 'photo';
-                }
+                <!-- Main Content -->
+                <main class="flex-1 overflow-auto p-6">
+                    ${contentHTML}
+                </main>
+            </div>
+        `;
+        document.getElementById('logout-btn').onclick = handleLogout;
+    }
 
-                document.getElementById('broadcast-file-data').value = dataURL;
-                document.getElementById('broadcast-file-type').value = fileType;
-                document.getElementById('broadcast-file-name').value = file.name;
+    function renderDashboard() {
+        return `
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+                    <p class="text-sm font-medium text-gray-500">Total Chats</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1" id="total-chats-count">...</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+                    <p class="text-sm font-medium text-gray-500">Active Users</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">N/A</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+                    <p class="text-sm font-medium text-gray-500">Pending Messages</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">...</p>
+                </div>
+            </div>
+            <div class="mt-8 bg-white p-6 rounded-xl shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                <a href="/chat" onclick="event.preventDefault(); navigate('/chat')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Go to Chat</a>
+            </div>
+        `;
+    }
 
-                // Update UI preview
-                renderBroadcastFilePreview(file.name, fileType, dataURL);
-            };
-            reader.readAsDataURL(file);
-        });
+    function renderBroadcast() {
+        return `
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Broadcast Message</h2>
+            <div class="bg-white p-8 rounded-xl shadow-md max-w-2xl">
+                <p class="text-gray-600 mb-6">ဤနေရာတွင် ရေးသားပါက Telegram တွင် ရှိသော အသုံးပြုသူအားလုံးကို တစ်ပြိုင်နက်တည်း ပို့ဆောင်ပေးမှာ ဖြစ်ပါတယ်။ (Implementation ကို backend မှာ ထပ်ထည့်ရပါမယ်)</p>
+                <textarea class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Enter your broadcast message..."></textarea>
+                <button class="mt-4 w-full py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition duration-150">
+                    Send Broadcast (Placeholder)
+                </button>
+            </div>
+        `;
+    }
 
-        function clearBroadcastFile() {
-            document.getElementById('broadcast-file-data').value = '';
-            document.getElementById('broadcast-file-type').value = '';
-            document.getElementById('broadcast-file-name').value = '';
-            document.getElementById('broadcast-file-input').value = ''; // Reset file input
-            renderBroadcastFilePreview(null);
+    function renderSettings() {
+        return `
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Settings</h2>
+            <div class="bg-white p-8 rounded-xl shadow-md max-w-xl">
+                <p class="text-gray-600">ဤနေရာသည် စနစ်ထည့်သွင်းမှုများ (ဥပမာ: Telegram Bot Token ပြောင်းလဲခြင်း၊ Admin Password ပြောင်းလဲခြင်း) ပြုလုပ်ရန် နေရာဖြစ်ပါသည်။ (Backend implementation လိုအပ်ပါသည်)</p>
+                <div class="mt-6 space-y-4">
+                    <div class="p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 rounded-md">
+                        <p class="font-medium">Current Admin User ID:</p>
+                        <p class="break-all text-sm">${userId || 'Loading...'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderChat(chats) {
+        return `
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Real-time Chat</h2>
+            <div class="flex h-[80vh] bg-white rounded-xl shadow-2xl overflow-hidden">
+                <!-- Chat List Sidebar -->
+                <div id="chat-list" class="w-1/4 border-r border-gray-200 overflow-y-auto bg-gray-50">
+                    ${chats.length === 0 ? '<p class="p-4 text-center text-gray-500">No active chats yet.</p>' :
+                      chats.map(chat => `
+                          <div onclick="selectChat('${chat.id}', '${chat.username}')" 
+                               class="chat-item p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition duration-150 ${chat.id === selectedChatId ? 'active-chat font-semibold' : ''}">
+                              <p class="text-sm font-bold text-gray-800">${chat.username || 'Telegram User'}</p>
+                              <p class="text-xs text-gray-500 truncate">${chat.telegramId}</p>
+                              <p class="text-xs text-gray-400 mt-1">${new Date(chat.lastMessageTime?.seconds * 1000).toLocaleString()}</p>
+                          </div>
+                      `).join('')
+                    }
+                </div>
+
+                <!-- Chat Window -->
+                <div class="flex-1 flex flex-col">
+                    <header class="p-4 border-b border-gray-200 bg-white shadow-sm">
+                        <h3 class="text-xl font-bold text-gray-800" id="current-chat-header">
+                            ${selectedChatId ? 'Chatting with: ' + (chats.find(c => c.id === selectedChatId)?.username || 'User') : 'Select a Chat to start talking'}
+                        </h3>
+                    </header>
+                    
+                    <!-- Message Area -->
+                    <div id="chat-messages" class="flex-1 p-6 overflow-y-auto space-y-4 bg-gray-50">
+                        ${!selectedChatId ? '<div class="h-full flex items-center justify-center text-gray-400 text-lg">Click a user on the left to view the conversation.</div>' : ''}
+                        <!-- Messages will be rendered here -->
+                    </div>
+
+                    <!-- Message Input -->
+                    <footer class="p-4 border-t border-gray-200 bg-white">
+                        <form id="message-form" class="flex items-center">
+                            <input type="text" id="message-input" placeholder="Type your message..." class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100" ${!selectedChatId ? 'disabled' : ''}>
+                            <button type="submit" id="send-btn" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-r-lg hover:bg-green-700 transition duration-150 disabled:opacity-50" ${!selectedChatId ? 'disabled' : ''}>
+                                Send
+                            </button>
+                        </form>
+                    </footer>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderMessages(messages) {
+        const chatBox = document.getElementById('chat-messages');
+        if (!chatBox) return;
+
+        // Check if the user is already scrolled near the bottom
+        const isScrolledToBottom = (chatBox.scrollTop + chatBox.clientHeight) >= (chatBox.scrollHeight - 20);
+
+        chatBox.innerHTML = messages.map(msg => `
+            <div class="flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}">
+                <div class="message-bubble ${msg.sender === 'admin' ? 'admin-bubble ml-auto' : 'user-bubble mr-auto'}">
+                    <p class="text-sm">${msg.text}</p>
+                    <span class="block text-right ${msg.sender === 'admin' ? 'text-green-200' : 'text-gray-400'} text-xs mt-1">
+                        ${new Date(msg.timestamp?.seconds * 1000).toLocaleTimeString()}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+
+        // Scroll to the bottom only if it was already at the bottom before rendering
+        if (isScrolledToBottom) {
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
+    }
 
-        function renderBroadcastFilePreview(filename, fileType, dataURL) {
-            const previewDiv = document.getElementById('broadcast-file-preview-div');
-            const fileDetails = document.getElementById('broadcast-file-details');
-            
-            if (filename) {
-                previewDiv.classList.remove('hidden');
-                let previewHTML = '';
-                if (fileType === 'photo') {
-                    previewHTML = `<img src="${dataURL}" class="h-10 w-10 object-cover rounded mr-2" alt="Preview"/>`;
-                } else {
-                    previewHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`;
-                }
-                fileDetails.innerHTML = `${previewHTML} <span class="text-sm">${escapeHtml(filename)}</span>`;
-            } else {
-                previewDiv.classList.add('hidden');
-            }
-        }
-
-        // --- 7. UTILITIES & ROUTING ---
+    // --- Global Function for Chat Selection (called from HTML) ---
+    window.selectChat = (chatId, username) => {
+        if (selectedChatId === chatId) return;
         
-        // Custom Toast Notification
-        function showToast(message, bgColor) {
-            const toast = document.getElementById('toast-notification');
-            toast.textContent = message;
-            toast.className = `fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300 ${bgColor}`;
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            toast.classList.add('opacity-100');
+        selectedChatId = chatId;
+        
+        // Update header and input state immediately
+        document.getElementById('current-chat-header').textContent = 'Chatting with: ' + username;
+        document.getElementById('message-input').disabled = false;
+        document.getElementById('send-btn').disabled = false;
 
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
+        // Unsubscribe from previous chat's messages
+        if (messageListUnsubscribe) messageListUnsubscribe();
+
+        // Attach new message listener
+        setupMessageListener(chatId, renderMessages);
+
+        // Re-render the chat list to update the active highlight
+        // This is necessary because the chat list is inside the layout
+        const chatListContainer = document.getElementById('chat-list').parentNode;
+        chatListContainer.innerHTML = renderChat(currentChats).split('<!-- Chat List Sidebar -->')[1].split('<!-- Chat Window -->')[0];
+    };
+
+    let currentChats = [];
+
+    // --- Main Renderer ---
+    function renderApp() {
+        if (isLoginPage) {
+            renderLogin();
+            return;
         }
 
-        // Client-Side Routing Function
-        function navigateTo(hash) {
-            // Find and update the active navigation link
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active-nav');
-                if (link.getAttribute('href') === hash) {
-                    link.classList.add('active-nav');
+        if (!isAuthReady || !userId) {
+            document.getElementById('app-container').innerHTML = `<div class="p-6 text-center text-gray-600">Loading authentication...</div>`;
+            return;
+        }
+
+        let content = '';
+        if (currentPath.startsWith('/chat')) {
+            // Chat view requires real-time data
+            setupChatListListener((chats) => {
+                currentChats = chats;
+                // If no chat is selected, automatically select the latest one
+                if (!selectedChatId && chats.length > 0) {
+                    window.selectChat(chats[0].id, chats[0].username);
+                }
+                
+                // Re-render chat UI to update list
+                const newChatContent = renderChat(chats);
+                
+                // Only replace the inner content if the path is still /chat
+                if (window.location.pathname.startsWith('/chat')) {
+                    const mainContent = document.querySelector('main');
+                    if (mainContent) {
+                        mainContent.innerHTML = newChatContent;
+                        // Re-attach form listener after rendering
+                        document.getElementById('message-form')?.addEventListener('submit', (e) => {
+                            e.preventDefault();
+                            const text = document.getElementById('message-input').value;
+                            sendMessage(selectedChatId, text);
+                        });
+                    }
                 }
             });
+            content = renderChat(currentChats); // Initial render with empty/old list
+        } else if (currentPath === '/broadcast') {
+            content = renderBroadcast();
+        } else if (currentPath === '/settings') {
+            content = renderSettings();
+        } else { // Default to Dashboard
+            content = renderDashboard();
+            // Simple dashboard count update (optional: listen to the collection size)
+            setTimeout(() => {
+                if (document.getElementById('total-chats-count')) {
+                    // This is a rough estimation, a more robust way involves an aggregate query
+                    document.getElementById('total-chats-count').textContent = currentChats.length.toString();
+                    document.getElementById('pending-messages-count').textContent = 'N/A (check chats)';
+                }
+            }, 500); 
+        }
 
-            // Hide all content views
-            document.getElementById('chat-view').classList.add('hidden');
-            document.getElementById('broadcast-view').classList.add('hidden');
+        renderAdminLayout(content);
 
-            // Show the selected view
-            const viewId = hash.substring(1) + '-view';
-            const viewElement = document.getElementById(viewId);
-            if (viewElement) {
-                viewElement.classList.remove('hidden');
+        // Attach form listener only on /chat view initial load
+        if (currentPath.startsWith('/chat')) {
+            document.getElementById('message-form')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = document.getElementById('message-input').value;
+                sendMessage(selectedChatId, text);
+            });
+        }
+    }
+
+    // Check for existing session on page load
+    fetch(currentPath)
+        .then(response => {
+            // If the server redirects to /login, handle it.
+            if (response.redirected && response.url.endsWith('/login')) {
+                // If it's already on /login, let renderApp handle it via isLoginPage check.
+                if (!isLoginPage) {
+                    navigate('/login');
+                } else {
+                    renderApp();
+                }
             } else {
-                // Default to chat view if hash is unknown or empty
-                document.getElementById('chat-view').classList.remove('hidden');
-                document.querySelector('[href="#chat"]').classList.add('active-nav');
-                window.location.hash = '#chat';
+                // If session is active or on /login, proceed with rendering
+                renderApp();
             }
-        }
+        })
+        .catch(() => {
+            // Fallback render (e.g., network error)
+            renderApp();
+        });
 
-        // Handle URL hash changes
-        window.addEventListener('hashchange', () => navigateTo(window.location.hash));
-        
-        // Initial setup on load
-        window.onload = function() {
-            initializeAppAndAuth();
-            // Default view or based on hash
-            if (!window.location.hash) {
-                window.location.hash = '#chat';
-            }
-            navigateTo(window.location.hash);
-        }
-
-    </script>
-    
-    <!-- Toast Notification Container -->
-    <div id="toast-notification" class="fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300 opacity-0 pointer-events-none bg-indigo-600"></div>
-
-    <!-- Main Header/Navigation -->
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <h1 class="text-2xl font-extrabold text-gray-900">Telegram Admin Panel</h1>
-                <nav class="flex space-x-8">
-                    <a href="#chat" class="nav-link text-gray-500 hover:text-gray-900 px-3 py-2 font-medium transition duration-150 ease-in-out" onclick="navigateTo('#chat')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4m4 0h-4m-4 0h-2M4 12V4a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2h-4L12 18z"/></svg>
-                        Chat Gateway
-                    </a>
-                    <a href="#broadcast" class="nav-link text-gray-500 hover:text-gray-900 px-3 py-2 font-medium transition duration-150 ease-in-out" onclick="navigateTo('#broadcast')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.636 18.364l4-4L2 12l7.636-2.364L5.636 5.636l4 4 1.414 1.414 2.828-2.828 2.828 2.828 1.414 1.414-4 4-2.828-2.828-1.414-1.414-1.414 1.414z"/></svg>
-                        Broadcast Message
-                    </a>
-                </nav>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        <!-- ---------------------------------------------------- -->
-        <!-- 1. CHAT VIEW (Active by default) -->
-        <!-- ---------------------------------------------------- -->
-        <section id="chat-view" class="flex h-full min-h-[80vh] bg-white rounded-xl shadow-lg overflow-hidden hidden">
-            
-            <!-- Sidebar: Chat List -->
-            <div class="w-1/3 border-r border-gray-200 overflow-y-auto bg-gray-50">
-                <div class="p-4 bg-gray-100 sticky top-0 z-5">
-                    <h3 class="text-lg font-bold text-gray-700">Active Chats</h3>
-                </div>
-                <ul id="chats-list">
-                    <!-- Chat list items will be injected here -->
-                    <li class="text-center text-gray-400 p-8">Loading chats...</li>
-                </ul>
-            </div>
-
-            <!-- Main Chat Area: History & Input -->
-            <div class="w-2/3 flex flex-col">
-                
-                <!-- Chat Header -->
-                <div id="chat-header" class="p-4 border-b border-gray-200 bg-white sticky top-0">
-                    <h2 class="text-xl font-bold text-gray-400">Please select a chat</h2>
-                </div>
-
-                <!-- Chat History -->
-                <div id="chat-history" class="chat-area p-6 overflow-y-auto flex-grow bg-white">
-                    <!-- Messages will be injected here -->
-                    <div class="text-center p-8 text-gray-400">Select a user from the left panel to view message history.</div>
-                </div>
-
-                <!-- Chat Input / Reply Area -->
-                <div class="p-4 border-t border-gray-200 bg-gray-50">
-                    <div class="flex items-center space-x-3">
-                        
-                        <!-- File Preview (Only for chat reply) -->
-                        <div id="file-preview-div" class="flex items-center bg-indigo-100 p-2 rounded-lg hidden">
-                            <span id="file-details" class="flex items-center text-indigo-700"></span>
-                            <button id="remove-file-button" class="ml-3 text-red-500 hover:text-red-700 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                            </button>
-                        </div>
-
-                        <!-- File Input Button -->
-                        <input type="file" id="file-input" class="hidden" accept="image/*, application/pdf, .doc, .docx, .txt, .zip">
-                        <button id="attach-file-button" class="p-2 text-gray-500 hover:text-indigo-600 transition duration-150 ease-in-out rounded-full hover:bg-indigo-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13.5" /></svg>
-                        </button>
-                        
-                        <!-- Textarea -->
-                        <textarea id="chat-input" placeholder="Type a message or use Shift+Enter for new line..." rows="1" class="flex-grow resize-none border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"></textarea>
-                        
-                        <!-- Send Button -->
-                        <button id="send-button" class="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition duration-150 ease-in-out transform hover:scale-105">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- ---------------------------------------------------- -->
-        <!-- 2. BROADCAST VIEW (Hidden by default) -->
-        <!-- ---------------------------------------------------- -->
-        <section id="broadcast-view" class="bg-white p-8 rounded-xl shadow-lg hidden">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">New Broadcast Message</h2>
-            <p class="text-gray-600 mb-8">Send a message, image, or document to all active Telegram users who have contacted the bot.</p>
-
-            <form id="broadcast-form" class="space-y-6">
-
-                <!-- Text Input -->
-                <div>
-                    <label for="broadcast-text" class="block text-sm font-medium text-gray-700 mb-2">Message Text (Caption optional)</label>
-                    <textarea id="broadcast-text" rows="5" class="w-full border border-gray-300 p-4 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                </div>
-
-                <!-- File Attachment Area -->
-                <div class="border border-dashed border-gray-300 p-6 rounded-lg bg-gray-50">
-                    <div id="broadcast-file-upload-section">
-                        <p class="text-sm font-medium text-gray-700 mb-3">Attach Media (Image/Document)</p>
-                        <input type="file" id="broadcast-file-input" class="hidden" accept="image/*, application/pdf, .doc, .docx, .txt, .zip">
-                        <button type="button" id="broadcast-attach-file-button" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-150">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13.5" /></svg>
-                            Attach File
-                        </button>
-                    </div>
-
-                    <!-- File Preview (For Broadcast) -->
-                    <div id="broadcast-file-preview-div" class="mt-4 flex items-center bg-green-50 p-3 rounded-lg border border-green-200 hidden">
-                        <span id="broadcast-file-details" class="flex items-center text-green-700 flex-grow"></span>
-                        <button type="button" id="broadcast-remove-file-button" class="ml-4 text-red-500 hover:text-red-700 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 100 2v6a1 1 0 100-2V8z" clip-rule="evenodd" /></svg>
-                        </button>
-                    </div>
-
-                    <!-- Hidden fields to hold Base64 data and metadata -->
-                    <input type="hidden" id="broadcast-file-data">
-                    <input type="hidden" id="broadcast-file-type">
-                    <input type="hidden" id="broadcast-file-name">
-
-                </div>
-
-                <!-- Status & Send Button -->
-                <div id="broadcast-status" class="mt-6">
-                    <p class="text-gray-500">Ready to send.</p>
-                </div>
-                
-                <button type="submit" id="broadcast-send-button" class="w-full px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150 ease-in-out transform hover:scale-[1.01]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    Send Broadcast to All Users
-                </button>
-            </form>
-
-        </section>
-
-    </main>
-
+</script>
 </body>
 </html>
