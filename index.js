@@ -1,210 +1,212 @@
-import express from 'express';
-import { Telegraf } from 'telegraf';
-import admin from 'firebase-admin'; // FIX: Use default import for robust ES module compatibility
-import 'dotenv/config';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// index.js
 
-// Use ES module versions of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+require('dotenv').config();
+const { Telegraf, Markup } = require('telegraf');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const admin = require('firebase-admin');
+const auth = require('basic-auth');
+const path = require('path');
 
-// --- Configuration ---
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const FIREBASE_SERVICE_ACCOUNT_KEY_JSON = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-const PORT = process.env.PORT || 3000;
-const SESSION_SECRET = "very-secret-key-change-this"; // Should be stored in .env in production
-const APP_ID = 'telegram-chat-app-v1'; // Fixed app ID for Firestore path
-
-// --- Firebase Admin Initialization (Server Side) ---
-if (!FIREBASE_SERVICE_ACCOUNT_KEY_JSON) {
-    console.error("FATAL: FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.");
-    process.exit(1);
-}
-let serviceAccount;
+// --- 1. Firebase Initialization (DB Setup) ---
 try {
-    // The key is properly escaped with \\n in .env, so JSON.parse will resolve it correctly.
-    serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT_KEY_JSON);
-} catch (e) {
-    console.error("FATAL: Could not parse FIREBASE_SERVICE_ACCOUNT_KEY JSON:", e);
+    const serviceAccountKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccountKey),
+        databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com" // Replace with your actual database URL
+    });
+    console.log("Firebase initialized successfully.");
+} catch (error) {
+    console.error("Firebase initialization failed:", error);
     process.exit(1);
 }
 
-// FIX: Using the admin namespace for initialization
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+const db = admin.database();
+const usersRef = db.ref('telegram_users');
+const messagesRef = db.ref('messages');
 
-const db = admin.firestore(); // Use admin.firestore()
-console.log("Firebase Admin SDK initialized successfully.");
+// --- 2. Telegram Bot Setup ---
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+const ADMIN_CHAT_ID = "YOUR_ADMIN_TELEGRAM_ID"; // Admin ရဲ့ Telegram ID ကို ဒီမှာထည့်ပါ (Broadcast/Alert အတွက်)
 
-// --- Telegram Bot Initialization ---
-const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
-// IMPORTANT: Update to your VPS domain
-bot.telegram.setWebhook(`https://mkschannel.org/webhook`); 
-console.log(`Telegram Bot initialized. Webhook set to: /webhook`);
+// Custom Menu Keyboard
+const menuKeyboard = Markup.keyboard([
+    ['/dashboard', '/chat'],
+    ['/broadcast', '/settings']
+]).resize();
 
-// --- Firestore Helpers ---
-
-// Path to store public chat data
-const CHATS_COLLECTION_PATH = `artifacts/${APP_ID}/public/data/telegram_chats`;
-
-/**
- * Saves a message from a user to Firestore.
- * @param {object} message The Telegram message object.
- * @param {string} sender The sender type ('user' or 'admin').
- */
-async function saveMessage(message, sender) {
-    const chatId = message.chat.id.toString();
-    const chatRef = db.collection(CHATS_COLLECTION_PATH).doc(chatId);
-    const messageData = {
-        text: message.text,
-        sender: sender,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(), // Use admin.firestore.FieldValue
-        // Store original chat info only on user message
-        telegramId: message.from.id.toString(),
-        username: message.from.username || message.from.first_name || 'N/A'
-    };
-
-    try {
-        // 1. Save the message to the subcollection
-        await chatRef.collection('messages').add(messageData);
-
-        // 2. Update the main chat document (for chat list display)
-        await chatRef.set({
-            telegramId: chatId,
-            username: messageData.username,
-            lastMessageTime: messageData.timestamp,
-            // Use merge: true to avoid overwriting existing fields
-        }, { merge: true });
-
-        console.log(`Message saved from ${sender} (${chatId}): ${message.text.substring(0, 30)}...`);
-    } catch (error) {
-        console.error("Error saving message to Firestore:", error);
-    }
-}
-
-// --- Telegram Bot Handlers ---
-
-// Handle all incoming text messages
-bot.on('text', async (ctx) => {
-    // Save the user's message to Firestore
-    await saveMessage(ctx.message, 'user');
-
-    // Optional: Send an automatic reply to the user immediately
-    // ctx.reply("Thank you for your message. An admin will respond shortly.");
-});
-
-// Handle /start command
+// Command Handlers
 bot.start(async (ctx) => {
-    await saveMessage(ctx.message, 'user');
-    ctx.reply('မင်္ဂလာပါ! အုပ်ချုပ်သူ (Admin) မှ အချိန်မရွေး ပြန်လည်ဖြေကြားပေးပါလိမ့်မယ်။');
+    const userId = ctx.from.id;
+    const username = ctx.from.username || ctx.from.first_name;
+    
+    // Save/Update user info in Firebase
+    await usersRef.child(userId).set({ 
+        id: userId, 
+        username: username, 
+        lastActive: admin.database.ServerValue.TIMESTAMP 
+    });
+
+    ctx.reply(`မင်္ဂလာပါ ${username}။ 👋\n\nမည်သည့် အကူအညီ လိုအပ်ပါသလဲ? Admin နဲ့ တိုက်ရိုက် စကားပြောလိုပါက **Chat** ကို နှိပ်ပါ သို့မဟုတ် တိုက်ရိုက် စာပို့နိုင်ပါတယ်။`, menuKeyboard);
 });
 
-// --- Express Server and Admin Panel ---
-const app = express();
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser(SESSION_SECRET));
+bot.command('dashboard', (ctx) => ctx.reply('Dashboard အချက်အလက်များ... (e.g., website link)'));
+bot.command('chat', (ctx) => ctx.reply('Admin နဲ့ စကားစပြောနိုင်ပါပြီ။ စာရေးပြီး ပို့နိုင်ပါတယ်။ Admin ဘက်မှ အမြန်ဆုံး ပြန်ဖြေပေးပါမယ်။'));
+bot.command('broadcast', (ctx) => ctx.reply('Broadcast လုပ်ရန် Admin Panel ကို အသုံးပြုပါ။'));
+bot.command('settings', (ctx) => ctx.reply('Bot ဆက်တင်များ...'));
 
-// Middleware for Admin Authentication
-const requireAuth = (req, res, next) => {
-    // Simple cookie-based session check
-    if (req.signedCookies.admin_session === 'authenticated') {
-        next();
+// Message Handler - Real-Time Forwarding to Admin Panel
+bot.on('text', async (ctx) => {
+    const userId = ctx.from.id;
+    const username = ctx.from.username || ctx.from.first_name;
+    const messageText = ctx.message.text;
+    const timestamp = admin.database.ServerValue.TIMESTAMP;
+
+    // 1. Save message to Firebase
+    const newMessage = {
+        userId: userId,
+        username: username,
+        message: messageText,
+        sender: 'user', // 'user' or 'admin'
+        timestamp: timestamp
+    };
+    await messagesRef.child(userId).push(newMessage);
+    
+    // 2. Notify Admin Panel via Socket.IO
+    io.emit('new_message_from_user', { 
+        userId: userId, 
+        username: username,
+        message: messageText, 
+        time: new Date().toLocaleTimeString() 
+    });
+
+    // 3. (Optional) Auto-reply for non-chat messages
+    if (ctx.message.text.startsWith('/')) {
+        // Command တွေကို စစ်ပြီး start က reply ပြီးသားမို့ ဘာမှ မလုပ်ပါ
     } else {
-        res.redirect('/login');
+        // စကားပြောမုဒ်လို သဘောထားပြီး auto-reply မလုပ်တော့ပါ
     }
+});
+
+bot.launch();
+
+// Enable graceful stop
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+
+// --- 3. Express Server & Socket.IO Setup (Admin Panel) ---
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+const PORT = process.env.PORT || 3000;
+
+// Basic HTTP Authentication Middleware
+const basicAuth = (req, res, next) => {
+    const user = auth(req);
+    if (!user || user.name !== process.env.ADMIN_USERNAME || user.pass !== process.env.ADMIN_PASSWORD) {
+        res.set('WWW-Authenticate', 'Basic realm="Admin Access"');
+        return res.status(401).send('Authentication required.');
+    }
+    next();
 };
 
-// Route to handle incoming Telegram updates
-app.post('/webhook', (req, res) => {
-    bot.handleUpdate(req.body);
-    res.sendStatus(200); // Important to respond quickly
+// Serve static files (HTML, CSS, JS) from the public folder
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(basicAuth); // Protect all routes with basic auth
+
+// Routes
+app.get('/', (req, res) => {
+    // Dashboard (index.html)
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Serve the admin HTML file
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+app.get('/chat/:userId', (req, res) => {
+    // Chat Interface (chat.html)
+    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
 
-// Main admin protected routes (all served by the same single HTML file)
-app.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-app.get('/chat', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-app.get('/broadcast', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-app.get('/settings', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
+// Socket.IO for Real-Time Communication
+io.on('connection', (socket) => {
+    console.log('Admin connected to socket.io');
 
-
-// Admin Login API endpoint
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Set a signed cookie for session management
-        res.cookie('admin_session', 'authenticated', {
-            httpOnly: true,
-            signed: true,
-            maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
-        });
-        return res.json({ success: true, redirect: '/' });
-    } else {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-});
-
-// Admin Logout
-app.post('/api/logout', (req, res) => {
-    res.clearCookie('admin_session');
-    res.json({ success: true, redirect: '/login' });
-});
-
-// Admin API to send a message back to a Telegram user
-app.post('/api/send-message', requireAuth, async (req, res) => {
-    const { telegramId, text } = req.body;
-
-    if (!telegramId || !text) {
-        return res.status(400).json({ success: false, message: 'Missing telegramId or text' });
-    }
-
-    try {
-        // 1. Send the message via Telegram Bot
-        const message = await bot.telegram.sendMessage(telegramId, `[Admin]: ${text}`);
+    // Admin sends a message to a Telegram user
+    socket.on('send_message_to_user', async (data) => {
+        const { userId, message } = data;
         
-        // 2. Save the admin's response to Firestore for history
-        // Create a mock message object similar to a user message for consistency
-        const adminMessage = {
-            chat: { id: telegramId },
-            text: text,
-            // Mock object for saveMessage consistency
-            from: { id: 'ADMIN_ID', username: 'Admin', first_name: 'Admin' } 
-        };
-        await saveMessage(adminMessage, 'admin');
+        // 1. Send message via Telegram Bot
+        try {
+            await bot.telegram.sendMessage(userId, message);
+            console.log(`Sent message to user ${userId}: ${message}`);
 
-        return res.json({ success: true, message: 'Message sent successfully' });
-    } catch (error) {
-        console.error(`Error sending message to Telegram ID ${telegramId}:`, error);
-        // Check for common errors (e.g., bot blocked by user)
-        if (error.response && error.response.error_code === 403) {
-             return res.status(500).json({ success: false, message: 'Failed to send message: Bot blocked by user.' });
+            // 2. Save admin message to Firebase
+            const newMessage = {
+                userId: userId,
+                username: 'Admin', // For display purposes in chat history
+                message: message,
+                sender: 'admin',
+                timestamp: admin.database.ServerValue.TIMESTAMP
+            };
+            await messagesRef.child(userId).push(newMessage);
+
+            // 3. Acknowledge back to admin panel (to display the message immediately)
+            socket.emit('message_sent_success', newMessage);
+
+        } catch (error) {
+            console.error(`Error sending message to user ${userId}:`, error);
+            socket.emit('message_sent_error', { error: 'Failed to send message.' });
         }
-        return res.status(500).json({ success: false, message: 'Failed to send message via Telegram' });
-    }
+    });
+
+    // Admin requests initial chat history
+    socket.on('request_chat_history', async (userId) => {
+        try {
+            const snapshot = await messagesRef.child(userId).once('value');
+            const messages = snapshot.val();
+            const messageList = [];
+            
+            if (messages) {
+                // Convert Firebase object to a sorted array
+                Object.keys(messages).forEach(key => {
+                    messageList.push(messages[key]);
+                });
+                messageList.sort((a, b) => a.timestamp - b.timestamp);
+            }
+
+            socket.emit('chat_history', messageList);
+        } catch (error) {
+            console.error('Error fetching chat history:', error);
+        }
+    });
+
+    // Admin requests list of all active users
+    socket.on('request_active_users', async () => {
+        try {
+            const snapshot = await usersRef.once('value');
+            const users = snapshot.val();
+            const userList = [];
+
+            if (users) {
+                Object.keys(users).forEach(key => {
+                    userList.push(users[key]);
+                });
+                // Sort by last active time
+                userList.sort((a, b) => b.lastActive - a.lastActive);
+            }
+            socket.emit('active_users_list', userList);
+        } catch (error) {
+            console.error('Error fetching active users:', error);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Admin disconnected from socket.io');
+    });
 });
 
-// --- Start Server ---
-app.listen(PORT, () => {
-    console.log(`Admin Panel running on http://localhost:${PORT}`);
-    console.log("-----------------------------------------");
-    console.log("Please make sure your Telegram Webhook is configured correctly (e.g., pointing to your VPS URL/webhook).");
+// Start the server
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Admin Panel URL: http://localhost:${PORT}`);
 });
