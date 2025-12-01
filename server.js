@@ -1,9 +1,9 @@
 // server.js
 
-// 1. Environment Variables Loading
+// 1. Environment Variables
 require('dotenv').config();
 
-// 2. Constants and Dependencies
+// 2. Imports
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -11,8 +11,9 @@ const bodyParser = require('body-parser');
 const basicAuth = require('express-basic-auth');
 const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
+const axios = require('axios'); // Facebook Messenger
 const path = require('path');
-const { Buffer } = require('buffer'); // Ensure Buffer is available
+const { Buffer } = require('buffer');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,319 +23,251 @@ const PORT = process.env.PORT || 80;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
+const FB_PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
 
-// 3. Robust Firebase Admin Initialization (Fixes UNAUTHENTICATED Code 16)
+// ------------------------------------------
+// Firebase Initialization
+// ------------------------------------------
+
 let serviceAccount;
 try {
-    // CRITICAL FIX: Parse the JSON string from the environment variable
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 } catch (e) {
-    console.error("ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Please ensure it is a single, valid JSON string with correctly escaped newlines (\\n).");
-    process.exit(1);
+    console.error("ERROR parsing FIREBASE_SERVICE_ACCOUNT_KEY");
+    process.exit(1);
 }
 
 try {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("Firebase Admin SDK initialized successfully.");
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase Admin Initialized");
 } catch (e) {
-    console.error("Firebase Admin Initialization Failed:", e.message);
-    process.exit(1);
+    console.error("Firebase Initialization Failed:", e);
+    process.exit(1);
 }
 
 const db = admin.firestore();
 const CHAT_COLLECTION = 'telegram_chats';
 const MESSAGE_SUB_COLLECTION = 'messages';
 
+// ------------------------------------------
+// Telegram Bot
+// ------------------------------------------
 
-// 4. Telegram Bot Setup
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
-console.log(`Telegram Bot is polling with token: ${TELEGRAM_BOT_TOKEN ? 'Ready' : 'Missing'}`);
+console.log("Telegram Bot Started");
 
-// 5. Express Middleware
-app.use(bodyParser.json({ limit: '50mb' })); // Increase limit for Base64 image/file data
-app.use(express.static(path.join(__dirname, 'public'))); // Assuming admin_panel.html is served from root or a 'public' dir
+// ------------------------------------------
+// Express Middleware
+// ------------------------------------------
 
-// Basic Authentication Middleware for Admin Panel
+app.use(bodyParser.json({ limit: "100mb" }));
+app.use(express.static(path.join(__dirname, "public")));
+
 const basicAuthMiddleware = basicAuth({
-    users: { [ADMIN_USERNAME]: ADMIN_PASSWORD },
-    challenge: true,
-    unauthorizedResponse: () => 'Unauthorized access. Please check admin credentials.'
+    users: { [ADMIN_USERNAME]: ADMIN_PASSWORD },
+    challenge: true
 });
 
+// ------------------------------------------
+// Save Message to Firestore
+// ------------------------------------------
 
-// ------------------------------------------------------------------
-// 6. Database Helper Functions
-// ------------------------------------------------------------------
+async function saveMessage(chatId, sender, text, mediaPath = null, username = "Unknown", filename = null) {
+    const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
 
-/**
- * Saves a message (user or admin) to Firestore.
- * @param {string} chatId - Telegram chat ID.
- * @param {string} sender - 'user' or 'admin'.
- * @param {string} text - Message text (caption).
- * @param {string | null} mediaPath - File ID (for user) or Base64 (for admin).
- * @param {string | null} username - Telegram username (only for user message on first contact).
- * @param {string | null} filename - Original filename (for admin document replies).
- * @returns {Promise<object>} The saved message data.
- */
-async function saveMessage(chatId, sender, text, mediaPath = null, username = 'Unknown User', filename = null) {
-    const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
+    await chatRef.set(
+        {
+            username: username,
+            lastMessageText: text || filename || 'Media',
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        },
+        { merge: true }
+    );
 
-    // Update the main chat document with last message info
-    const chatUpdate = {
-        lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-        lastMessageText: text || (mediaPath ? (filename || 'Media received/sent') : 'No text'),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    const messageData = {
+        chatId: String(chatId),
+        sender,
+        text,
+        mediaPath,
+        filename,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    };
 
-    if (sender === 'user') {
-        chatUpdate.username = username; // Update username on user contact
-    }
-    
-    // Ensure the chat document exists or create it
-    await chatRef.set(chatUpdate, { merge: true });
+    const savedRef = await chatRef.collection(MESSAGE_SUB_COLLECTION).add(messageData);
 
-    // Add message to subcollection
-    const messageData = {
-        chatId: String(chatId),
-        sender: sender,
-        text: text,
-        mediaPath: mediaPath, // Used for file_id (user) or base64 (admin)
-        filename: filename, // New field for admin side document/file display
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const messageRef = await chatRef.collection(MESSAGE_SUB_COLLECTION).add(messageData);
-
-    // Return structured data for Socket.io broadcasting
-    return {
-        id: messageRef.id,
-        ...messageData,
-        timestamp: new Date().toISOString() // Use client-friendly format
-    };
+    return {
+        id: savedRef.id,
+        ...messageData,
+        timestamp: new Date().toISOString()
+    };
 }
 
+// ------------------------------------------
+// Telegram Incoming
+// ------------------------------------------
 
-// ------------------------------------------------------------------
-// 7. Telegram Bot Handlers
-// ------------------------------------------------------------------
+bot.on("message", async (msg) => {
+    const chatId = msg.chat.id;
+    const username = msg.chat.username || msg.chat.first_name || "TelegramUser";
 
-// Handler for all incoming messages (text and media)
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id;
-    const username = msg.chat.username || msg.chat.first_name || String(chatId);
-    let text = msg.text || '';
-    let mediaPath = null;
-    let filename = null;
+    let text = msg.text || "";
+    let mediaPath = null;
+    let filename = null;
 
-    // Handle Media (Photo, Video, Document)
-    if (msg.photo && msg.photo.length > 0) {
-        // Get the largest photo size's file_id
-        mediaPath = msg.photo[msg.photo.length - 1].file_id;
-        text = msg.caption || ''; // Caption is the text for a photo
-    } else if (msg.document) {
+    if (msg.photo) {
+        mediaPath = msg.photo[msg.photo.length - 1].file_id;
+        text = msg.caption || "";
+    } else if (msg.document) {
         mediaPath = msg.document.file_id;
         filename = msg.document.file_name;
-        text = msg.caption || '';
+        text = msg.caption || "";
     }
-    // You could add similar logic for video, audio, etc. if needed
 
-    if (!text && !mediaPath) {
-        console.log(`Ignoring unsupported message type from ${username}`);
-        return; // Ignore messages without text or media (e.g., sticker, video)
-    }
+    const saved = await saveMessage(chatId, "user", text, mediaPath, username, filename);
 
-    try {
-        // For user messages, save the file_id in mediaPath and the original filename
-        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename);
-
-        // Notify Admin Panel (All connected sockets)
-        io.emit('new_message', { 
-            chatId: chatId,
-            message: savedMessage,
-            user: {
-                telegramId: String(chatId),
-                username: username,
-                lastMessageTime: savedMessage.timestamp,
-                lastMessageText: savedMessage.text,
-            }
-        });
-        console.log(`New user message saved and broadcasted: ${username}`);
-    } catch (error) {
-        console.error("Error processing user message:", error);
-    }
+    io.emit("new_message", {
+        platform: "telegram",
+        chatId,
+        user: { username },
+        message: saved
+    });
 });
 
+// ------------------------------------------
+// FACEBOOK Send API
+// ------------------------------------------
 
-// ------------------------------------------------------------------
-// 8. Admin Panel API Endpoints (Admin required)
-// ------------------------------------------------------------------
+async function sendFacebookMessage(psid, text) {
+    try {
+        const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_ACCESS_TOKEN}`;
+        await axios.post(url, {
+            recipient: { id: psid },
+            message: { text }
+        });
 
-// API to get all active chat users (sorted by last message time)
-app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
-    try {
-        // Fetch all documents in the CHAT_COLLECTION, ordered by last activity
-        const snapshot = await db.collection(CHAT_COLLECTION)
-            .orderBy('lastMessageTime', 'desc')
-            .get();
+        console.log("FB: Message Sent");
+    } catch (err) {
+        console.error("FB Send Error:", err.response?.data || err);
+        throw err;
+    }
+}
 
-        const chats = snapshot.docs.map(doc => ({
-            telegramId: doc.id,
-            ...doc.data(),
-            // Ensure timestamp fields are serialized correctly
-            lastMessageTime: doc.data().lastMessageTime ? doc.data().lastMessageTime.toDate().toISOString() : new Date().toISOString()
-        }));
+// ------------------------------------------
+// FACEBOOK Webhook VERIFY
+// ------------------------------------------
 
-        res.json(chats);
-    } catch (error) {
-        console.error("Error fetching chat list:", error.message); 
-        console.error(error); 
-        
-        if (error.code === 16) {
-             console.error("Firestore Error Code 16: UNAUTHENTICATED. Check service account credentials parsing in server.js!");
-        } else if (error.code === 7) {
-             console.error("Firestore Error Code 7: SERVICE_DISABLED. Check if Cloud Firestore API is enabled in your Google Cloud project.");
-        } else if (error.code === 9) {
-             console.error("Firestore Error Code 9: FAILED_PRECONDITION (Missing Index). Check the full error message above for the index creation URL!");
-        }
-        res.status(500).json({ error: 'Failed to retrieve chat list.' });
-    }
+app.get("/fb/webhook", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+
+    if (mode === "subscribe" && token === FB_VERIFY_TOKEN) {
+        return res.status(200).send(challenge);
+    }
+    res.sendStatus(403);
 });
 
+// ------------------------------------------
+// FACEBOOK Incoming Messages
+// ------------------------------------------
 
-// API to get chat history for a specific user (with pagination)
-app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
-    const { chatId } = req.params;
-    const limit = parseInt(req.query.limit) || 30;
-    const offset = parseInt(req.query.offset) || 0;
+app.post("/fb/webhook", async (req, res) => {
+    const body = req.body;
 
-    try {
-        let query = db.collection(CHAT_COLLECTION).doc(chatId)
-            .collection(MESSAGE_SUB_COLLECTION)
-            .orderBy('timestamp', 'desc'); // Newest first
+    if (body.object === "page") {
+        body.entry.forEach(async (entry) => {
+            const event = entry.messaging[0];
+            const psid = event.sender.id;
 
-        // Initial load with limit
-        const snapshot = await query.limit(limit).offset(offset).get();
-        const history = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            timestamp: doc.data().timestamp ? doc.data().timestamp.toDate().toISOString() : new Date().toISOString()
-        })).reverse(); // Reverse for display (oldest first)
-            
-        return res.json(history);
+            if (event.message && event.message.text) {
+                const text = event.message.text;
 
-    } catch (error) {
-        console.error(`Error fetching history for chat ${chatId}:`, error);
-        res.status(500).json({ error: 'Failed to retrieve chat history.' });
-    }
+                const saved = await saveMessage(psid, "user", text, null, "FB User");
+
+                io.emit("new_message", {
+                    platform: "facebook",
+                    chatId: psid,
+                    user: { username: "FB User" },
+                    message: saved
+                });
+            }
+        });
+
+        return res.status(200).send("OK");
+    }
+
+    res.sendStatus(404);
 });
 
+// ------------------------------------------
+// Admin Reply - Telegram & Facebook
+// ------------------------------------------
 
-// API to get Telegram Media (Image/Photo/Document)
-app.get('/api/get-media', basicAuthMiddleware, async (req, res) => {
-    const fileId = req.query.file_id;
+io.on("connection", (socket) => {
+    console.log("Admin connected");
 
-    if (!fileId) {
-        return res.status(400).json({ error: 'Missing file_id parameter.' });
-    }
+    // Telegram Reply
+    socket.on("admin_reply", async (data, callback) => {
+        const { chatId, text, mediaPath, mediaType, filename } = data;
 
-    try {
-        // 1. Get file information (path) from Telegram
-        const file = await bot.getFile(fileId);
-        const filePath = file.file_path;
-        
-        // 2. Construct the direct file URL
-        const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+        try {
+            if (mediaPath && mediaType) {
+                const parts = mediaPath.split(";base64,");
+                const buffer = Buffer.from(parts[1], "base64");
+                const mimeType = parts[0].split(":")[1];
 
-        // 3. Redirect to the file URL for fast loading
-        res.redirect(fileUrl);
-        
-    } catch (error) {
-        console.error(`Error fetching media for file_id ${fileId}:`, error);
-        res.status(500).json({ error: 'Failed to retrieve media file from Telegram.' });
-    }
-});
+                const fileOptions = { filename: filename || "file", contentType: mimeType };
 
-
-// 9. Socket.io Handler (Admin Reply)
-io.on('connection', (socket) => {
-    console.log('Admin connected via socket.io');
-
-    // Admin sends a reply
-    socket.on('admin_reply', async (data, callback) => {
-        // Added mediaType and filename for handling different media types
-        const { chatId, text, mediaPath, mediaType, filename } = data; 
-
-        try {
-            let telegramResponse;
-            let fileId = null;
-
-            if (mediaPath && mediaType) {
-                // Base64 data URL format: data:[<MIME-type>][;charset=<encoding>][;base64],<data>
-                const parts = mediaPath.split(';base64,');
-                if (parts.length !== 2) throw new Error("Invalid Base64 format.");
-                
-                const base64Data = parts[1];
-                const buffer = Buffer.from(base64Data, 'base64');
-                const mimeType = parts[0].split(':')[1];
-
-                const fileOptions = { 
-                    filename: filename || 'admin_file', 
-                    contentType: mimeType 
-                };
-                
-                if (mediaType === 'photo') {
-                    // Send photo to Telegram
-                    telegramResponse = await bot.sendPhoto(chatId, buffer, { caption: text }, fileOptions);
-                } else if (mediaType === 'document') {
-                    // Send document/file to Telegram
-                    telegramResponse = await bot.sendDocument(chatId, buffer, { caption: text }, fileOptions);
-                } else {
-                    throw new Error(`Unsupported media type: ${mediaType}`);
+                if (mediaType === "photo") {
+                    await bot.sendPhoto(chatId, buffer, { caption: text }, fileOptions);
+                } else {
+                    await bot.sendDocument(chatId, buffer, { caption: text }, fileOptions);
                 }
-                
-            } else if (text) {
-                // Send text message (handles emojis)
-                telegramResponse = await bot.sendMessage(chatId, text);
-            } else {
-                // Should not happen if client side validation works
-                throw new Error("Cannot send empty message or file.");
-            }
+            } else {
+                await bot.sendMessage(chatId, text);
+            }
 
-            // Save admin's message to Firestore (use the original base64/text for local echo)
-            // If media was sent, we save the Base64 in mediaPath for admin side to display.
-            await saveMessage(chatId, 'admin', text, mediaPath, null, filename); 
+            await saveMessage(chatId, "admin", text, mediaPath, null, filename);
 
-            if (callback) callback({ success: true });
+            callback({ success: true });
+        } catch (e) {
+            callback({ success: false });
+        }
+    });
 
-        } catch (error) {
-            console.error("Error sending admin reply to Telegram/saving to Firestore:", error);
-            // Notify the client of the error
-            socket.emit('error', { message: error.message || 'Failed to send message to Telegram.' });
-            if (callback) callback({ success: false, error: error.message });
-        }
-    });
+    // Facebook Reply
+    socket.on("admin_reply_facebook", async (data, callback) => {
+        const { chatId, text } = data;
 
-    socket.on('disconnect', () => {
-        console.log('Admin disconnected from socket.io');
-    });
+        try {
+            await sendFacebookMessage(chatId, text);
+            await saveMessage(chatId, "admin", text);
+
+            callback({ success: true });
+        } catch (e) {
+            callback({ success: false, error: e.message });
+        }
+    });
 });
 
+// ------------------------------------------
+// Admin Panel Route
+// ------------------------------------------
 
-// 10. Serve the Admin Panel HTML
-app.get('/admin', basicAuthMiddleware, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin_panel.html'));
+app.get("/admin", basicAuthMiddleware, (req, res) => {
+    res.sendFile(path.join(__dirname, "admin_panel.html"));
 });
 
-// Default root path
-app.get('/', (req, res) => {
-    res.redirect('/admin');
-});
+app.get("/", (req, res) => res.redirect("/admin"));
 
+// ------------------------------------------
+// START SERVER
+// ------------------------------------------
 
-// 11. Start Server
 server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Access Admin Panel at: http://localhost:${PORT}/admin`);
+    console.log("Server running:", PORT);
 });
