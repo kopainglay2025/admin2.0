@@ -1,7 +1,7 @@
 // server.js
 
 // 1. Environment Variables Loading
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config();
 
 // 2. Constants and Dependencies
 const express = require('express');
