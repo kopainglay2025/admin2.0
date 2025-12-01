@@ -7,7 +7,7 @@
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <!-- Load Socket.io Client -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <!-- Load Phosphor Icons for a clean, modern look -->
@@ -22,9 +22,25 @@
         .sidebar { width: var(--sidebar-width); transition: transform 0.3s ease; }
         .chat-area { min-height: 80vh; max-height: 80vh; overflow-y: auto; }
         .chat-input-area { border-top: 1px solid #e5e7eb; }
-        .message-bubble.user { background-color: var(--fb-blue); color: white; border-bottom-right-radius: 0.5rem; }
-        .message-bubble.admin { background-color: #fff; color: #1c1e21; border: 1px solid #e5e7eb; border-bottom-left-radius: 0.5rem; }
-        .menu-item.active { background-color: var(--fb-light-blue); color: var(--fb-blue); font-weight: 600; border-right: 4px solid var(--fb-blue); }
+        .message-bubble.user { 
+            background-color: var(--fb-blue); 
+            color: white; 
+            border-bottom-right-radius: 0.5rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .message-bubble.admin { 
+            background-color: #fff; 
+            color: #1c1e21; 
+            border: 1px solid #e5e7eb; 
+            border-bottom-left-radius: 0.5rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .menu-item.active { 
+            background-color: var(--fb-light-blue); 
+            color: var(--fb-blue); 
+            font-weight: 600; 
+            border-right: 4px solid var(--fb-blue); 
+        }
         /* Scrollbar styling for modern look */
         .chat-area::-webkit-scrollbar, .chat-list-area::-webkit-scrollbar { width: 8px; }
         .chat-area::-webkit-scrollbar-thumb, .chat-list-area::-webkit-scrollbar-thumb { background-color: #c4c4c4; border-radius: 10px; }
@@ -51,15 +67,15 @@
     <!-- Sidebar (Left Menu) -->
     <div id="sidebar" class="sidebar bg-white shadow-xl flex-shrink-0 flex flex-col justify-between overflow-y-auto z-50 md:static md:translate-x-0">
         <div class="p-6 border-b border-gray-100">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                <i class="ph-chats text-3xl mr-2 text-blue-600"></i>
+            <h1 class="text-2xl font-extrabold text-gray-800 flex items-center">
+                <i class="ph-facebook-logo text-3xl mr-2 text-blue-600"></i>
                 Page Manager
             </h1>
         </div>
         
         <!-- Menu Items -->
         <nav class="flex-grow p-4 space-y-2">
-            <!-- Items are mapped to different views/functionality -->
+            <!-- The views match the required menu items -->
             <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="dashboard">
                 <i class="ph-chart-bar text-xl mr-3"></i>
                 Dashboard
@@ -68,9 +84,9 @@
                 <i class="ph-messenger-logo text-xl mr-3"></i>
                 FB Page Messager
             </button>
-            <!-- FIX: The 'Chats' button now points to the functional 'messenger' view. -->
-            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="messenger">
-                <i class="ph-chats text-xl mr-3"></i>
+            <!-- Chats now points to the same messenger view to ensure functionality uses existing API -->
+            <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="chats">
+                <i class="ph-chats-circle text-xl mr-3"></i>
                 Chats
             </button>
             <button class="menu-item flex items-center w-full p-3 rounded-xl text-gray-600 hover:bg-gray-100" data-view="broadcast">
@@ -93,7 +109,7 @@
     <div class="flex-grow flex flex-col">
         <!-- Header (Only visible on Mobile) -->
         <header class="bg-white shadow-md p-4 flex items-center justify-between md:hidden">
-            <h2 class="text-lg font-semibold text-gray-800">FB Page Messager</h2>
+            <h2 id="mobile-header-title" class="text-lg font-semibold text-gray-800">FB Page Messager</h2>
             <button id="menu-toggle" class="text-gray-700 hover:text-blue-600">
                 <i class="ph-list text-2xl"></i>
             </button>
@@ -101,7 +117,7 @@
 
         <!-- Dynamic Content Views -->
         <div id="content-container" class="flex-grow overflow-y-auto p-4 md:p-6">
-            <!-- Messenger View (Default, contains the main Chat UI) -->
+            <!-- Messenger View (Default) -->
             <div id="view-messenger" class="h-full flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-6">
 
                 <!-- 1. Chat List (Left Panel) -->
@@ -129,50 +145,59 @@
                     <div id="message-container" class="chat-area p-4 flex-grow flex flex-col space-y-4">
                         <!-- Messages will be injected here -->
                         <div id="initial-message" class="text-center text-gray-500 mt-24">
-                            Your conversations with FB Users will appear here.
+                            Your conversations will appear here.
                         </div>
                     </div>
 
                     <!-- Message Input Area -->
                     <div id="chat-input-area" class="chat-input-area p-4" style="display:none;">
-                        <div id="file-preview-area" class="mb-2 p-2 border border-gray-200 rounded-lg hidden">
-                            <span id="file-preview-name" class="text-sm font-medium text-gray-700"></span>
-                            <button id="clear-file-btn" class="ml-3 text-red-500 hover:text-red-700 text-sm">Clear</button>
+                        <div id="file-preview-area" class="mb-2 p-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between hidden">
+                            <span id="file-preview-name" class="text-sm font-medium text-gray-700 truncate max-w-[80%]"></span>
+                            <button id="clear-file-btn" class="ml-3 text-red-500 hover:text-red-700 text-sm p-1 rounded-full hover:bg-red-100 transition duration-150">
+                                <i class="ph-x text-base"></i>
+                            </button>
                         </div>
                         
                         <div class="flex items-end">
                             <label for="file-upload" class="file-input-label text-gray-500 hover:text-fb-blue p-2 rounded-full transition duration-150">
                                 <i class="ph-paperclip text-2xl"></i>
-                                <input type="file" id="file-upload" class="hidden">
+                                <input type="file" id="file-upload" class="hidden" accept="image/*,application/pdf,.doc,.docx,.xlsx,.pptx">
                             </label>
 
-                            <textarea id="message-input" class="flex-grow resize-none border rounded-xl p-3 mr-3 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Type a message..." rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'"></textarea>
+                            <textarea id="message-input" class="flex-grow resize-none border rounded-xl p-3 mr-3 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Type a message..." rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight > 150 ? 150 : this.scrollHeight)+'px'"></textarea>
 
                             <button id="send-button" class="bg-fb-blue text-white p-3 rounded-full shadow-md hover:bg-blue-700 transition duration-150 flex items-center justify-center disabled:opacity-50" disabled>
                                 <i class="ph-paper-plane-tilt text-xl"></i>
                             </button>
                         </div>
-                        <p id="error-message" class="text-red-500 text-xs mt-1 hidden">Error sending message.</p>
+                        <p id="error-message" class="text-red-500 text-xs mt-1 hidden text-center"></p>
                     </div>
                 </div>
 
             </div>
             
             <!-- Other Views (Placeholders) -->
-            <div id="view-dashboard" class="hidden">
+            <!-- The 'chats' view is structurally the same as 'messenger' to ensure the existing backend logic works -->
+            <div id="view-chats" class="hidden h-full">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold">Chats (Combined View)</h2>
+                    <p class="mt-4 text-gray-600">This view shows all customer chats, mirroring the "FB Page Messager" view, as per the existing backend implementation structure.</p>
+                </div>
+            </div>
+            
+            <div id="view-dashboard" class="hidden h-full">
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h2 class="text-2xl font-bold">Dashboard</h2>
-                    <p class="mt-4 text-gray-600">Overview of FB Page performance and messaging metrics will be shown here.</p>
+                    <p class="mt-4 text-gray-600">Overview of metrics will be shown here.</p>
                 </div>
             </div>
-            <!-- NOTE: view-chats div removed as the 'Chats' menu button now links to view-messenger -->
-            <div id="view-broadcast" class="hidden">
+            <div id="view-broadcast" class="hidden h-full">
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h2 class="text-2xl font-bold">Broadcast Messages</h2>
-                    <p class="mt-4 text-gray-600">Send bulk messages or notifications to segments of your users (FB Messenger Rules Apply).</p>
+                    <p class="mt-4 text-gray-600">Send bulk messages or notifications to segments of your users.</p>
                 </div>
             </div>
-            <div id="view-settings" class="hidden">
+            <div id="view-settings" class="hidden h-full">
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h2 class="text-2xl font-bold">Settings</h2>
                     <p class="mt-4 text-gray-600">Configure Page API keys, auto-reply settings, and webhook details.</p>
@@ -184,7 +209,7 @@
     <!-- Modal for showing error/info messages -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
-            <h3 id="modal-title" class="text-lg font-semibold mb-2">Notice</h3>
+            <h3 id="modal-title" class="text-lg font-semibold mb-2 text-gray-800">Notice</h3>
             <p id="modal-content" class="text-gray-600 mb-4"></p>
             <button onclick="document.getElementById('modal').classList.add('hidden')" class="bg-fb-blue text-white px-4 py-2 rounded-lg float-right hover:bg-blue-700">Close</button>
         </div>
@@ -194,10 +219,18 @@
         // Global State
         let currentChatId = null;
         let socket = null;
-        let authUserId = 'admin-user-1234'; // Mock admin ID for display
+        let authUserId = 'admin-user-1234'; 
         let selectedFile = null;
         let isSending = false;
         
+        const menuTitles = {
+            dashboard: 'Dashboard',
+            messenger: 'FB Page Messager',
+            chats: 'Chats',
+            broadcast: 'Broadcast',
+            settings: 'Settings'
+        };
+
         // --- Utility Functions ---
 
         /** Shows a custom modal message. */
@@ -226,12 +259,18 @@
             });
         }
 
+        /** Get initials for avatar */
+        function getInitials(username) {
+            if (!username) return 'U';
+            return username.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        }
+
         // --- UI Rendering Functions ---
 
         /** Renders a single chat item in the left list. */
         function renderChatItem(chat) {
             const container = document.createElement('button');
-            container.className = 'chat-item flex items-center w-full p-3 text-left border-b hover:bg-gray-50 transition duration-150';
+            container.className = 'chat-item flex items-center w-full p-3 text-left border-b border-gray-100 hover:bg-gray-100 transition duration-150';
             container.setAttribute('data-chat-id', chat.telegramId);
             container.onclick = () => selectChat(chat.telegramId);
 
@@ -239,11 +278,12 @@
             if (chat.telegramId === currentChatId) {
                 container.classList.add('bg-fb-light-blue', 'border-l-4', 'border-fb-blue');
             } else if (chat.unreadCount > 0) {
-                 container.classList.add('bg-yellow-50');
+                 container.classList.add('bg-blue-50');
             }
 
+            const initials = getInitials(chat.username);
             const avatar = `<div class="w-10 h-10 bg-fb-blue rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 flex-shrink-0">
-                ${chat.username ? chat.username[0].toUpperCase() : 'U'}
+                ${initials}
             </div>`;
             
             const unreadBadge = chat.unreadCount > 0 ? 
@@ -257,7 +297,7 @@
                         <p class="font-semibold text-gray-800 truncate">${chat.username || 'User ' + chat.telegramId}</p>
                         ${unreadBadge}
                     </div>
-                    <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'Media received/sent'}</p>
+                    <p class="text-xs text-gray-500 truncate mt-0.5">${chat.lastMessageText || 'Media received/sent'}</p>
                 </div>
             `;
             return container;
@@ -271,7 +311,7 @@
             const marginClass = isUser ? 'mr-auto' : 'ml-auto';
             
             const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${alignmentClass} max-w-3/4 mb-2`;
+            messageDiv.className = `flex ${alignmentClass} w-full mb-2`;
 
             let contentHTML = '';
 
@@ -280,11 +320,12 @@
                     ? `/api/get-media?file_id=${message.mediaPath}` // Telegram media endpoint
                     : message.mediaPath; // Admin sent base64 data
 
-                const isImage = mediaUrl.startsWith('data:image') || message.mediaPath.match(/\.(jpg|jpeg|png|gif)$/i) || !message.filename;
+                // Heuristic to check if it's an image (base64 start or file extension missing)
+                const isImage = mediaUrl.startsWith('data:image') || (!message.filename && !isUser); 
                 
                 if (isImage) {
                     // Image display
-                    contentHTML = `<img src="${mediaUrl}" alt="Media" class="max-w-xs md:max-w-sm rounded-lg shadow-md" onerror="this.onerror=null;this.src='https://placehold.co/200x150/f0f2f5/a8a8a8?text=Cannot+Load+Media'">`;
+                    contentHTML = `<img src="${mediaUrl}" alt="Media" class="max-w-xs md:max-w-sm rounded-lg shadow-md" style="max-height: 250px; object-fit: contain;" onerror="this.onerror=null;this.src='https://placehold.co/200x150/f0f2f5/a8a8a8?text=Cannot+Load+Media'">`;
                 } else {
                     // Document/File display
                     const icon = message.filename && message.filename.endsWith('.pdf') ? 'ph-file-pdf' : 'ph-file-text';
@@ -299,13 +340,16 @@
             
             // Add text if present
             if (message.text) {
-                const textContent = `<p class="${message.mediaPath ? 'mt-1' : ''}">${message.text}</p>`;
+                // Apply Tailwind classes for formatting links/text inside the bubble
+                const textContent = `<p class="${message.mediaPath ? 'mt-1' : ''} text-base break-words">${message.text}</p>`;
                 if (message.mediaPath) {
                     contentHTML += textContent;
                 } else {
                     contentHTML = textContent;
                 }
             }
+            
+            if (!contentHTML) return messageDiv; // Don't render empty messages
 
             const timestamp = formatTimestamp(message.timestamp);
 
@@ -323,8 +367,6 @@
 
         /** Initializes Firebase Auth and displays the mock user ID. */
         function initAuth() {
-             // In a real app, this would initialize Firebase auth and get the real user ID.
-             // Mocking based on the server's expected behavior (assuming admin is authenticated via Basic Auth)
              document.getElementById('current-user-id').textContent = authUserId;
         }
 
@@ -338,22 +380,17 @@
 
             socket.on('new_message', (data) => {
                 console.log('Real-time new message:', data);
-                // 1. Update chat list (or refresh list)
+                // 1. Update chat list (refresh list to see new chat/order change)
                 fetchChatList(); 
                 
                 // 2. If it's the currently selected chat, display the message
                 if (data.chatId === currentChatId) {
                     displayMessage(data.message);
-                    // Ensure unread count is reset visually, even if the user hasn't explicitly clicked 'read'
-                    const badge = document.getElementById(`badge-${data.chatId}`);
-                    if (badge) {
-                        badge.classList.add('hidden');
-                        badge.textContent = 0;
-                    }
                 }
             });
 
             socket.on('chat_read_status', (data) => {
+                // Update badge based on broadcast from server/local selectChat action
                 const badge = document.getElementById(`badge-${data.chatId}`);
                 if (badge) {
                     badge.textContent = data.unreadCount;
@@ -381,9 +418,22 @@
                 const chats = await response.json();
                 
                 chatListArea.innerHTML = '';
+                if (chats.length === 0) {
+                    chatListArea.innerHTML = '<div class="p-4 text-center text-gray-500">No active chats found.</div>';
+                    return;
+                }
+
                 chats.forEach(chat => {
                     chatListArea.appendChild(renderChatItem(chat));
                 });
+                
+                // Re-select the current chat to apply active styling if it exists
+                if (currentChatId) {
+                    const selectedItem = document.querySelector(`.chat-item[data-chat-id="${currentChatId}"]`);
+                    if (selectedItem) {
+                        selectedItem.classList.add('bg-fb-light-blue', 'border-l-4', 'border-fb-blue');
+                    }
+                }
 
             } catch (error) {
                 console.error('Error fetching chat list:', error);
@@ -393,9 +443,12 @@
         
         /** Selects a chat, loads history, and updates UI. */
         async function selectChat(chatId) {
+            // Prevent re-selection
+            if (currentChatId === chatId) return;
+            
             currentChatId = chatId;
             document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('bg-fb-light-blue', 'border-l-4', 'border-fb-blue', 'bg-yellow-50');
+                item.classList.remove('active', 'bg-fb-light-blue', 'border-l-4', 'border-fb-blue', 'bg-blue-50');
                 if (item.getAttribute('data-chat-id') === chatId) {
                     item.classList.add('bg-fb-light-blue', 'border-l-4', 'border-fb-blue');
                 }
@@ -406,14 +459,21 @@
             const messageContainer = document.getElementById('message-container');
             const selectedChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
             const chatName = selectedChat ? selectedChat.querySelector('.font-semibold').textContent : 'Unknown User';
-
+            const chatAvatar = selectedChat ? selectedChat.querySelector('.w-10').innerHTML : `<i class="ph-user text-xl"></i>`;
+            
+            document.querySelector('#chat-header > div:first-child').innerHTML = chatAvatar;
             currentChatTitle.textContent = chatName;
             chatInputArea.style.display = 'block';
             messageContainer.innerHTML = '<div class="text-center text-gray-500 mt-24"><i class="ph-spinner-gap animate-spin mr-2"></i>Loading history...</div>';
             
-            // Mark chat as read
-            await fetch(`/api/chats/${chatId}/read`, { method: 'PUT' });
-            socket.emit('chat_read_status', { chatId, unreadCount: 0 }); // Local echo for immediate badge clear
+            // Mark chat as read on the backend
+            try {
+                await fetch(`/api/chats/${chatId}/read`, { method: 'PUT' });
+                // Optimistically clear badge on UI
+                socket.emit('chat_read_status', { chatId, unreadCount: 0 });
+            } catch (e) {
+                console.error("Failed to mark chat as read:", e);
+            }
             
             try {
                 const response = await fetch(`/api/chats/${chatId}/history?limit=50`);
@@ -421,7 +481,13 @@
                 const history = await response.json();
 
                 messageContainer.innerHTML = '';
-                history.forEach(message => displayMessage(message, false));
+                if (history.length === 0) {
+                     messageContainer.innerHTML = `<div id="initial-message" class="text-center text-gray-500 mt-24">
+                        Start the conversation here.
+                    </div>`;
+                } else {
+                    history.forEach(message => displayMessage(message, false));
+                }
                 
                 // Scroll to bottom after loading
                 messageContainer.scrollTop = messageContainer.scrollHeight;
@@ -451,7 +517,11 @@
             const text = input.value.trim();
             const media = selectedFile;
 
-            if (!text && !media) return;
+            if (!text && !media) {
+                document.getElementById('error-message').textContent = 'Message content or attachment required.';
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
 
             isSending = true;
             sendButton.disabled = true;
@@ -463,9 +533,17 @@
                 let mediaType = null;
                 let filename = null;
                 
+                // 1. Prepare media if selected
                 if (media) {
                     mediaPath = await fileToBase64(media);
-                    mediaType = media.type.startsWith('image/') ? 'photo' : 'document';
+                    // Determine media type for TelegramBot sendPhoto/sendDocument
+                    if (media.type.startsWith('image/')) {
+                        mediaType = 'photo';
+                    } else if (media.type.startsWith('video/')) {
+                        mediaType = 'video'; // Server needs to handle video (currently only doc/photo in server.js)
+                    } else {
+                        mediaType = 'document';
+                    }
                     filename = media.name;
                 }
                 
@@ -477,16 +555,15 @@
                     filename: filename 
                 };
 
-                // Emit to Socket.io for server processing (Telegram sending)
+                // 2. Emit to Socket.io for server processing (Telegram sending)
                 socket.emit('admin_reply', dataToSend, (response) => {
                     if (response.success) {
-                        console.log('Message sent successfully via Socket.io.');
-                        // Local echo (The server will save it, but we echo instantly for better UX)
+                        // 3. Local echo (Display immediately for smooth UX)
                         const now = new Date().toISOString();
                         const localMessage = { 
                             sender: 'admin', 
                             text: text, 
-                            mediaPath: mediaPath, 
+                            mediaPath: mediaPath, // Send back base64 for local display
                             filename: filename,
                             timestamp: now 
                         };
@@ -536,11 +613,15 @@
             selectedFile = null;
             document.getElementById('file-upload').value = '';
             document.getElementById('file-preview-area').classList.add('hidden');
+            document.getElementById('file-preview-name').textContent = '';
             updateSendButtonState();
         }
 
         // --- View Switching ---
         function switchView(viewName) {
+            // If the user clicks 'Chats', direct them to 'messenger' view
+            const actualViewName = (viewName === 'chats') ? 'messenger' : viewName;
+            
             // Update Menu Items
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('active');
@@ -551,13 +632,16 @@
 
             // Update Content Views
             document.querySelectorAll('#content-container > div').forEach(view => {
-                if (view.id === 'view-' + viewName) {
+                if (view.id === 'view-' + actualViewName) {
                     view.classList.remove('hidden');
                 } else {
                     view.classList.add('hidden');
                 }
             });
             
+            // Update mobile header title
+            document.getElementById('mobile-header-title').textContent = menuTitles[viewName] || 'Admin Panel';
+
             // Close sidebar on mobile after selection
             if (window.innerWidth < 768) {
                 document.getElementById('sidebar').classList.remove('open');
@@ -605,7 +689,6 @@
             });
             
             document.getElementById('clear-file-btn').addEventListener('click', clearFileSelection);
-
         });
 
     </script>
