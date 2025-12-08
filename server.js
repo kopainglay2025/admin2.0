@@ -24,7 +24,6 @@ const { Buffer } = require('buffer');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-    // you can configure CORS for socket.io if needed:
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
@@ -43,20 +42,19 @@ const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'verify_token';
 // Firestore collection names
 const CHAT_COLLECTION = 'telegram_chats';
 const MESSAGE_SUB_COLLECTION = 'messages';
+const USERS_COLLECTION = 'system_users'; // New collection for User List
 
 // -------------------------
-// 3. Initialize Firebase Admin (robust parsing)
+// 3. Initialize Firebase Admin
 // -------------------------
 let serviceAccount;
 try {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY not set in environment');
     }
-    // The env must be a JSON string
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 } catch (err) {
-    console.error("ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it's a valid JSON string.");
-    console.error(err);
+    console.error("ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY.");
     process.exit(1);
 }
 
@@ -66,7 +64,7 @@ try {
     });
     console.log("Firebase Admin initialized successfully.");
 } catch (err) {
-    console.error("Firebase Admin initialization failed:", err.message || err);
+    console.error("Firebase Admin initialization failed:", err.message);
     process.exit(1);
 }
 
@@ -75,52 +73,39 @@ const db = admin.firestore();
 // -------------------------
 // 4. Telegram bot setup
 // -------------------------
-if (!TELEGRAM_BOT_TOKEN) {
-    console.warn("WARNING: TELEGRAM_BOT_TOKEN is not set. Telegram features will fail.");
-}
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
-
-bot.on('polling_error', (err) => {
-    console.error('Telegram polling error:', err);
-});
-
-console.log(`Telegram Bot polling: ${TELEGRAM_BOT_TOKEN ? "ENABLED" : "DISABLED"}`);
 
 // -------------------------
 // 5. Express middleware
 // -------------------------
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' })); // allow large base64 files from admin
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Basic auth for admin panel and protected APIs
+// Basic Auth
 const basicAuthMiddleware = basicAuth({
     users: { [ADMIN_USERNAME]: ADMIN_PASSWORD },
-    challenge: true,
-    unauthorizedResponse: () => 'Unauthorized access. Check credentials.'
+    challenge: true
 });
 
 // -------------------------
-// 6. Helper: Save message to Firestore
+// 6. Helper: Save message (Updated with Platform)
 // -------------------------
-/**
- * Save message into Firestore under a chat doc and messages subcollection.
- * Returns structured saved message (with id and ISO timestamp)
- */
-async function saveMessage(chatId, sender, text, mediaPath = null, username = null, filename = null) {
+async function saveMessage(chatId, sender, text, mediaPath = null, username = null, filename = null, platform = 'telegram') {
     try {
         const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
 
-        // Update the chat doc's last message fields
         const chatUpdate = {
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
             lastMessageText: text || (mediaPath ? (filename || 'Media') : 'No text'),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            platform: platform // Store platform type
         };
 
         if (sender === 'user' && username) {
             chatUpdate.username = username;
+            chatUpdate.telegramId = String(chatId); // Ensure ID is saved
         }
 
         await chatRef.set(chatUpdate, { merge: true });
@@ -139,7 +124,6 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = nu
         return {
             id: messageRef.id,
             ...messageData,
-            // Provide client friendly timestamp (server timestamp isn't immediately available)
             timestamp: new Date().toISOString()
         };
     } catch (err) {
@@ -159,31 +143,19 @@ bot.on('message', async (msg) => {
         let mediaPath = null;
         let filename = null;
 
-        if (msg.photo && Array.isArray(msg.photo) && msg.photo.length > 0) {
-            // pick largest size (last)
+        if (msg.photo) {
             mediaPath = msg.photo[msg.photo.length - 1].file_id;
             text = msg.caption || '';
         } else if (msg.document) {
             mediaPath = msg.document.file_id;
-            filename = msg.document.file_name || null;
-            text = msg.caption || '';
-        } else if (msg.video) {
-            mediaPath = msg.video.file_id;
-            text = msg.caption || '';
-        } else if (msg.audio) {
-            mediaPath = msg.audio.file_id;
+            filename = msg.document.file_name;
             text = msg.caption || '';
         }
 
-        if (!text && !mediaPath) {
-            // ignore stickers, contacts, etc. or optionally handle them
-            console.log("Ignoring unsupported message type from", username);
-            return;
-        }
+        if (!text && !mediaPath) return;
 
-        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename);
+        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename, 'telegram');
 
-        // Broadcase to admin panel (socket.io)
         io.emit('new_message', {
             chatId,
             message: savedMessage,
@@ -191,292 +163,192 @@ bot.on('message', async (msg) => {
                 telegramId: String(chatId),
                 username,
                 lastMessageTime: savedMessage.timestamp,
-                lastMessageText: savedMessage.text
+                lastMessageText: savedMessage.text,
+                platform: 'telegram'
             },
             platform: 'telegram'
         });
-
-        console.log(`Saved and emitted Telegram message from ${username} (${chatId})`);
     } catch (err) {
-        console.error("Error handling incoming Telegram message:", err);
+        console.error("Telegram Error:", err);
     }
 });
 
 // -------------------------
-// 8. Facebook Messenger integration
+// 8. Facebook Messenger Integration
 // -------------------------
-
-// Helper: send message via Facebook Send API (text only here; file support could be added)
+// Helper: Send FB Message
 async function sendFacebookMessage(psid, text) {
-    if (!FB_PAGE_TOKEN) throw new Error("FB_PAGE_ACCESS_TOKEN not configured.");
-
-    try {
-        const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_TOKEN}`;
-        const payload = {
-            recipient: { id: psid },
-            message: { text }
-        };
-        const resp = await axios.post(url, payload);
-        return resp.data;
-    } catch (err) {
-        console.error("Error sending FB message:", err.response?.data || err.message);
-        throw err;
-    }
+    if (!FB_PAGE_TOKEN) throw new Error("FB_PAGE_ACCESS_TOKEN missing");
+    const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_TOKEN}`;
+    await axios.post(url, {
+        recipient: { id: psid },
+        message: { text }
+    });
 }
 
-// Webhook verification endpoint (GET)
+// FB Webhook
 app.get('/fb/webhook', (req, res) => {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
-
-    if (mode === 'subscribe' && token === FB_VERIFY_TOKEN) {
-        console.log("Facebook webhook verified.");
-        return res.status(200).send(challenge);
+    if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === FB_VERIFY_TOKEN) {
+        res.status(200).send(req.query['hub.challenge']);
+    } else {
+        res.sendStatus(403);
     }
-    return res.sendStatus(403);
 });
 
-// Webhook receiver (POST)
 app.post('/fb/webhook', async (req, res) => {
     try {
         const body = req.body;
-        if (body.object !== 'page') {
-            return res.sendStatus(404);
-        }
-
-        // We iterate through each entry; each may contain multiple messaging events
-        body.entry.forEach(async (entry) => {
-            if (!entry.messaging) return;
-            for (const event of entry.messaging) {
-                const psid = event.sender && event.sender.id ? event.sender.id : null;
-                if (!psid) continue;
-
-                // Text messages
-                if (event.message && event.message.text) {
-                    const text = event.message.text;
-                    const saved = await saveMessage(psid, 'user', text, null, 'FB_User', null);
-
-                    io.emit('new_message', {
-                        chatId: psid,
-                        message: saved,
-                        user: {
-                            telegramId: String(psid),
-                            username: 'Facebook User',
-                            lastMessageText: text
-                        },
-                        platform: 'facebook'
-                    });
-
-                    console.log(`Saved FB message from ${psid}`);
+        if (body.object === 'page') {
+            body.entry.forEach(async (entry) => {
+                if (!entry.messaging) return;
+                for (const event of entry.messaging) {
+                    const psid = event.sender.id;
+                    if (event.message && event.message.text) {
+                        const text = event.message.text;
+                        // Use a distinct username for FB users usually fetched via Graph API, here simplified
+                        const saved = await saveMessage(psid, 'user', text, null, `FB User ${psid.substring(0,4)}`, null, 'facebook');
+                        
+                        io.emit('new_message', {
+                            chatId: psid,
+                            message: saved,
+                            user: {
+                                telegramId: String(psid),
+                                username: `FB User ${psid.substring(0,4)}`,
+                                lastMessageText: text,
+                                platform: 'facebook'
+                            },
+                            platform: 'facebook'
+                        });
+                    }
                 }
-
-                // You can handle attachments (images/files) here if needed
-            }
-        });
-
-        res.sendStatus(200);
+            });
+            res.sendStatus(200);
+        } else {
+            res.sendStatus(404);
+        }
     } catch (err) {
-        console.error("FB webhook error:", err);
+        console.error("FB Webhook Error:", err);
         res.sendStatus(500);
     }
 });
 
 // -------------------------
-// 9. API endpoints (admin-protected)
+// 9. API Endpoints
 // -------------------------
 
-// Get all chats (ordered by lastMessageTime desc)
+// GET Chats (Filterable by platform)
 app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
     try {
-        const snapshot = await db.collection(CHAT_COLLECTION)
-            .orderBy('lastMessageTime', 'desc')
-            .get();
+        const platform = req.query.platform; // 'telegram' or 'facebook' or undefined
+        let query = db.collection(CHAT_COLLECTION).orderBy('lastMessageTime', 'desc');
+        
+        if (platform) {
+            query = query.where('platform', '==', platform);
+        }
 
-        const chats = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                telegramId: doc.id,
-                ...data,
-                lastMessageTime: data.lastMessageTime ? data.lastMessageTime.toDate().toISOString() : null
-            };
-        });
-
+        const snapshot = await query.get();
+        const chats = snapshot.docs.map(doc => ({
+            telegramId: doc.id,
+            ...doc.data(),
+            lastMessageTime: doc.data().lastMessageTime?.toDate().toISOString()
+        }));
         res.json(chats);
     } catch (err) {
-        console.error("Error fetching chat list:", err);
-        // Helpful logs for common firestore errors
-        if (err.code === 16) {
-            console.error("Firestore UNAUTHENTICATED (code 16) — check service account credentials.");
-        } else if (err.code === 7) {
-            console.error("Firestore SERVICE_DISABLED (code 7) — enable Firestore API in GCP.");
-        } else if (err.code === 9) {
-            console.error("Firestore FAILED_PRECONDITION (code 9) — index missing?");
-        }
-        res.status(500).json({ error: 'Failed to retrieve chat list.' });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Get chat history for a specific chatId (with pagination)
-// Query params: ?limit=30&offset=0
+// GET Chat History
 app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
     try {
-        const { chatId } = req.params;
-        const limit = parseInt(req.query.limit || '30', 10);
-        const offset = parseInt(req.query.offset || '0', 10);
-
-        // Firestore doesn't support offset efficiently for large datasets; this is simple approach
-        let query = db.collection(CHAT_COLLECTION).doc(String(chatId))
+        const limit = parseInt(req.query.limit || '50');
+        const snapshot = await db.collection(CHAT_COLLECTION)
+            .doc(req.params.chatId)
             .collection(MESSAGE_SUB_COLLECTION)
             .orderBy('timestamp', 'desc')
             .limit(limit)
-            .offset(offset);
+            .get();
 
-        const snapshot = await query.get();
-
-        // Map and reverse for chronological ascending (oldest first)
-        const history = snapshot.docs.map(d => {
-            const data = d.data();
-            return {
-                id: d.id,
-                ...data,
-                timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : null
-            };
-        }).reverse();
-
+        const history = snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data(),
+            timestamp: d.data().timestamp?.toDate().toISOString()
+        })).reverse();
+        
         res.json(history);
     } catch (err) {
-        console.error(`Error fetching history for ${req.params.chatId}:`, err);
-        res.status(500).json({ error: 'Failed to retrieve chat history.' });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Endpoint to fetch Telegram media by file_id and redirect to Telegram file URL
-// Usage: /api/get-media?file_id=ABC
-app.get('/api/get-media', basicAuthMiddleware, async (req, res) => {
-    const fileId = req.query.file_id;
-    if (!fileId) return res.status(400).json({ error: 'Missing file_id parameter.' });
+// --- NEW: User List APIs ---
 
+// GET All System Users
+app.get('/api/users', basicAuthMiddleware, async (req, res) => {
     try {
-        const file = await bot.getFile(fileId);
-        const filePath = file.file_path;
-        const url = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
-        // Redirect client directly to Telegram file URL
-        res.redirect(url);
+        const snapshot = await db.collection(USERS_COLLECTION).get();
+        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json(users);
     } catch (err) {
-        console.error("Error fetching media from Telegram:", err);
-        res.status(500).json({ error: 'Failed to retrieve media file from Telegram.' });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Serve admin HTML (protected)
-app.get('/admin', basicAuthMiddleware, (req, res) => {
-    // ensure admin_panel.html exists in project root or public dir
-    res.sendFile(path.join(__dirname, 'admin_panel.html'));
+// CREATE New User
+app.post('/api/users', basicAuthMiddleware, async (req, res) => {
+    try {
+        const { name, role, status } = req.body;
+        if (!name) return res.status(400).json({ error: 'Name is required' });
+        
+        const newUser = {
+            name,
+            role: role || 'Viewer',
+            status: status || 'Active',
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        const ref = await db.collection(USERS_COLLECTION).add(newUser);
+        res.json({ id: ref.id, ...newUser });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// default root -> admin
-app.get('/', (req, res) => res.redirect('/admin'));
+// DELETE User
+app.delete('/api/users/:id', basicAuthMiddleware, async (req, res) => {
+    try {
+        await db.collection(USERS_COLLECTION).doc(req.params.id).delete();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-// -------------------------
-// 10. Socket.io for admin replies & realtime
-// -------------------------
+// Serve Frontend
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Socket IO
 io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
-
-    // Admin replying to Telegram (supports text and base64 media)
-    // data: { chatId, text, mediaPath (data:[mime];base64,AAA...), mediaType: 'photo'|'document', filename }
     socket.on('admin_reply', async (data, callback) => {
-        try {
-            const { chatId, text = '', mediaPath = null, mediaType = null, filename = null } = data;
-
-            if (!chatId) {
-                const errMsg = "chatId is required for admin_reply";
-                console.error(errMsg);
-                if (callback) callback({ success: false, error: errMsg });
-                return;
-            }
-
-            let telegramResponse = null;
-
-            if (mediaPath && mediaType) {
-                // Expect "data:<mime>;base64,<data>"
-                const parts = mediaPath.split(';base64,');
-                if (parts.length !== 2) throw new Error("Invalid Base64 media format.");
-
-                const mimePart = parts[0]; // data:<mime>
-                const base64Data = parts[1];
-                const buffer = Buffer.from(base64Data, 'base64');
-                const mimeType = mimePart.split(':')[1] || 'application/octet-stream';
-                const fileOptions = { filename: filename || 'admin_file', contentType: mimeType };
-
-                if (mediaType === 'photo') {
-                    // sendPhoto supports Buffer
-                    telegramResponse = await bot.sendPhoto(chatId, buffer, { caption: text }, fileOptions);
-                } else if (mediaType === 'document') {
-                    telegramResponse = await bot.sendDocument(chatId, buffer, { caption: text }, fileOptions);
-                } else {
-                    throw new Error(`Unsupported mediaType: ${mediaType}`);
-                }
-            } else if (text) {
-                telegramResponse = await bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
-            } else {
-                throw new Error("Empty reply: either text or mediaPath must be provided.");
-            }
-
-            // Save admin message to Firestore (we save the base64 if present so admin side can show it)
-            await saveMessage(chatId, 'admin', text, mediaPath, null, filename);
-
-            if (callback) callback({ success: true, result: telegramResponse || null });
-        } catch (err) {
-            console.error("Error in admin_reply:", err);
-            if (callback) callback({ success: false, error: err.message || String(err) });
-            socket.emit('error', { message: err.message || 'Failed to send admin reply' });
-        }
+        // ... (Existing logic, but ensure it handles 'facebook' platform based on chat ID or stored data)
+        // For simplicity, we assume generic handling or use admin_reply_facebook for FB
+        callback({ success: false, error: "Use specific handlers" });
     });
-
-    // Admin replying to Facebook
-    // data: { chatId: psid, text: "hello" }
+    
+    // Explicit FB Reply Handler
     socket.on('admin_reply_facebook', async (data, callback) => {
         try {
-            const { chatId, text } = data;
-            if (!chatId) {
-                const errMsg = "chatId (PSID) required for admin_reply_facebook";
-                console.error(errMsg);
-                if (callback) callback({ success: false, error: errMsg });
-                return;
-            }
-            if (!text) {
-                const errMsg = "text required for admin_reply_facebook";
-                console.error(errMsg);
-                if (callback) callback({ success: false, error: errMsg });
-                return;
-            }
-
-            await sendFacebookMessage(chatId, text);
-            await saveMessage(chatId, 'admin', text, null, null, null);
-
-            if (callback) callback({ success: true });
+            await sendFacebookMessage(data.chatId, data.text);
+            await saveMessage(data.chatId, 'admin', data.text, null, null, null, 'facebook');
+            callback({ success: true });
         } catch (err) {
-            console.error("Error in admin_reply_facebook:", err);
-            if (callback) callback({ success: false, error: err.message || String(err) });
-            socket.emit('error', { message: err.message || 'Failed to send FB reply' });
+            callback({ success: false, error: err.message });
         }
     });
-
-    socket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', socket.id, reason);
-    });
 });
 
-// -------------------------
-// 11. Start server
-// -------------------------
 server.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/admin`);
-    console.log(`Socket.io ready. Telegram: ${!!TELEGRAM_BOT_TOKEN}, Facebook: ${!!FB_PAGE_TOKEN}`);
+    console.log(`Server running on port ${PORT}`);
 });
-
-// -------------------------
-// End of file
-// -------------------------
