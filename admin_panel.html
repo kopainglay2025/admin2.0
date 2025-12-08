@@ -200,7 +200,7 @@
         .stat-card {
             border: 1px solid #D1D5DB;
             transition: all 0.5s ease-in-out;
-            border-radius: 16px;
+            border-radius: 16px; 
             overflow: hidden;
             position: relative;
         }
@@ -273,16 +273,25 @@
             <span class="tracking-widest">Admin Plan</span>
         </div>
 
-        <!-- Navigation Menu with Neon Indicators -->
-        <nav id="mainNav" class="p-4 space-y-2 flex-grow">
+        <!-- Navigation Menu -->
+        <nav id="mainNav" class="p-4 space-y-2 flex-grow overflow-y-auto">
             
-            <!-- ACTIVE NAV ITEM -->
+            <!-- 1. Dashboard -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 active-nav" data-section="dashboard">
                 <svg class="w-6 h-6 mr-3 text-blue-600 dark:text-neon-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span>Dashboard</span>
             </a>
+
+             <!-- 2. FB Page Messenger (New) -->
+             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="fb-messenger">
+                <!-- Messenger Icon -->
+                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                </svg>
+                <span>FB Page Messenger</span>
+            </a>
             
-            <!-- CHATS ITEM WITH UNREAD BADGE -->
+            <!-- 3. Chats -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 justify-between" data-section="chat">
                 <div class="flex items-center">
                     <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
@@ -291,12 +300,23 @@
                 <!-- Total Unread Count Badge -->
                 <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
             </a>
+
+            <!-- 4. User List (New) -->
+            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="user-list">
+                <!-- User Group Icon -->
+                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>User List</span>
+            </a>
             
+            <!-- 5. Broadcast -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="broadcast">
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
                 <span>Broadcast</span>
             </a>
             
+            <!-- 6. Settings -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="settings">
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
@@ -366,7 +386,7 @@
         </header>
 
         
-        <!-- === SECTION: Dashboard === -->
+        <!-- === SECTION 1: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-4 md:p-8 overflow-y-auto">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 🚀 Dashboard 
@@ -402,7 +422,30 @@
             </div>
         </div>
 
-        <!-- === SECTION: Chat (Existing Chat Logic) === -->
+        <!-- === SECTION 2: FB Page Messenger (New) === -->
+        <div id="section-fb-messenger" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
+                💬 FB Page Messenger
+            </h1>
+            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
+                <p class="mb-6 text-gray-500 dark:text-gray-400 transition-colors duration-500">
+                    Facebook Page မှ Message များကို တိုက်ရိုက်ပြန်ကြားရန် နေရာ။
+                </p>
+                
+                <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50">
+                    <div class="text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-200">No Messages Selected</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Connect Facebook API to view messages.</p>
+                        <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Connect Page</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SECTION 3: Chats (Existing Chat Logic) === -->
         <div id="section-chat" class="main-section flex-grow flex-col hidden">
             <!-- Chat View (History/Input) - Hidden on mobile by default until a chat is selected -->
             <div id="chatView" class="flex-grow flex-col hidden md:flex flex"> 
@@ -467,7 +510,64 @@
             </div>
         </div>
 
-        <!-- === SECTION: Broadcast === -->
+        <!-- === SECTION 4: User List (New) === -->
+        <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
+                👥 User List
+            </h1>
+            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-gray-500 dark:text-gray-400 transition-colors duration-500">
+                        စနစ်အသုံးပြုသူများ စာရင်း။
+                    </p>
+                    <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition">
+                        + Add New User
+                    </button>
+                </div>
+                
+                <!-- Simple Table Example -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                                <th class="py-3 px-4">Name</th>
+                                <th class="py-3 px-4">Role</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-800 dark:text-gray-200">
+                            <!-- Row 1 -->
+                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                                <td class="py-3 px-4 flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3 text-xs">AD</div>
+                                    <span>Admin User</span>
+                                </td>
+                                <td class="py-3 px-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded text-xs">Super Admin</span></td>
+                                <td class="py-3 px-4"><span class="flex items-center text-green-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>Active</span></td>
+                                <td class="py-3 px-4 text-right">
+                                    <button class="text-gray-500 hover:text-blue-500 dark:hover:text-neon-primary transition">Edit</button>
+                                </td>
+                            </tr>
+                            <!-- Row 2 -->
+                             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                                <td class="py-3 px-4 flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-white font-bold mr-3 text-xs">JD</div>
+                                    <span>John Doe</span>
+                                </td>
+                                <td class="py-3 px-4"><span class="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs">Moderator</span></td>
+                                <td class="py-3 px-4"><span class="flex items-center text-gray-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>Offline</span></td>
+                                <td class="py-3 px-4 text-right">
+                                    <button class="text-gray-500 hover:text-blue-500 dark:hover:text-neon-primary transition">Edit</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SECTION 5: Broadcast === -->
         <div id="section-broadcast" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု (Global Broadcast)</h1>
             <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
@@ -484,7 +584,7 @@
             </div>
         </div>
 
-        <!-- === SECTION: Settings === -->
+        <!-- === SECTION 6: Settings === -->
         <div id="section-settings" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">⚙️ စနစ်ဖွဲ့စည်းပုံ (System Configuration)</h1>
             <div class="space-y-6 md:space-y-8">
@@ -702,7 +802,13 @@
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
-                document.getElementById('mobileHeaderTitle').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+                // Auto-Title for mobile header
+                let title = 'Dashboard';
+                if(sectionId === 'fb-messenger') title = 'FB Messenger';
+                else if(sectionId === 'user-list') title = 'User List';
+                else title = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+                
+                document.getElementById('mobileHeaderTitle').textContent = title;
                 
                 if (sectionId === 'chat') {
                      targetSection.classList.add('flex-col');
