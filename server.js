@@ -34,7 +34,6 @@ const PORT = process.env.PORT || 80;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
-
 // Facebook
 const FB_PAGE_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || '';
 const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'verify_token';
@@ -331,22 +330,43 @@ app.get('/', (req, res) => {
 
 // Socket IO
 io.on('connection', (socket) => {
+    // Single handler for admin replies to both Telegram and Facebook
     socket.on('admin_reply', async (data, callback) => {
-        // ... (Existing logic, but ensure it handles 'facebook' platform based on chat ID or stored data)
-        // For simplicity, we assume generic handling or use admin_reply_facebook for FB
-        callback({ success: false, error: "Use specific handlers" });
-    });
-    
-    // Explicit FB Reply Handler
-    socket.on('admin_reply_facebook', async (data, callback) => {
+        const { chatId, text } = data;
+        let platform = 'telegram'; // Default platform
+
         try {
-            await sendFacebookMessage(data.chatId, data.text);
-            await saveMessage(data.chatId, 'admin', data.text, null, null, null, 'facebook');
-            callback({ success: true });
+            // 1. Get Chat details to determine platform
+            const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
+            const chatDoc = await chatRef.get();
+            
+            if (chatDoc.exists) {
+                platform = chatDoc.data().platform || 'telegram';
+            }
+
+            // 2. Send reply based on platform
+            if (platform === 'facebook') {
+                await sendFacebookMessage(chatId, text);
+            } else if (platform === 'telegram') {
+                await bot.sendMessage(chatId, text);
+            } else {
+                return callback({ success: false, error: `Unknown platform: ${platform}` });
+            }
+
+            // 3. Save message to Firestore
+            const savedMessage = await saveMessage(chatId, 'admin', text, null, null, null, platform);
+
+            // 4. Notify admin dashboard via Socket.io
+            io.emit('message_sent', { chatId, message: savedMessage });
+            
+            callback({ success: true, message: "Reply sent successfully." });
         } catch (err) {
+            console.error(`Admin Reply Error for Chat ${chatId} on platform ${platform}:`, err);
             callback({ success: false, error: err.message });
         }
     });
+    
+    // Removed the redundant admin_reply_facebook handler as admin_reply now handles both
 });
 
 server.listen(PORT, () => {
