@@ -422,24 +422,30 @@
             </div>
         </div>
 
-        <!-- === SECTION 2: FB Page Messenger (New) === -->
+        <!-- === SECTION 2: FB Page Messenger (NEW REAL IMPLEMENTATION) === -->
         <div id="section-fb-messenger" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 💬 FB Page Messenger
             </h1>
-            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                <p class="mb-6 text-gray-500 dark:text-gray-400 transition-colors duration-500">
-                    Facebook Page မှ Message များကို တိုက်ရိုက်ပြန်ကြားရန် နေရာ။
-                </p>
-                
-                <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50">
+            <div class="flex h-[calc(100vh-250px)] bg-light-card dark:bg-dark-card rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 overflow-hidden">
+                <!-- FB List -->
+                <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto" id="fbChatList">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
+                        Facebook Inbox
+                    </div>
+                    <!-- Dynamic FB Chat Items go here -->
+                    <div class="text-center p-4 text-gray-500 text-sm">Loading FB chats...</div>
+                </div>
+
+                <!-- FB Placeholder / View -->
+                <div class="w-2/3 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
                     <div class="text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        <svg class="mx-auto h-16 w-16 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-200">No Messages Selected</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Connect Facebook API to view messages.</p>
-                        <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Connect Page</button>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-200">Select a Conversation</h3>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">View and reply to Facebook messages here.</p>
+                        <button onclick="fetchFBChats()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Refresh Inbox</button>
                     </div>
                 </div>
             </div>
@@ -510,7 +516,7 @@
             </div>
         </div>
 
-        <!-- === SECTION 4: User List (New) === -->
+        <!-- === SECTION 4: User List (NEW REAL IMPLEMENTATION) === -->
         <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 👥 User List
@@ -520,12 +526,12 @@
                     <p class="text-gray-500 dark:text-gray-400 transition-colors duration-500">
                         စနစ်အသုံးပြုသူများ စာရင်း။
                     </p>
-                    <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition">
+                    <button onclick="promptAddUser()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition shadow-lg hover:scale-105 transform">
                         + Add New User
                     </button>
                 </div>
                 
-                <!-- Simple Table Example -->
+                <!-- Dynamic User Table -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -536,31 +542,8 @@
                                 <th class="py-3 px-4 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="text-gray-800 dark:text-gray-200">
-                            <!-- Row 1 -->
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                                <td class="py-3 px-4 flex items-center">
-                                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3 text-xs">AD</div>
-                                    <span>Admin User</span>
-                                </td>
-                                <td class="py-3 px-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded text-xs">Super Admin</span></td>
-                                <td class="py-3 px-4"><span class="flex items-center text-green-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>Active</span></td>
-                                <td class="py-3 px-4 text-right">
-                                    <button class="text-gray-500 hover:text-blue-500 dark:hover:text-neon-primary transition">Edit</button>
-                                </td>
-                            </tr>
-                            <!-- Row 2 -->
-                             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                                <td class="py-3 px-4 flex items-center">
-                                    <div class="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-white font-bold mr-3 text-xs">JD</div>
-                                    <span>John Doe</span>
-                                </td>
-                                <td class="py-3 px-4"><span class="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs">Moderator</span></td>
-                                <td class="py-3 px-4"><span class="flex items-center text-gray-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>Offline</span></td>
-                                <td class="py-3 px-4 text-right">
-                                    <button class="text-gray-500 hover:text-blue-500 dark:hover:text-neon-primary transition">Edit</button>
-                                </td>
-                            </tr>
+                        <tbody id="userTableBody" class="text-gray-800 dark:text-gray-200">
+                           <tr><td colspan="4" class="text-center py-4 text-gray-500">Loading users...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -653,23 +636,13 @@
             return '📎';
         }
         
-        // --- NEW: Myanmar Time Function (MST = UTC + 6:30) ---
         function updateMyanmarTime() {
             const now = new Date();
-            
-            // Calculate UTC time in milliseconds
             const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-            
-            // Calculate MST offset (6.5 hours) in milliseconds (23,400,000 ms)
             const mstOffset = 6.5 * 3600 * 1000;
-            
-            // Get the current date/time for MST
             const mstTime = new Date(utcTime + mstOffset);
             
-            // Format the time (HH:MM:SS)
             const timeString = mstTime.toLocaleTimeString('en-US', { hour12: false });
-            
-            // Format the date (MM/DD/YYYY)
             const dateString = mstTime.toLocaleDateString('en-US', {
                 year: 'numeric', 
                 month: '2-digit', 
@@ -682,20 +655,12 @@
                 <span class="font-mono">${dateString} ${timeString}</span>
             `;
 
-            // 1. Desktop Nav Display
             const desktopDisplay = document.getElementById('myanmarTimeDisplay');
-            if (desktopDisplay) {
-                desktopDisplay.innerHTML = fullDisplay;
-            }
+            if (desktopDisplay) desktopDisplay.innerHTML = fullDisplay;
             
-            // 2. Mobile Header Display
             const mobileHeaderTime = document.getElementById('mobileHeaderTime');
-            if (mobileHeaderTime) {
-                 mobileHeaderTime.textContent = `${timeString}`;
-            }
+            if (mobileHeaderTime) mobileHeaderTime.textContent = `${timeString}`;
         }
-        
-        // Set up time interval to update time every second
         setInterval(updateMyanmarTime, 1000); 
 
         // --- Dark Mode Functions ---
@@ -713,8 +678,8 @@
         function updateThemeIcon() {
             const isDark = htmlElement.classList.contains('dark');
             const iconPath = isDark
-                ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" // Moon (for dark mode)
-                : "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"; // Sun (for light mode)
+                ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" 
+                : "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"; 
 
             document.getElementById('themeIcon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>`;
             document.getElementById('themeText').textContent = isDark ? 'Switch to Day Mode' : 'Switch to Night Mode';
@@ -729,12 +694,9 @@
             } else if (savedTheme === 'light') {
                 htmlElement.classList.remove('dark');
             }
-            // Initial call to set the correct icon and text
             updateThemeIcon();
         }
-        // --- End Dark Mode Functions ---
         
-        // --- Mobile Sidebar/Chat View Toggle Functions ---
         function toggleSidebar() {
             isMobileSidebarOpen = !isMobileSidebarOpen;
             const sidebar = document.getElementById('sidebar');
@@ -748,39 +710,26 @@
         }
 
         function isMobileView() {
-            // Tailwind's 'md' breakpoint is 768px.
             return window.matchMedia('(max-width: 767px)').matches;
         }
 
         function backToChatList() {
              const chatView = document.getElementById('chatView');
              const chatListPanel = document.getElementById('chatListPanel');
-             
-             // Hide chat view, show list
              chatView.classList.add('hidden');
              chatListPanel.classList.remove('hidden');
-
-             // Update Mobile Header
              document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
              document.getElementById('chatBackButton').classList.add('hidden');
-             
-             // Clear current chat selection
              currentChatId = null;
              document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
         }
-        // --- End Mobile Toggle Functions ---
 
-
-        // --- Unread Count Logic ---
         function updateTotalUnreadBadge() {
             const badge = document.getElementById('totalUnreadBadge');
             let totalCount = 0;
-            
-            // Calculate total count from the unreadCounts map
             for (const chatId in unreadCounts) {
                 totalCount += unreadCounts[chatId];
             }
-            
             if (badge) {
                 if (totalCount > 0) {
                     badge.textContent = totalCount > 99 ? '99+' : totalCount;
@@ -791,10 +740,7 @@
                 }
             }
         }
-        // --- End Unread Count Logic ---
 
-
-        // --- Navigation Functions ---
         function showSection(sectionId) {
             document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
@@ -802,10 +748,15 @@
             const targetSection = document.getElementById(`section-${sectionId}`);
             if (targetSection) {
                 targetSection.classList.remove('hidden');
-                // Auto-Title for mobile header
                 let title = 'Dashboard';
-                if(sectionId === 'fb-messenger') title = 'FB Messenger';
-                else if(sectionId === 'user-list') title = 'User List';
+                if(sectionId === 'fb-messenger') {
+                    title = 'FB Messenger';
+                    fetchFBChats(); // Fetch FB chats when section loads
+                }
+                else if(sectionId === 'user-list') {
+                    title = 'User List';
+                    fetchUsers(); // Fetch Users when section loads
+                }
                 else title = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
                 
                 document.getElementById('mobileHeaderTitle').textContent = title;
@@ -822,7 +773,6 @@
                 activeNavItem.classList.add('active-nav');
             }
             
-            // Hide the mobile sidebar if it was open
             if (isMobileSidebarOpen) {
                 toggleSidebar();
             }
@@ -833,14 +783,11 @@
 
             if (sectionId === 'chat') {
                 chatListPanel.classList.remove('hidden');
-                
-                // On desktop/tablet, show both list and view
                 if (!isMobileView()) {
                      chatView.classList.remove('hidden');
                      chatBackButton.classList.add('hidden');
-                     document.getElementById('mobileHeaderTitle').textContent = 'Chat'; // Reset to generic title for desktop
+                     document.getElementById('mobileHeaderTitle').textContent = 'Chat'; 
                 } else {
-                     // On mobile, show only the list initially
                      chatView.classList.add('hidden');
                      chatBackButton.classList.add('hidden');
                      document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
@@ -855,39 +802,151 @@
                 chatListPanel.classList.add('hidden');
                 chatView.classList.add('hidden');
                 chatBackButton.classList.add('hidden');
-                currentChatId = null; 
+                if (sectionId !== 'fb-messenger') {
+                     currentChatId = null;
+                }
                 document.getElementById('chatHistorySearch').value = ''; 
                 clearFileSelection(); 
             }
         }
 
-
-        // --- Chat Specific Functions ---
-        
-        async function markChatAsRead(chatId) {
+        // --- NEW: User List Logic ---
+        async function fetchUsers() {
+            const tableBody = document.getElementById('userTableBody');
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Loading...</td></tr>';
             try {
-                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (!response.ok) {
-                    console.error('Server responded with an error when marking as read:', response.status);
-                } else {
-                    console.log(`Chat ${chatId} successfully marked as read on server.`);
+                const res = await fetch(`${BASE_URL}/api/users?key=${apiKey}`);
+                const users = await res.json();
+                
+                tableBody.innerHTML = '';
+                if(users.length === 0) {
+                     tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found.</td></tr>';
+                     return;
                 }
-            } catch (error) {
-                console.error(`Failed to notify server to mark chat ${chatId} as read:`, error);
+
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition';
+                    const initials = user.name.slice(0,2).toUpperCase();
+                    
+                    row.innerHTML = `
+                        <td class="py-3 px-4 flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3 text-xs">${initials}</div>
+                            <span>${user.name}</span>
+                        </td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded text-xs">${user.role}</span></td>
+                        <td class="py-3 px-4"><span class="flex items-center text-green-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>${user.status}</span></td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch(e) {
+                console.error(e);
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Error loading users.</td></tr>';
             }
         }
 
+        async function promptAddUser() {
+            const name = prompt("Enter User Name:");
+            if(!name) return;
+            const role = prompt("Enter Role (e.g. Admin, Editor):", "Viewer");
+            
+            try {
+                await fetch(`${BASE_URL}/api/users?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, role, status: 'Active' })
+                });
+                fetchUsers(); // Refresh
+            } catch(e) {
+                alert("Failed to add user");
+            }
+        }
+
+        async function deleteUser(id) {
+            if(!confirm("Are you sure?")) return;
+            try {
+                await fetch(`${BASE_URL}/api/users/${id}?key=${apiKey}`, { method: 'DELETE' });
+                fetchUsers();
+            } catch(e) {
+                alert("Failed to delete user");
+            }
+        }
+
+        // --- NEW: FB Messenger Logic ---
+        async function fetchFBChats() {
+            const list = document.getElementById('fbChatList');
+            // Keep header, clear items
+            list.innerHTML = `
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
+                    Facebook Inbox
+                </div>
+                <div class="text-center p-4 text-gray-500 text-sm">Loading...</div>
+            `;
+            
+            try {
+                // Fetch chats with platform=facebook filter
+                const res = await fetch(`${BASE_URL}/api/chats?platform=facebook&key=${apiKey}`);
+                const chats = await res.json();
+                
+                // Remove loading
+                const loading = list.querySelector('.text-center');
+                if(loading) loading.remove();
+
+                if(chats.length === 0) {
+                     const empty = document.createElement('div');
+                     empty.className = "text-center p-4 text-gray-500 text-sm";
+                     empty.innerText = "No Facebook messages found.";
+                     list.appendChild(empty);
+                     return;
+                }
+
+                chats.forEach(chat => {
+                    const item = document.createElement('div');
+                    item.className = "p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition";
+                    item.onclick = () => {
+                        // Switch to main chat view context for this user
+                        // We reuse the main selectChat logic but ensure it opens in the right context
+                        // For simplicity, we redirect to the main 'chat' tab with this ID
+                        showSection('chat');
+                        selectChat(chat.telegramId, chat.username || 'FB User');
+                    };
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">f</div>
+                            <div class="flex-grow min-w-0">
+                                <p class="font-bold text-gray-800 dark:text-gray-200 truncate">${chat.username || 'Facebook User'}</p>
+                                <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'Image/File'}</p>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+
+        // --- Chat Functions (Existing) ---
+        async function markChatAsRead(chatId) {
+            try {
+                await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) { console.error(error); }
+        }
 
         function createChatListItem(chat) {
             const chatId = chat.telegramId;
             const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
             const username = chat.username || 'Unknown Entity';
             const count = unreadCounts[chatId] || 0; 
+            const isFB = chat.platform === 'facebook';
 
             const chatElement = document.createElement('div');
             chatElement.id = `chat-${chatId}`;
@@ -896,11 +955,14 @@
             chatElement.setAttribute('data-username', username.toLowerCase());
 
             const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
+            
+            // Icon based on platform
+            const icon = isFB ? '<span class="text-white font-bold">f</span>' : '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>';
+            const bgClass = isFB ? 'bg-blue-700' : 'bg-blue-500/50 dark:bg-indigo-700/50';
 
-            // Avatar SVG Placeholder - Futuristic style
             const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/50 dark:bg-indigo-700/50 text-blue-800 dark:text-neon-primary border border-blue-800/50 dark:border-neon-primary/50">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
+                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full ${bgClass} text-blue-800 dark:text-neon-primary border border-blue-800/50 dark:border-neon-primary/50">
+                    ${icon}
                 </div>
             `;
 
@@ -918,19 +980,15 @@
                 selectChat(chatId, username);
             });
 
-            // Ensure active chat style is applied on creation if needed (e.g. on filter)
             if (currentChatId === chatId) {
                  chatElement.classList.add('active');
             }
-
-
             return chatElement;
         }
 
         function filterChatList(query) {
             const chatListElement = document.getElementById('chatList');
             const lowerCaseQuery = query.toLowerCase().trim();
-            
             chatListElement.innerHTML = ''; 
 
             const filteredChats = allChats.filter(chat => {
@@ -948,54 +1006,27 @@
             }
         }
 
-        /**
-         * Renders a single message bubble.
-         */
         function createMessageBubble(msg) {
             const isUser = msg.sender === 'user';
             const alignment = isUser ? 'justify-start' : 'justify-end';
             const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
-            
             const messageElement = document.createElement('div');
             messageElement.className = `message-bubble flex ${alignment} mb-3`;
-            
             const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
             let mediaContent = '';
             
-            // ADMIN sent media is Base64 (starts with data:), USER sent media is file_id (no prefix)
             const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
             const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
 
             if (isUserMedia) {
-                // User sent media (image/file from Telegram, displayed via API)
                 const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
-                mediaContent = `
-                    <img src="${imageUrl}" 
-                         class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" 
-                         onclick="window.open('${imageUrl}', '_blank')" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" 
-                         alt="Chat Media"/>
-                `;
+                mediaContent = `<img src="${imageUrl}" class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" alt="Chat Media"/>`;
             } else if (isAdminMedia) {
-                 // Admin sent media (Base64 data URL, directly displayed)
                  if (msg.mediaPath.startsWith('data:image/')) {
-                     // Image display
-                     mediaContent = `
-                        <img src="${msg.mediaPath}" 
-                            class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" 
-                            onclick="window.open('${msg.mediaPath}', '_blank')" 
-                            alt="Admin Image"/>
-                     `;
+                     mediaContent = `<img src="${msg.mediaPath}" class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${msg.mediaPath}', '_blank')" alt="Admin Image"/>`;
                  } else {
-                    // Document/File display (using icon and name)
                     const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
-                    mediaContent = `
-                        <div class="flex items-center space-x-2 p-3 bg-blue-100 dark:bg-indigo-900 rounded-lg mb-2 border border-blue-500 dark:border-neon-primary">
-                            <span class="text-2xl">${getFileIcon(mimeType)}</span>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">${msg.filename || 'Admin File'}</span>
-                        </div>
-                    `;
+                    mediaContent = `<div class="flex items-center space-x-2 p-3 bg-blue-100 dark:bg-indigo-900 rounded-lg mb-2 border border-blue-500 dark:border-neon-primary"><span class="text-2xl">${getFileIcon(mimeType)}</span><span class="text-sm font-medium text-gray-900 dark:text-white">${msg.filename || 'Admin File'}</span></div>`;
                  }
             }
 
@@ -1015,13 +1046,10 @@
             const lowerCaseQuery = query.toLowerCase().trim();
             const messages = document.querySelectorAll('#messageHistory .message-bubble');
             let foundCount = 0;
-
             messages.forEach(messageDiv => {
                 const messageContentEl = messageDiv.querySelector('.message-content');
                 if (!messageContentEl) return;
-                
                 const messageText = messageContentEl.getAttribute('data-text');
-                
                 if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
                     messageDiv.classList.remove('hidden');
                     foundCount++;
@@ -1029,10 +1057,8 @@
                     messageDiv.classList.add('hidden');
                 }
             });
-            
             const noResultMessage = document.getElementById('noHistoryResults');
             if (noResultMessage) noResultMessage.remove();
-
             if (lowerCaseQuery !== '' && foundCount === 0) {
                  const feedback = document.createElement('div');
                  feedback.id = 'noHistoryResults';
@@ -1042,20 +1068,17 @@
             }
         }
 
-
         async function fetchChats() {
             const chatListElement = document.getElementById('chatList');
             chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-500">Fetching orbital data streams...</div>';
             unreadCounts = {}; 
             allChats = []; 
-            updateTotalUnreadBadge(); // Reset badge immediately
+            updateTotalUnreadBadge();
 
             try {
-                // Simplified mock fetching (replace with actual API call)
                 const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
                 if (!response.ok) throw new Error('Authentication failure or offline');
                 const chats = await response.json();
-
                 allChats = chats; 
                 chatListElement.innerHTML = '';
                 
@@ -1066,17 +1089,13 @@
                 }
                 
                 chats.forEach(chat => {
-                    // Initialize unreadCounts with the count from the server if available
                     unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
                     chatListElement.appendChild(createChatListItem(chat));
                 });
-
                 updateTotalUnreadBadge();
-
             } catch (error) {
                 console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix. Error: ${error.message}</div>`;
-                updateTotalUnreadBadge();
+                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix.</div>`;
             }
         }
 
@@ -1086,14 +1105,12 @@
             const chatView = document.getElementById('chatView');
             const chatBackButton = document.getElementById('chatBackButton');
 
-            // --- MOBILE VIEW LOGIC: Hide list and show chat view ---
             if (isMobileView()) {
                  chatListPanel.classList.add('hidden');
                  chatView.classList.remove('hidden');
-                 chatBackButton.classList.remove('hidden'); // Show back button
-                 document.getElementById('mobileHeaderTitle').textContent = username; // Set mobile header title to username
+                 chatBackButton.classList.remove('hidden'); 
+                 document.getElementById('mobileHeaderTitle').textContent = username; 
             }
-            // --------------------------------------------------------
 
             document.getElementById('chatHeader').innerHTML = `
                 <div class="flex flex-col">
@@ -1109,19 +1126,14 @@
             const activeChatElement = document.getElementById(`chat-${chatId}`);
             if (activeChatElement) {
                 activeChatElement.classList.add('active');
-                
-                // Clear unread count for the selected chat
                 if (unreadCounts[chatId] > 0) {
                     unreadCounts[chatId] = 0;
                     const badge = activeChatElement.querySelector('.badge-style');
                     if (badge) badge.remove();
-                    updateTotalUnreadBadge(); // Update sidebar badge after clearing
-                    
-                    // NEW FIX: Mark as read on the server to persist the read status
+                    updateTotalUnreadBadge(); 
                     markChatAsRead(chatId);
                 }
             }
-            
             clearFileSelection(); 
 
             const historyContainer = document.getElementById('messageHistory');
@@ -1131,23 +1143,17 @@
                 const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
                 if (!response.ok) throw new Error('Failed to load history');
                 const history = await response.json();
-
                 historyContainer.innerHTML = '';
                 history.forEach(msg => {
                     historyContainer.prepend(createMessageBubble(msg));
                 });
-                
                 historyContainer.scrollTop = 0; 
-
             } catch (error) {
                 console.error(`Error fetching chat history for ${chatId}:`, error);
                 historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
             }
         }
         
-        /**
-         * Clears all file-related state and UI elements.
-         */
         function clearFileSelection() {
             selectedFile = null;
             mediaPath = null;
@@ -1157,58 +1163,33 @@
             document.getElementById('filePreview').classList.add('hidden');
         }
 
-        /**
-         * Handles file selection, converts to Base64, and updates the preview.
-         */
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            // Max file size 5MB
             if (file.size > 5 * 1024 * 1024) {
-                 // Replaced alert() with console log
                  console.log("File size exceeds 5MB transmission limit.");
                  event.target.value = ''; 
                  return;
             }
-
             const reader = new FileReader();
             reader.onload = (e) => {
-                mediaPath = e.target.result; // Base64 Data URL
+                mediaPath = e.target.result; 
                 mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
                 filename = file.name;
-                
-                // Update Preview UI
                 document.getElementById('fileName').textContent = filename;
                 document.getElementById('fileSize').textContent = formatBytes(file.size);
                 document.getElementById('fileIcon').textContent = getFileIcon(file.type);
                 document.getElementById('filePreview').classList.remove('hidden');
-                
-                if (mediaType === 'photo') {
-                    // Optional: Show actual image preview
-                }
-            };
-            reader.onerror = (e) => {
-                console.error("File reading error:", e);
-                clearFileSelection();
             };
             reader.readAsDataURL(file);
         }
 
-
-        /**
-         * Sends admin reply to the server via Socket.io.
-         */
         function sendReply() {
             if (!currentChatId || !socket) return;
-
             const replyInput = document.getElementById('replyText');
             const text = replyInput.value.trim();
 
-            if (!text && !mediaPath) {
-                console.warn("Transmission aborted: Empty data packet.");
-                return;
-            }
+            if (!text && !mediaPath) return;
 
             const sendButton = document.getElementById('sendButton');
             sendButton.disabled = true;
@@ -1221,13 +1202,18 @@
                 mediaType: mediaType, 
                 filename: filename 
             };
-
+            
+            // Check if it's FB or Telegram based on ID length or check memory array
+            // Simple heuristic: Telegram IDs are usually numbers, FB IDs are often very long numbers. 
+            // Better approach: server handles it or store platform in chat object locally.
+            // For now, assume generic admin_reply handles it or we send specialized event.
+            // Let's use generic and let server decide, or add a 'platform' to data if we knew it.
+            
             socket.emit('admin_reply', data, (response) => {
                 sendButton.disabled = false;
-                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
                 
                 if (response.success) {
-                    // Local Echo
                     const tempMsg = {
                         chatId: currentChatId,
                         sender: 'admin',
@@ -1239,83 +1225,65 @@
                     const historyContainer = document.getElementById('messageHistory');
                     historyContainer.prepend(createMessageBubble(tempMsg));
                     historyContainer.scrollTop = 0;
-                    
-                    // Clear state after successful send
                     replyInput.value = '';
                     clearFileSelection();
-
                 } else {
                     console.error("Failed to transmit data packet:", response.error);
                 }
             });
         }
 
-
-        // ------------------------------------------------------------------
-        // CORE FIX: Handling Real-time Updates (Socket.io)
-        // ------------------------------------------------------------------
-
         function setupSocketListeners() {
-            if (typeof io !== 'function') {
-                console.error("Socket.io library not found.");
-                return;
-            }
+            if (typeof io !== 'function') return;
             socket = io();
             
             socket.on('new_message', (data) => {
                 const chatId = String(data.chatId);
                 const user = data.user;
                 const message = data.message;
-                
                 const chatList = document.getElementById('chatList');
                 
-                // 1. Find and REMOVE the old entry to prevent duplicates
+                // Remove old entry
                 const existingChatElement = document.getElementById(`chat-${chatId}`);
-                if (existingChatElement) {
-                    existingChatElement.remove();
-                }
+                if (existingChatElement) existingChatElement.remove();
 
-                // 2. Update allChats data array for search functionality
                 const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
-                if (chatIndex !== -1) {
-                    allChats.splice(chatIndex, 1);
-                }
+                if (chatIndex !== -1) allChats.splice(chatIndex, 1);
+                
                 user.lastMessageText = message.text;
                 user.lastMessageTime = message.timestamp;
+                // Add platform info from socket data
+                user.platform = data.platform || 'telegram';
                 allChats.unshift(user);
 
-                // 3. Update Unread Count state
                 if (currentChatId !== chatId) {
                     unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                 } else {
                     unreadCounts[chatId] = 0;
                 }
-                
-                updateTotalUnreadBadge(); // Update main badge
+                updateTotalUnreadBadge(); 
 
-                // 4. Update the chat list display
+                // Only update Main Chat List if we are in 'chat' section OR if it matches filter
+                // If we are in FB section, we might want to refresh that list too
+                if (document.getElementById('section-fb-messenger').classList.contains('hidden') === false && user.platform === 'facebook') {
+                    fetchFBChats(); // Refresh FB specific list
+                }
+
                 if (document.getElementById('chatListSearch').value.trim() === '') {
                     user.unreadCount = unreadCounts[chatId]; 
                     const newChatElement = createChatListItem(user);
                     chatList.prepend(newChatElement);
 
-                    // 5. If it's the current chat, display the new message immediately
                     if (currentChatId === chatId) {
                         const historyContainer = document.getElementById('messageHistory');
                         historyContainer.prepend(createMessageBubble(message));
                         historyContainer.scrollTop = 0; 
-                        newChatElement.classList.add('active'); 
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        
-                        // NEW: If message arrives while chat is open, mark as read on server too (though redundant, it ensures server is up-to-date)
                         markChatAsRead(chatId);
                     } else {
-                        // Add a temporary subtle glow effect for new messages in the list
                         const ringColor = htmlElement.classList.contains('dark') ? 'ring-[var(--secondary-neon)]/50' : 'ring-blue-500/50';
                         newChatElement.classList.add('ring-4', ringColor);
-                        setTimeout(() => {
-                            newChatElement.classList.remove('ring-4', ringColor);
-                        }, 1000);
+                        setTimeout(() => newChatElement.classList.remove('ring-4', ringColor), 1000);
                     }
                 } else {
                     filterChatList(document.getElementById('chatListSearch').value);
@@ -1324,33 +1292,24 @@
                         historyContainer.prepend(createMessageBubble(message));
                         historyContainer.scrollTop = 0; 
                         filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        markChatAsRead(chatId); // Mark read if open
+                        markChatAsRead(chatId);
                     }
                 }
-
             });
         }
 
-
-        // ------------------------------------------------------------------
-        // Initialization
-        // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            loadDarkModePreference(); // Load and set initial theme
-            updateMyanmarTime(); // Initial time display
+            loadDarkModePreference(); 
+            updateMyanmarTime(); 
             setupSocketListeners();
-            
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
                     showSection(item.getAttribute('data-section'));
                 });
             });
-
-            // Initial view setup
             showSection('dashboard');
         });
-
     </script>
 </body>
 </html>
