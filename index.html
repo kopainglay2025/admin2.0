@@ -149,7 +149,7 @@
             padding: 1rem;
             **flex-grow: 1;**
             **min-height: 0;**
-            **height: 0;** 
+
         }
         /* Custom Scrollbar (kept for desktop view) */
         .chat-messages::-webkit-scrollbar { width: 8px; }
@@ -476,8 +476,8 @@
                 </div>
 
                 <!-- Message Input -->
-                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50">
-                    
+                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50 **flex-shrink-0**">
+                    </div>
                     <!-- File/Image Preview Area -->
                     <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
                         <div class="flex items-center justify-between">
