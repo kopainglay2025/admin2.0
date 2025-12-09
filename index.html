@@ -141,13 +141,16 @@
             opacity: 1;
         }
 
-
+        /* Message History container */
         .chat-messages {
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse; 
             padding: 1rem;
-            /* FIX: စာများလျှင် reply box မပျောက်စေရန် ဤစာကြောင်းကို ထည့်သွင်းပါ */
+    
+            /* FIX: ဤစာကြောင်း (၃) ကြောင်းလုံး ထည့်သွင်းပါ */
+            flex-grow: 1;
+            height: 0; 
             min-height: 0; 
         }
         /* Custom Scrollbar (kept for desktop view) */
