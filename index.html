@@ -1,372 +1,651 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Dashboard - Chat Integrator</title>
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Heroicons (for SVG icons) -->
-  <script src="https://unpkg.com/feather-icons"></script>
-  <style>
-    /* small niceties */
-    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
-    .menu-item:hover { transform: translateX(6px); }
-    .scroll-shadow { box-shadow: inset 0 -10px 10px -10px rgba(0,0,0,0.3); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni-Channel Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        :root { font-family: 'Inter', sans-serif; }
+        .scrollbar-hidden::-webkit-scrollbar { display: none; }
+        .scrollbar-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+        .menu-link {
+            @apply flex items-center p-3 text-sm font-medium text-gray-700 rounded-lg transition duration-150 ease-in-out hover:bg-indigo-100 hover:text-indigo-700 shadow-sm mb-2;
+        }
+        .menu-link.active {
+            @apply bg-indigo-600 text-white shadow-lg;
+        }
+        .menu-link.active:hover {
+             @apply bg-indigo-700 text-white;
+        }
+        .user-message {
+            @apply bg-gray-100 text-gray-800 p-3 rounded-tr-xl rounded-b-xl max-w-lg shadow-sm self-start;
+        }
+        .admin-message {
+            @apply bg-indigo-600 text-white p-3 rounded-tl-xl rounded-b-xl max-w-lg shadow-md self-end;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-slate-200 font-sans min-h-screen">
-  <div class="flex h-screen">
-    <!-- Left Sidebar -->
-    <aside class="w-72 bg-gradient-to-b from-slate-800 to-slate-900 p-4 flex flex-col gap-6">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">A</div>
-        <div>
-          <div class="text-lg font-semibold">Admin Panel</div>
-          <div class="text-sm text-slate-400">Chat Integrator</div>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- 1. Sidebar -->
+    <aside id="sidebar" class="w-64 flex-shrink-0 bg-white border-r border-gray-200 shadow-xl transition-all duration-300">
+        <div class="p-6 h-full flex flex-col">
+            <h1 class="text-3xl font-extrabold text-indigo-600 mb-8 border-b pb-4">OmniChat Admin</h1>
+            
+            <nav id="menu-nav" class="flex-grow">
+                <a href="#" class="menu-link" data-page="dashboard" onclick="app.setPage('dashboard')">
+                    <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="menu-link" data-page="tg_chats" onclick="app.setPage('tg_chats')">
+                    <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20l9-2-9-2L3 20l9 2zm0-4l9-2-9-2L3 16l9 2zm0-4l9-2-9-2L3 12l9 2z"/></svg>
+                    <span>TG Chats</span>
+                </a>
+                <a href="#" class="menu-link" data-page="fb_chats" onclick="app.setPage('fb_chats')">
+                    <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>FB Chats</span>
+                </a>
+                <a href="#" class="menu-link" data-page="user_list" onclick="app.setPage('user_list')">
+                    <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2c0-.656-.126-1.283-.356-1.857M20 10.5V8a6 6 0 00-6-6h-2a6 6 0 00-6 6v2.5M6 9h3v3H6V9zm4 0h3v3h-3V9zm4 0h3v3h-3V9z"/></svg>
+                    <span>TG User List</span>
+                </a>
+                <a href="#" class="menu-link" data-page="broadcast" onclick="app.setPage('broadcast')">
+                    <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.75 1.75 0 01-3.5 0v-1.118a1.75 1.75 0 00-3.5 0v1.118a1.75 1.75 0 01-3.5 0V5.882a1.75 1.75 0 013.5 0v1.118a1.75 1.75 0 003.5 0V5.882a1.75 1.75 0 013.5 0zM17 13h4m-2-2v4"/></svg>
+                    <span>TG User Broadcast</span>
+                </a>
+            </nav>
+
+            <a href="#" class="menu-link mt-auto" data-page="settings" onclick="app.setPage('settings')">
+                <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.945 3.31.84 2.704 2.432a1.724 1.724 0 00.076 2.572c1.337 1.34-1.025 3.65-2.572 2.704a1.724 1.724 0 00-1.066 2.573c.945 1.543-.84 3.31-2.432 2.704a1.724 1.724 0 00-2.572.076c-1.34 1.337-3.65-1.025-2.704-2.572a1.724 1.724 0 00-2.573-1.066c-1.543.945-3.31-.84-2.704-2.432a1.724 1.724 0 00-.076-2.572c-1.337-1.34 1.025-3.65 2.572-2.704a1.724 1.724 0 001.066-2.573c-.945-1.543.84-3.31 2.432-2.704z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span>Settings</span>
+            </a>
         </div>
-      </div>
-
-      <nav class="flex-1">
-        <ul class="space-y-1">
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="dashboard">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4v11H3zM10 3h4v18h-4zM17 7h4v14h-4z"/></svg>
-            <span>Dashboard</span>
-          </li>
-
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="fbchats">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V24l3.219-1.688C17.019 22.934 19.5 22 22 22V12z"/></svg>
-            <span>FB Chats</span>
-          </li>
-
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="tgchats">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21.447 4.697L2.927 11.17c-.944.325-.785 1.513.18 1.711l4.292.695 1.717 5.214c.286.88 1.535.821 1.75-.081L17.06 6.94c.316-1.137-1.05-1.962-1.98-1.243z"/></svg>
-            <span>TG Chats</span>
-          </li>
-
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="users">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m0-4a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            <span>TG User List</span>
-          </li>
-
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="broadcast">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A2 2 0 0122 9.618v4.764a2 2 0 01-2.447 1.894L15 14M4 9v6m0 0l4-3m-4 3l4 3"/></svg>
-            <span>TG User Broadcast</span>
-          </li>
-
-          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="settings">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-1.164 1.96-1.164 2.259 0a1.724 1.724 0 002.582 1.02c1.088-.63 2.45.42 2.027 1.664a1.724 1.724 0 00.435 1.872c.9.8.374 2.36-.873 2.312a1.724 1.724 0 00-1.46 1.19c-.29 1.088-1.876 1.088-2.166 0a1.724 1.724 0 00-1.459-1.19c-1.247.048-1.773-1.512-.873-2.312a1.724 1.724 0 00.435-1.872c-.423-1.244.939-2.294 2.027-1.664.86.5 1.9-.06 2.582-1.02z"/></svg>
-            <span>Settings</span>
-          </li>
-        </ul>
-      </nav>
-
-      <div class="text-xs text-slate-500">Server: <span id="server-status">unknown</span></div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-6">
-      <header class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold">Admin Dashboard</h1>
-        <div class="flex items-center gap-3">
-          <div class="text-sm text-slate-400">Logged as <span id="admin-user">-</span></div>
-          <button id="logoutBtn" class="px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700 transition">Logout</button>
-        </div>
-      </header>
-
-      <section id="view-container" class="h-[calc(100vh-140px)] overflow-auto scroll-shadow p-4 glass rounded-lg">
-        <!-- Views are injected here -->
-
-        <div id="view-dashboard" class="view hidden">
-          <div class="grid grid-cols-3 gap-4">
-            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Total Chats</div><div id="stat-chats" class="text-2xl mt-2 font-bold">-</div></div>
-            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Users</div><div id="stat-users" class="text-2xl mt-2 font-bold">-</div></div>
-            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Last Activity</div><div id="stat-last" class="text-2xl mt-2 font-bold">-</div></div>
-          </div>
-
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold mb-2">Recent Messages</h3>
-            <div id="recent-messages" class="space-y-2"></div>
-          </div>
-        </div>
-
-        <div id="view-fbchats" class="view hidden">
-          <h2 class="text-lg font-semibold mb-3">Facebook Chats</h2>
-          <div class="mb-3 flex gap-2">
-            <input id="fb-search" placeholder="Search..." class="flex-1 p-2 rounded bg-slate-900" />
-            <button id="refresh-fb" class="px-3 py-1 rounded bg-indigo-600">Refresh</button>
-          </div>
-          <div id="fb-list" class="space-y-2"></div>
-        </div>
-
-        <div id="view-tgchats" class="view hidden">
-          <h2 class="text-lg font-semibold mb-3">Telegram Chats</h2>
-          <div class="mb-3 flex gap-2">
-            <input id="tg-search" placeholder="Search..." class="flex-1 p-2 rounded bg-slate-900" />
-            <button id="refresh-tg" class="px-3 py-1 rounded bg-indigo-600">Refresh</button>
-          </div>
-          <div id="tg-list" class="space-y-2"></div>
-        </div>
-
-        <div id="view-users" class="view hidden">
-          <h2 class="text-lg font-semibold mb-3">System Users</h2>
-          <div class="mb-3 flex gap-2">
-            <input id="user-name" placeholder="Name" class="p-2 rounded bg-slate-900" />
-            <select id="user-role" class="p-2 rounded bg-slate-900">
-              <option>Viewer</option><option>Moderator</option><option>Admin</option>
-            </select>
-            <button id="create-user" class="px-3 py-1 rounded bg-green-600">Create</button>
-          </div>
-          <div id="user-list" class="space-y-2"></div>
-        </div>
-
-        <div id="view-broadcast" class="view hidden">
-          <h2 class="text-lg font-semibold mb-3">Broadcast</h2>
-          <div class="mb-3">
-            <textarea id="broadcast-text" rows="4" class="w-full p-3 rounded bg-slate-900" placeholder="Message to broadcast"></textarea>
-            <div class="flex items-center gap-2 mt-2">
-              <button id="send-broadcast" class="px-4 py-2 rounded bg-indigo-600">Send to All</button>
-              <div class="text-sm text-slate-400">Be careful — this will send a message to every saved user.</div>
+    <!-- 2. Main Content Area -->
+    <main class="flex-grow overflow-auto p-4 md:p-8">
+        <div class="max-w-7xl mx-auto">
+            <header class="mb-6">
+                <h2 id="page-title" class="text-3xl font-bold text-gray-900 transition-opacity duration-300"></h2>
+            </header>
+            
+            <!-- Dynamic Content Area -->
+            <div id="content-container">
+                <!-- Views will be injected here -->
             </div>
-          </div>
         </div>
-
-        <div id="view-settings" class="view hidden">
-          <h2 class="text-lg font-semibold mb-3">Settings</h2>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm text-slate-400">FB Page Token</label>
-              <input id="input-fb-token" class="w-full p-2 rounded bg-slate-900" placeholder="FB_PAGE_ACCESS_TOKEN" />
-            </div>
-            <div>
-              <label class="block text-sm text-slate-400">Telegram Bot Token</label>
-              <input id="input-tg-token" class="w-full p-2 rounded bg-slate-900" placeholder="TELEGRAM_BOT_TOKEN" />
-            </div>
-            <div class="flex gap-2">
-              <button id="save-settings" class="px-4 py-2 rounded bg-green-600">Save</button>
-              <button id="test-connection" class="px-4 py-2 rounded bg-indigo-600">Test Server</button>
-            </div>
-          </div>
-        </div>
-
-      </section>
     </main>
-  </div>
 
-  <!-- Login Modal -->
-  <div id="login-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center">
-    <div class="w-[420px] bg-slate-800 p-6 rounded-lg shadow-lg">
-      <h3 class="text-xl font-semibold mb-4">Admin Login</h3>
-      <div class="space-y-3">
-        <input id="auth-user" placeholder="Username" class="w-full p-2 rounded bg-slate-900" />
-        <input id="auth-pass" placeholder="Password" type="password" class="w-full p-2 rounded bg-slate-900" />
-        <div class="flex justify-end gap-2">
-          <button id="loginBtn" class="px-4 py-2 rounded bg-indigo-600">Login</button>
+    <!-- 3. Custom Alert/Modal -->
+    <div id="modal-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl transform transition-all duration-300 scale-100">
+            <h3 id="modal-title" class="text-xl font-semibold mb-3 text-indigo-600"></h3>
+            <p id="modal-body" class="text-gray-700 mb-6"></p>
+            <button onclick="app.closeModal()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition duration-150">Close</button>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    // Basic front-end admin dashboard logic
-    const socket = io();
-    let basicAuthHeader = null;
 
-    function showView(name) {
-      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-      document.getElementById('view-' + name).classList.remove('hidden');
-    }
+    <script>
+        const API_URL = ''; // Empty string means relative path
+        let socket;
 
-    // Menu clicks
-    document.querySelectorAll('[data-view]').forEach(el => {
-      el.addEventListener('click', () => {
-        const view = el.getAttribute('data-view');
-        showView(view);
-        if (view === 'tgchats') loadChats('telegram');
-        if (view === 'fbchats') loadChats('facebook');
-        if (view === 'users') loadUsers();
-      });
-    });
+        // Global App State
+        const app = {
+            currentPage: 'dashboard',
+            selectedChatId: null,
+            chats: [],
+            messages: [],
+            users: [],
+            platformFilter: null,
+            
+            // Utility for fetching data (Handles Basic Auth)
+            async authFetch(endpoint, options = {}) {
+                const username = localStorage.getItem('adminUser') || 'admin';
+                const password = localStorage.getItem('adminPass') || 'password';
+                
+                options.headers = {
+                    ...options.headers,
+                    'Authorization': 'Basic ' + btoa(username + ":" + password),
+                    'Content-Type': 'application/json'
+                };
 
-    // Login
-    document.getElementById('loginBtn').addEventListener('click', () => {
-      const user = document.getElementById('auth-user').value.trim();
-      const pass = document.getElementById('auth-pass').value;
-      if (!user || !pass) return alert('Enter credentials');
-      basicAuthHeader = 'Basic ' + btoa(user + ':' + pass);
-      document.getElementById('admin-user').innerText = user;
-      document.getElementById('login-modal').style.display = 'none';
-      serverStatus();
-      showView('dashboard');
-      loadChats();
-      loadUsers();
-    });
+                const response = await fetch(API_URL + endpoint, options);
+                
+                if (response.status === 401) {
+                    // Attempt basic auth challenge if not already set or failed
+                    app.showAuthPrompt();
+                    throw new Error('Authentication required.');
+                }
+                
+                if (!response.ok) {
+                    const errorBody = await response.json().catch(() => ({ message: 'Server error' }));
+                    throw new Error(errorBody.error || errorBody.message || `HTTP error! Status: ${response.status}`);
+                }
+                
+                return response.json();
+            },
 
-    document.getElementById('logoutBtn').addEventListener('click', () => location.reload());
+            // Basic Auth Prompt (simplified for this environment)
+            showAuthPrompt() {
+                const username = prompt("Admin Username:");
+                const password = prompt("Admin Password:");
+                if (username && password) {
+                    localStorage.setItem('adminUser', username);
+                    localStorage.setItem('adminPass', password);
+                    app.setPage(app.currentPage); // Try reloading the page/data
+                } else {
+                    app.showModal('Authentication Failed', 'You must provide credentials to access the dashboard.');
+                }
+            },
 
-    // API helpers
-    async function apiGet(path, params) {
-      const res = await axios.get(path, { params, headers: { Authorization: basicAuthHeader } });
-      return res.data;
-    }
-    async function apiPost(path, data) {
-      const res = await axios.post(path, data, { headers: { Authorization: basicAuthHeader } });
-      return res.data;
-    }
+            // UI Helpers
+            showModal(title, body) {
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-body').textContent = body;
+                document.getElementById('modal-container').classList.remove('hidden');
+            },
 
-    // Load chats (optionally by platform)
-    async function loadChats(platform) {
-      try {
-        const chats = await apiGet('/api/chats', { platform });
-        const listEl = document.getElementById(platform === 'facebook' ? 'fb-list' : 'tg-list');
-        listEl.innerHTML = '';
-        if (!chats.length) listEl.innerHTML = '<div class="p-3 bg-slate-900 rounded">No chats</div>';
-        chats.forEach(c => {
-          const item = document.createElement('div');
-          item.className = 'p-3 bg-slate-900 rounded flex items-start justify-between gap-3';
-          item.innerHTML = `
-            <div>
-              <div class="font-semibold">${c.username || c.telegramId}</div>
-              <div class="text-sm text-slate-400">${c.lastMessageText || ''}</div>
-            </div>
-            <div class="flex flex-col items-end gap-2">
-              <div class="text-xs text-slate-400">${c.lastMessageTime || '-'}</div>
-              <div class="flex gap-2">
-                <button class="reply-btn px-2 py-1 rounded bg-indigo-600" data-id="${c.telegramId}" data-platform="${c.platform}">Reply</button>
-                <button class="history-btn px-2 py-1 rounded bg-slate-700" data-id="${c.telegramId}">History</button>
-              </div>
-            </div>
-          `;
-          listEl.appendChild(item);
-        });
-        attachChatButtons();
-      } catch (err) {
-        console.error(err); alert('Failed to load chats. Check console.');
-      }
-    }
+            closeModal() {
+                document.getElementById('modal-container').classList.add('hidden');
+            },
 
-    function attachChatButtons() {
-      document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const chatId = btn.getAttribute('data-id');
-          const text = prompt('Message to send:');
-          if (!text) return;
-          socket.emit('admin_reply', { chatId, text }, (resp) => {
-            if (resp.success) alert('Sent'); else alert('Error: '+resp.error);
-          });
-        });
-      });
+            // Navigation/Router
+            setPage(page, chatId = null) {
+                this.currentPage = page;
+                this.selectedChatId = chatId;
+                this.platformFilter = ['tg_chats', 'fb_chats'].includes(page) ? page.split('_')[0] : null;
 
-      document.querySelectorAll('.history-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const chatId = btn.getAttribute('data-id');
-          try {
-            const history = await apiGet(`/api/chats/${chatId}/history`);
-            const html = history.map(h => `<div class="p-2 bg-slate-800 rounded mb-1"><div class="text-xs text-slate-400">${h.sender} • ${h.timestamp}</div><div>${h.text || h.filename || 'Media'}</div></div>`).join('');
-            const w = window.open('', '_blank', 'width=600,height=700');
-            w.document.write(`<body style="background:#0f1724;color:#e6eef8;font-family:system-ui;padding:12px;"><h3>History for ${chatId}</h3>${html}</body>`);
-          } catch (err) { console.error(err); alert('Failed to fetch history'); }
-        });
-      });
-    }
+                document.querySelectorAll('.menu-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.page === page) {
+                        link.classList.add('active');
+                    }
+                });
 
-    // Users
-    async function loadUsers() {
-      try {
-        const users = await apiGet('/api/users');
-        document.getElementById('user-list').innerHTML = '';
-        users.forEach(u => {
-          const el = document.createElement('div');
-          el.className = 'p-3 bg-slate-900 rounded flex items-center justify-between';
-          el.innerHTML = `<div><div class="font-semibold">${u.name}</div><div class="text-xs text-slate-400">${u.role} • ${u.status}</div></div><div class="flex gap-2"><button class='delete-user px-2 py-1 rounded bg-red-600' data-id='${u.id}'>Delete</button></div>`;
-          document.getElementById('user-list').appendChild(el);
-        });
-        document.querySelectorAll('.delete-user').forEach(b => b.addEventListener('click', async () => {
-          if (!confirm('Delete user?')) return;
-          const id = b.getAttribute('data-id');
-          await axios.delete(`/api/users/${id}`, { headers: { Authorization: basicAuthHeader } });
-          loadUsers();
-        }));
-      } catch(err) { console.error(err); }
-    }
+                document.getElementById('page-title').textContent = this.getPageTitle(page);
+                this.renderPage();
+            },
 
-    document.getElementById('create-user').addEventListener('click', async () => {
-      const name = document.getElementById('user-name').value.trim();
-      const role = document.getElementById('user-role').value;
-      if (!name) return alert('Enter name');
-      try {
-        await apiPost('/api/users', { name, role });
-        document.getElementById('user-name').value = '';
-        loadUsers();
-      } catch(err){ console.error(err); alert('Failed to create'); }
-    });
+            getPageTitle(page) {
+                const titles = {
+                    'dashboard': 'Dashboard Overview',
+                    'tg_chats': 'Telegram Live Chats',
+                    'fb_chats': 'Facebook Live Chats',
+                    'user_list': 'System User Management',
+                    'broadcast': 'Telegram Broadcast Message',
+                    'settings': 'Settings & Configuration'
+                };
+                return titles[page] || 'Dashboard';
+            },
 
-    // Broadcast (simple: will iterate users and send via admin_reply, but server does not provide broadcast endpoint)
-    document.getElementById('send-broadcast').addEventListener('click', async () => {
-      const text = document.getElementById('broadcast-text').value.trim();
-      if (!text) return alert('Enter message');
-      if (!confirm('Send broadcast to all users?')) return;
-      try {
-        const users = await apiGet('/api/users');
-        for (const u of users) {
-          socket.emit('admin_reply', { chatId: u.id, text }, (r) => console.log('sent', r));
+            // Core Render Function
+            renderPage() {
+                const container = document.getElementById('content-container');
+                container.innerHTML = '';
+                
+                switch (this.currentPage) {
+                    case 'dashboard':
+                        this.renderDashboard(container);
+                        break;
+                    case 'tg_chats':
+                    case 'fb_chats':
+                        this.renderChats(container);
+                        break;
+                    case 'user_list':
+                        this.renderUserList(container);
+                        break;
+                    case 'broadcast':
+                        this.renderBroadcast(container);
+                        break;
+                    case 'settings':
+                        this.renderSettings(container);
+                        break;
+                    default:
+                        this.renderDashboard(container);
+                }
+            },
+            
+            // --- View Renderers ---
+            
+            renderDashboard(container) {
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-lg border border-indigo-200">
+                            <p class="text-sm font-medium text-gray-500">Total Chats</p>
+                            <p class="text-4xl font-bold text-indigo-600 mt-2">${this.chats.length}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg border border-green-200">
+                            <p class="text-sm font-medium text-gray-500">Telegram Chats</p>
+                            <p class="text-4xl font-bold text-green-600 mt-2">${this.chats.filter(c => c.platform === 'telegram').length}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg border border-blue-200">
+                            <p class="text-sm font-medium text-gray-500">Facebook Chats</p>
+                            <p class="text-4xl font-bold text-blue-600 mt-2">${this.chats.filter(c => c.platform === 'facebook').length}</p>
+                        </div>
+                    </div>
+                    <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Activity</h3>
+                        <p class="text-gray-500">Real-time updates are handled by Socket.io. Click on 'TG Chats' or 'FB Chats' to manage conversations.</p>
+                    </div>
+                `;
+            },
+
+            async renderChats(container) {
+                container.innerHTML = `
+                    <div class="flex h-[80vh] bg-white rounded-xl shadow-2xl overflow-hidden">
+                        <!-- Chat List Panel -->
+                        <div id="chat-list-panel" class="w-full md:w-1/3 border-r border-gray-200 overflow-y-auto scrollbar-hidden">
+                            <div class="p-4 bg-gray-50 sticky top-0 z-10 border-b">
+                                <h3 class="text-lg font-semibold text-gray-800 capitalize">${this.platformFilter} Chats</h3>
+                                <p class="text-sm text-gray-500">${this.chats.filter(c => c.platform === this.platformFilter).length} active conversations</p>
+                            </div>
+                            <div id="chats-list">
+                                <!-- Chat items will be injected here -->
+                                <p class="p-4 text-center text-gray-400">Loading chats...</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat History Panel -->
+                        <div id="chat-history-panel" class="w-full md:w-2/3 flex flex-col">
+                            <div id="chat-header" class="p-4 bg-gray-50 border-b border-gray-200 text-center sticky top-0 z-10">
+                                <p class="text-gray-500 font-medium">Select a conversation to view history</p>
+                            </div>
+                            <div id="messages-container" class="flex-grow overflow-y-auto p-4 space-y-4 flex flex-col scrollbar-hidden">
+                                <!-- Messages will be injected here -->
+                            </div>
+                            <div id="reply-box" class="p-4 border-t border-gray-200 hidden">
+                                <input type="text" id="reply-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-inner" placeholder="Type your reply here...">
+                                <button onclick="app.sendReply()" class="mt-2 w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">Send Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                this.fetchChats();
+            },
+
+            // Chat List Logic
+            async fetchChats() {
+                try {
+                    const chats = await this.authFetch(`/api/chats?platform=${this.platformFilter}`);
+                    this.chats = chats;
+                    this.renderChatList();
+                    if (this.selectedChatId) {
+                        this.fetchHistory(this.selectedChatId);
+                    }
+                } catch (error) {
+                    console.error("Error fetching chats:", error);
+                    app.showModal('Error', `Could not load chats: ${error.message}`);
+                }
+            },
+
+            renderChatList() {
+                const list = document.getElementById('chats-list');
+                const filteredChats = this.chats.filter(c => c.platform === this.platformFilter);
+                
+                if (filteredChats.length === 0) {
+                    list.innerHTML = `<p class="p-4 text-center text-gray-500">No active chats for ${this.platformFilter}.</p>`;
+                    return;
+                }
+
+                list.innerHTML = filteredChats.map(chat => `
+                    <div onclick="app.fetchHistory('${chat.telegramId}')" 
+                         class="p-4 border-b border-gray-100 cursor-pointer transition duration-100 ${this.selectedChatId === chat.telegramId ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-gray-100'}">
+                        <div class="flex justify-between items-center">
+                            <p class="font-semibold text-gray-900">${chat.username || chat.telegramId}</p>
+                            <span class="text-xs text-gray-500">${this.formatTimestamp(chat.lastMessageTime)}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 truncate mt-1">${chat.lastMessageText || 'Media/Attachment'}</p>
+                        <span class="text-xs text-gray-400 capitalize">${chat.platform}</span>
+                    </div>
+                `).join('');
+            },
+
+            // Chat History Logic
+            async fetchHistory(chatId) {
+                this.selectedChatId = chatId;
+                this.renderChatList(); // Update highlight
+                
+                const messagesContainer = document.getElementById('messages-container');
+                const chatHeader = document.getElementById('chat-header');
+                const replyBox = document.getElementById('reply-box');
+                
+                const currentChat = this.chats.find(c => c.telegramId === chatId);
+                chatHeader.innerHTML = `
+                    <p class="text-xl font-bold text-gray-900">${currentChat.username || currentChat.telegramId}</p>
+                    <p class="text-sm text-gray-500 capitalize">Platform: ${currentChat.platform}</p>
+                `;
+                replyBox.classList.remove('hidden');
+                messagesContainer.innerHTML = `<p class="p-4 text-center text-gray-400">Loading history...</p>`;
+
+                try {
+                    const history = await this.authFetch(`/api/chats/${chatId}/history`);
+                    this.messages = history;
+                    this.renderMessages();
+                } catch (error) {
+                    console.error("Error fetching history:", error);
+                    messagesContainer.innerHTML = `<p class="p-4 text-center text-red-500">Error loading history: ${error.message}</p>`;
+                }
+            },
+
+            renderMessages() {
+                const container = document.getElementById('messages-container');
+                container.innerHTML = this.messages.map(msg => {
+                    const isUser = msg.sender === 'user';
+                    const cssClass = isUser ? 'user-message' : 'admin-message';
+                    const alignment = isUser ? 'self-start' : 'self-end';
+                    
+                    let content = '';
+                    if (msg.mediaPath) {
+                        const mediaName = msg.filename || 'Media File';
+                        content += `<p class="text-sm font-semibold">${mediaName}</p>`;
+                        // Note: Media download link is not fully functional as the server only stores file_id
+                        content += `<p class="text-xs text-gray-400 mt-1">File ID: ${msg.mediaPath.substring(0, 15)}...</p>`;
+                    }
+                    if (msg.text) {
+                        content += `<p class="mt-1">${msg.text}</p>`;
+                    }
+
+                    return `
+                        <div class="flex flex-col ${alignment} w-full">
+                            <div class="${cssClass} text-base max-w-sm md:max-w-md lg:max-w-lg mb-1">
+                                ${content}
+                            </div>
+                            <p class="text-xs text-gray-400 ${alignment === 'self-end' ? 'text-right' : 'text-left'}">${this.formatTimestamp(msg.timestamp)}</p>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.scrollTop = container.scrollHeight; // Scroll to bottom
+            },
+
+            async sendReply() {
+                const input = document.getElementById('reply-input');
+                const text = input.value.trim();
+                const chatId = this.selectedChatId;
+
+                if (!text || !chatId) return;
+
+                input.disabled = true;
+                const sendButton = document.querySelector('#reply-box button');
+                sendButton.textContent = 'Sending...';
+
+                socket.emit('admin_reply', { chatId, text }, (response) => {
+                    input.disabled = false;
+                    sendButton.textContent = 'Send Reply';
+                    input.value = '';
+                    if (response.success) {
+                        // Message will be added via Socket.io listener 'message_sent'
+                    } else {
+                        app.showModal('Error Sending Message', response.error);
+                    }
+                });
+            },
+
+            // User List Logic
+            async renderUserList(container) {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Add New System User</h3>
+                        <form id="add-user-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <input type="text" id="user-name" class="p-2 border border-gray-300 rounded-lg" placeholder="Name (Required)" required>
+                            <select id="user-role" class="p-2 border border-gray-300 rounded-lg">
+                                <option>Viewer</option>
+                                <option>Editor</option>
+                                <option>Admin</option>
+                            </select>
+                            <select id="user-status" class="p-2 border border-gray-300 rounded-lg">
+                                <option>Active</option>
+                                <option>Inactive</option>
+                            </select>
+                            <button type="submit" class="bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150">Add User</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Existing System Users</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-table-body" class="bg-white divide-y divide-gray-200">
+                                    <tr><td colspan="4" class="px-6 py-4 text-center text-gray-400">Loading users...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('add-user-form').onsubmit = this.addUser.bind(this);
+                this.fetchUsers();
+            },
+
+            async fetchUsers() {
+                try {
+                    const users = await this.authFetch('/api/users');
+                    this.users = users;
+                    this.renderUserTable();
+                } catch (error) {
+                    console.error("Error fetching users:", error);
+                    app.showModal('Error', `Could not load users: ${error.message}`);
+                }
+            },
+
+            renderUserTable() {
+                const tbody = document.getElementById('user-table-body');
+                if (!tbody) return;
+
+                if (this.users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No system users found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = this.users.map(user => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${user.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="app.deleteUser('${user.id}')" class="text-red-600 hover:text-red-900 transition duration-150">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            },
+
+            async addUser(event) {
+                event.preventDefault();
+                const name = document.getElementById('user-name').value;
+                const role = document.getElementById('user-role').value;
+                const status = document.getElementById('user-status').value;
+
+                try {
+                    const newUser = await this.authFetch('/api/users', {
+                        method: 'POST',
+                        body: JSON.stringify({ name, role, status })
+                    });
+                    this.users.push(newUser);
+                    this.renderUserTable();
+                    document.getElementById('add-user-form').reset();
+                    app.showModal('Success', `${name} added successfully.`);
+                } catch (error) {
+                    app.showModal('Error', `Failed to add user: ${error.message}`);
+                }
+            },
+
+            async deleteUser(userId) {
+                if (!confirm('Are you sure you want to delete this user?')) return;
+                try {
+                    await this.authFetch(`/api/users/${userId}`, { method: 'DELETE' });
+                    this.users = this.users.filter(u => u.id !== userId);
+                    this.renderUserTable();
+                    app.showModal('Success', 'User deleted successfully.');
+                } catch (error) {
+                    app.showModal('Error', `Failed to delete user: ${error.message}`);
+                }
+            },
+
+            // Broadcast Logic
+            renderBroadcast(container) {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-2xl max-w-2xl mx-auto">
+                        <p class="text-gray-600 mb-6 border-b pb-4">Send a broadcast message to ALL users who have previously messaged the Telegram Bot.</p>
+                        
+                        <form id="broadcast-form">
+                            <label for="broadcast-message" class="block text-sm font-medium text-gray-700 mb-2">Message Content</label>
+                            <textarea id="broadcast-message" rows="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-inner" placeholder="Enter your message here..." required></textarea>
+                            <p id="char-count" class="text-xs text-gray-500 text-right mt-1">0/1024 characters</p>
+                            
+                            <button type="submit" id="broadcast-btn" class="mt-6 w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-150 shadow-lg">
+                                Send Broadcast to Telegram Users
+                            </button>
+                            <p id="broadcast-status" class="mt-4 text-center font-medium"></p>
+                        </form>
+                    </div>
+                `;
+
+                const form = document.getElementById('broadcast-form');
+                const textarea = document.getElementById('broadcast-message');
+                const charCount = document.getElementById('char-count');
+                
+                textarea.oninput = () => {
+                    const count = textarea.value.length;
+                    charCount.textContent = `${count}/1024 characters`;
+                    if (count > 1024) {
+                        textarea.value = textarea.value.substring(0, 1024);
+                        charCount.classList.add('text-red-500');
+                    } else {
+                        charCount.classList.remove('text-red-500');
+                    }
+                };
+
+                form.onsubmit = this.sendBroadcast.bind(this);
+            },
+
+            async sendBroadcast(event) {
+                event.preventDefault();
+                const message = document.getElementById('broadcast-message').value.trim();
+                const btn = document.getElementById('broadcast-btn');
+                const statusEl = document.getElementById('broadcast-status');
+
+                if (!message) return;
+
+                btn.disabled = true;
+                btn.textContent = 'Initiating Broadcast...';
+                statusEl.className = 'mt-4 text-center font-medium text-blue-600';
+                statusEl.textContent = 'Sending messages in the background. Please wait...';
+
+                try {
+                    const result = await this.authFetch('/api/broadcast/telegram', {
+                        method: 'POST',
+                        body: JSON.stringify({ message })
+                    });
+                    
+                    statusEl.className = 'mt-4 text-center font-medium text-green-600';
+                    statusEl.textContent = result.message;
+                    document.getElementById('broadcast-message').value = '';
+                } catch (error) {
+                    statusEl.className = 'mt-4 text-center font-medium text-red-600';
+                    statusEl.textContent = `Broadcast Failed: ${error.message}`;
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Send Broadcast to Telegram Users';
+                }
+            },
+
+            // Settings View
+            renderSettings(container) {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl shadow-lg max-w-xl mx-auto">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Admin Credentials</h3>
+                        <p class="text-gray-600 mb-4">These credentials are used for Basic HTTP Authentication on all API endpoints.</p>
+                        <button onclick="app.showAuthPrompt()" class="bg-indigo-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-indigo-600 transition duration-150">
+                            Update Username/Password
+                        </button>
+                    </div>
+                `;
+            },
+            
+            // --- Helper Functions ---
+            formatTimestamp(isoString) {
+                if (!isoString) return 'N/A';
+                const date = new Date(isoString);
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
+                       date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        };
+
+        // --- Initialization ---
+
+        function initSocket() {
+            socket = io();
+
+            // Listener for new messages from Telegram/Facebook
+            socket.on('new_message', (data) => {
+                console.log('New message received:', data);
+                
+                // 1. Update the overall chat list
+                const existingIndex = app.chats.findIndex(c => c.telegramId === data.chatId);
+                const newChat = { 
+                    telegramId: data.chatId, 
+                    ...data.user, 
+                    lastMessageTime: data.message.timestamp 
+                };
+
+                if (existingIndex !== -1) {
+                    app.chats.splice(existingIndex, 1); // Remove old position
+                }
+                app.chats.unshift(newChat); // Add to top
+                
+                // 2. Re-render chat list if on the current page
+                if (app.platformFilter === data.platform) {
+                    app.renderChatList();
+                }
+
+                // 3. Update messages if the chat is currently selected
+                if (app.selectedChatId === data.chatId) {
+                    app.messages.push(data.message);
+                    app.renderMessages();
+                }
+            });
+
+            // Listener for messages sent by the admin (confirmation)
+            socket.on('message_sent', (data) => {
+                console.log('Message sent confirmed:', data);
+                
+                // 1. Update the chat list to reflect latest activity (optional, done by 'new_message' or 'fetchChats')
+                
+                // 2. Update messages if the chat is currently selected
+                if (app.selectedChatId === data.chatId) {
+                    app.messages.push(data.message);
+                    app.renderMessages();
+                }
+            });
         }
-        alert('Broadcast sent (requests queued)');
-      } catch (err) { console.error(err); alert('Failed to broadcast'); }
-    });
 
-    // Settings
-    document.getElementById('save-settings').addEventListener('click', () => {
-      alert('Settings are stored as env on server. Edit .env or use your deployment to change tokens.');
-    });
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            // Start with the basic auth check/prompt
+            if (!localStorage.getItem('adminUser')) {
+                app.showAuthPrompt();
+            }
+            // Load the initial page
+            app.setPage('tg_chats'); // Default to Telegram Chats
+        });
 
-    document.getElementById('test-connection').addEventListener('click', serverStatus);
+    </script>
 
-    async function serverStatus() {
-      try {
-        const chats = await apiGet('/api/chats');
-        document.getElementById('server-status').innerText = 'online';
-        document.getElementById('stat-chats').innerText = chats.length;
-        document.getElementById('stat-last').innerText = chats[0]?.lastMessageTime || '-';
-        const users = await apiGet('/api/users');
-        document.getElementById('stat-users').innerText = users.length;
-
-        // recent messages
-        const rec = chats.slice(0,5).map(c => `<div class="p-2 bg-slate-800 rounded"><div class="font-medium">${c.username||c.telegramId}</div><div class="text-sm text-slate-400">${c.lastMessageText||''}</div></div>`).join('');
-        document.getElementById('recent-messages').innerHTML = rec;
-      } catch (err) {
-        document.getElementById('server-status').innerText = 'offline';
-        console.error(err);
-        alert('Server not reachable or auth failed');
-      }
-    }
-
-    // Socket events
-    socket.on('connect', () => console.log('socket connected'));
-    socket.on('new_message', (data) => {
-      // show a toast briefly
-      const t = document.createElement('div');
-      t.className = 'fixed right-6 bottom-6 p-3 rounded bg-indigo-600 shadow';
-      t.innerHTML = `<div class="font-semibold">New: ${data.user.username||data.chatId}</div><div class="text-xs">${data.message.text||'Media'}</div>`;
-      document.body.appendChild(t);
-      setTimeout(()=>t.remove(), 6000);
-      // update small stats
-      const statEl = document.getElementById('stat-chats');
-      if (statEl) statEl.innerText = (parseInt(statEl.innerText || '0') + 1).toString();
-    });
-
-    // show initial login modal
-    document.getElementById('login-modal').style.display = 'flex';
-
-    // small UX: keyboard shortcuts
-    window.addEventListener('keydown', (e) => {
-      if (e.key === '1') showView('dashboard');
-      if (e.key === '2') showView('fbchats');
-      if (e.key === '3') showView('tgchats');
-    });
-  </script>
 </body>
 </html>
