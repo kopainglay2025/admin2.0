@@ -41,7 +41,7 @@ const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'verify_token';
 // Firestore collection names
 const CHAT_COLLECTION = 'telegram_chats';
 const MESSAGE_SUB_COLLECTION = 'messages';
-const USERS_COLLECTION = 'users'; // New collection for User List
+const USERS_COLLECTION = 'system_users'; // New collection for User List
 
 // -------------------------
 // 3. Initialize Firebase Admin
@@ -282,7 +282,59 @@ app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
     }
 });
 
-// --- NEW: User List APIs ---
+// POST Broadcast Message to ALL Telegram Chats (NEW ENDPOINT)
+app.post('/api/broadcast/telegram', basicAuthMiddleware, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: 'Text content is required for broadcast' });
+
+        // Get all Telegram chats
+        const telegramChatsSnapshot = await db.collection(CHAT_COLLECTION)
+            .where('platform', '==', 'telegram')
+            .get();
+
+        const broadcastPromises = telegramChatsSnapshot.docs.map(async (doc) => {
+            const chatId = doc.id;
+            try {
+                // 1. Send message via Telegram Bot
+                await bot.sendMessage(chatId, text);
+
+                // 2. Save message to Firestore (sender 'admin', marked as broadcast)
+                // Use the original text for saving, but prefix it for console clarity
+                await saveMessage(chatId, 'admin', text, null, null, null, 'telegram');
+
+                // 3. Notify admin dashboard via Socket.io
+                io.emit('message_sent', { chatId, message: { text, sender: 'admin', timestamp: new Date().toISOString() } });
+
+            } catch (error) {
+                // Log failed broadcasts
+                console.error(`Failed to send broadcast to Telegram Chat ID ${chatId}:`, error.message);
+                return { chatId, status: 'failed', error: error.message };
+            }
+            return { chatId, status: 'success' };
+        });
+
+        // Wait for all messages to attempt sending
+        const results = await Promise.all(broadcastPromises);
+        
+        // Count successes and failures for the response
+        const successes = results.filter(r => r.status === 'success').length;
+        const failures = results.filter(r => r.status === 'failed');
+
+        res.json({ 
+            success: true, 
+            totalChatsAttempted: results.length,
+            successes,
+            failures
+        });
+
+    } catch (err) {
+        console.error("Broadcast Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- User List APIs ---
 
 // GET All System Users
 app.get('/api/users', basicAuthMiddleware, async (req, res) => {
@@ -309,7 +361,7 @@ app.post('/api/users', basicAuthMiddleware, async (req, res) => {
         };
         
         const ref = await db.collection(USERS_COLLECTION).add(newUser);
-        res.json({ id: ref.id, ...newUser });
+        res.json({ id: ref.id, ...newUser, createdAt: new Date().toISOString() });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
