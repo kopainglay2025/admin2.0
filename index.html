@@ -325,7 +325,15 @@
                 return;
             }
             if (!response.ok) {
-                const errorText = await response.text();
+                let errorText = await response.text();
+                // Try to parse JSON if the server returned it
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    // Use the 'error' field if available, otherwise the whole JSON string
+                    errorText = errorJson.error || JSON.stringify(errorJson); 
+                } catch (e) {
+                    // Not JSON, use plain text
+                }
                 throw new Error(`API Error: ${response.status} - ${errorText}`);
             }
             if (response.status === 204) return null;
@@ -394,9 +402,13 @@
 
         /**
          * Fetches and renders the list of chats, optionally filtered by platform.
+         * Includes improved error handling for the Firestore index issue.
          * @param {string} platform - 'telegram', 'facebook', or '' for all.
          */
         async function fetchAndRenderChatList(platform) {
+            const listElement = document.getElementById('chat-list');
+            listElement.innerHTML = '<div class="p-4 text-center text-indigo-500">Loading chats...</div>';
+            
             try {
                 const url = `${API_BASE}/api/chats${platform ? `?platform=${platform}` : ''}`;
                 const chats = await fetchData(url);
@@ -404,7 +416,28 @@
                 renderChatList();
             } catch (error) {
                 console.error("Failed to fetch chat list:", error);
-                document.getElementById('chat-list').innerHTML = `<div class="p-4 text-center text-red-500">Error loading chats: ${error.message}</div>`;
+                
+                let displayMessage = error.message;
+
+                // Check for the specific Firestore Index Error
+                if (displayMessage.includes('FAILED_PRECONDITION') && displayMessage.includes('requires an index')) {
+                    displayMessage = `
+                        <p class="font-bold mb-1">Firestore Index Missing</p>
+                        <p class="text-sm">The server's database query failed because a composite index is missing.</p>
+                        <p class="text-sm mt-1">
+                            Please check your Node.js console log for the index creation link and create it in your Firebase Console.
+                        </p>
+                    `;
+                } else if (displayMessage.includes('API Error: 500')) {
+                    displayMessage = "Server Error (500). Please check the server logs for the full error details.";
+                }
+
+                listElement.innerHTML = `
+                    <div class="p-4 text-center text-red-700 font-semibold border border-red-300 bg-red-100 rounded-lg shadow-inner">
+                        <p class="text-lg mb-2">&#9888; Database Query Failed &#9888;</p>
+                        ${displayMessage}
+                    </div>
+                `;
             }
         }
 
@@ -606,7 +639,8 @@
                 if (deleteButton) {
                     deleteButton.addEventListener('click', () => {
                         // Custom confirmation logic
-                        if (confirm(`Are you sure you want to delete user: ${user.name}?`)) {
+                        // Using window.confirm() here as a temporary measure since custom modal logic is complex
+                        if (window.confirm(`Are you sure you want to delete user: ${user.name}?`)) {
                             deleteUser(user.id, user.name);
                         }
                     });
