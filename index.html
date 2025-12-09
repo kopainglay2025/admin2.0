@@ -141,7 +141,7 @@
                         <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
                             <h2 class="text-xl font-extrabold text-gray-900" id="chat-view-title">Chats</h2>
                             <button onclick="fetchChats(currentPlatformFilter)" class="p-2 text-gray-600 hover:text-blue-600 transition-ease rounded-full" title="စကားဝိုင်းများ ပြန်လည်စစ်ဆေးရန်">
-                                <i class="fas fa-sync-alt"></i>
+                                <i class="fas fa-sync-alt" id="chat-list-sync-icon"></i>
                             </button>
                         </div>
                         <div id="chat-list" class="flex-1 overflow-y-auto chat-scroll">
@@ -273,25 +273,25 @@
             box.className = `p-4 rounded-xl shadow-2xl text-white font-medium mb-3 transition-all duration-300 transform translate-y-0 opacity-100 max-w-sm ml-auto ${
                 type === 'success' ? 'bg-green-500' : 
                 type === 'error' ? 'bg-red-500' : 
-                'bg-blue-500'
+                type === 'info' ? 'bg-blue-500' : 
+                'bg-gray-500'
             }`;
             box.innerHTML = content;
             container.appendChild(box);
             
-            // Fade out and remove after 3 seconds
+            // Fade out and remove after 4 seconds
             setTimeout(() => {
                 box.classList.remove('opacity-100', 'translate-y-0');
                 box.classList.add('opacity-0', 'translate-y-4');
                 setTimeout(() => box.remove(), 300);
-            }, 3000);
+            }, 4000);
         }
 
         /**
          * Confirmation dialog (window.confirm အစားသုံးရန်)
-         * NOTE: Canvas's environment permits using window.confirm() for simple delete operations as a last resort, but we use a JS version here.
          */
         function customConfirm(message) {
-            return window.confirm(message); // Using native confirm as per instructions to avoid complex modal creation
+            return window.confirm(message); 
         }
 
         // --- View & Menu Management (View များ စီမံခန့်ခွဲခြင်း) ---
@@ -308,13 +308,27 @@
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('menu-active');
             });
-            document.querySelector(`.menu-item[data-view="${viewName}"]`).classList.add('menu-active');
+            // Ensure the selected menu item is active, regardless of platform
+            const menuItem = document.querySelector(`.menu-item[data-view="${viewName}"]`);
+            if (menuItem) {
+                menuItem.classList.add('menu-active');
+            } else {
+                // Default to dashboard active if viewName is 'chats' view shared
+                document.querySelector('.menu-item[data-view="dashboard"]').classList.add('menu-active');
+            }
+
 
             // Handle Chat View specifics
             if (viewName === 'tg_chats' || viewName === 'fb_chats') {
                 document.getElementById('view-chats').classList.remove('hidden');
                 currentPlatformFilter = viewName === 'tg_chats' ? 'telegram' : 'facebook';
                 document.getElementById('chat-view-title').textContent = viewName === 'tg_chats' ? 'Telegram စကားဝိုင်းများ' : 'Facebook စကားဝိုင်းများ';
+                // Reset chat header when switching platform
+                currentChatId = null;
+                document.getElementById('reply-box').classList.add('hidden');
+                document.getElementById('header-username').textContent = 'စကားဝိုင်းတစ်ခု ရွေးချယ်ပါ';
+                document.getElementById('message-history').innerHTML = '<div class="text-center text-gray-500 italic mt-auto">ဘယ်ဘက် panel မှ စကားဝိုင်းကို ရွေးချယ်ပါ။</div>';
+                
                 fetchChats(currentPlatformFilter);
             } else {
                 currentChatId = null;
@@ -337,7 +351,7 @@
             setAuthHeader(username, password);
 
             // Test authentication by fetching chats
-            fetchChats()
+            fetchChats(null) // Fetch all chats initially for testing auth
                 .then(() => {
                     document.getElementById('auth-modal').classList.add('hidden');
                     document.getElementById('app-container').classList.remove('hidden');
@@ -367,34 +381,67 @@
                 ...options.headers
             };
 
-            const response = await fetch(url, { ...options, headers });
-            if (!response.ok) {
-                if (response.status === 401) {
-                    createMessage('error', 'Authentication ပျက်သွားပါသည်။ ကျေးဇူးပြု၍ ပြန်ဝင်ပါ။');
-                    document.getElementById('auth-modal').classList.remove('hidden');
-                    document.getElementById('app-container').classList.add('hidden');
+            // Implement basic retry mechanism with exponential backoff
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(url, { ...options, headers });
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    if (response.status === 401) {
+                        createMessage('error', 'Authentication ပျက်သွားပါသည်။ ကျေးဇူးပြု၍ ပြန်ဝင်ပါ။');
+                        document.getElementById('auth-modal').classList.remove('hidden');
+                        document.getElementById('app-container').classList.add('hidden');
+                        throw new Error("Unauthorized");
+                    }
+                    if (response.status === 404) {
+                        // For 404s (e.g., chat not found), throw specific error
+                        throw new Error(`Resource not found: ${url}`);
+                    }
+                    
+                    // Throw error to retry on other status codes (5xx, 4xx other than 401/404)
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} failed for ${url}: ${error.message}`);
+                    if (error.message === "Unauthorized" || error.message.includes("Resource not found")) {
+                        throw error; // Don't retry auth or 404 errors
+                    }
+                    if (i < 2) {
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff
+                    } else {
+                        throw error; // Throw after all retries
+                    }
                 }
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
-            return response.json();
         }
 
         /**
          * Chat List ကို ရယူပြီး ဖော်ပြသည်။
          */
         async function fetchChats(platform) {
+            const syncIcon = document.getElementById('chat-list-sync-icon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+            
             try {
-                const url = platform ? `/api/chats?platform=${platform}` : '/api/chats';
+                // If platform is null (used for initial auth check), get all chats
+                const filter = platform ? platform : ''; 
+                const url = filter ? `/api/chats?platform=${filter}` : '/api/chats';
                 const chatList = await apiFetch(url);
                 
                 chats = {};
                 chatList.forEach(chat => {
+                    // Use telegramId (which holds either TG ID or FB PSID) as the key
                     chats[chat.telegramId] = chat;
                 });
 
                 renderChatList(chatList);
+                return chatList; // Return for dashboard count update
             } catch (error) {
                 console.error("Error fetching chats:", error);
+                document.getElementById('chat-list').innerHTML = `<div class="p-4 text-center text-red-500 italic">စကားဝိုင်းများ ရယူရန် မအောင်မြင်ပါ။</div>`;
+                throw error; // Re-throw to fail authentication if needed
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
             }
         }
         
@@ -403,7 +450,7 @@
          */
         async function fetchDashboardCounts() {
             try {
-                // Fetch all chats to count
+                // Fetch all chats using the API endpoint without a filter
                 const allChats = await apiFetch('/api/chats');
                 const tgCount = allChats.filter(c => c.platform === 'telegram').length;
                 const fbCount = allChats.filter(c => c.platform === 'facebook').length;
@@ -430,12 +477,17 @@
             }
 
             chatList.forEach(chat => {
-                const isFB = chat.platform === 'facebook';
+                // Ensure platform exists and is used
+                const isFB = chat.platform === 'facebook'; 
+                const platformClass = isFB ? 'bg-blue-500' : 'bg-cyan-500';
                 const iconClass = isFB ? 'fab fa-facebook-messenger text-blue-600' : 'fab fa-telegram-plane text-cyan-500';
                 
                 const item = document.createElement('div');
-                item.className = `p-3 flex items-center space-x-3 cursor-pointer border-b hover:bg-gray-100 transition-ease ${currentChatId === chat.telegramId ? 'bg-blue-100 border-l-4 border-blue-500 shadow-inner' : ''}`;
+                item.className = `p-3 flex items-center space-x-3 cursor-pointer border-b hover:bg-gray-100 transition-ease chat-item ${currentChatId === chat.telegramId ? 'bg-blue-100 border-l-4 border-blue-500 shadow-inner' : ''}`;
+                item.setAttribute('data-chat-id', chat.telegramId); // Use data attribute for robust selection
                 item.onclick = () => selectChat(chat.telegramId);
+
+                const lastMessage = chat.lastMessageText || 'မီဒီယာ မက်ဆေ့ခ်ျ';
 
                 item.innerHTML = `
                     <div class="flex-shrink-0 text-xl w-6 text-center">
@@ -443,11 +495,11 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="text-sm font-semibold text-gray-800 truncate">${chat.username || chat.telegramId}</div>
-                        <div class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'မီဒီယာ မက်ဆေ့ခ်ျ'}</div>
+                        <div class="text-xs text-gray-500 truncate">${lastMessage}</div>
                     </div>
                     <div class="text-right flex flex-col items-end">
-                        <div class="text-xs text-gray-400">${moment(chat.lastMessageTime).fromNow()}</div>
-                        <span class="text-xs font-medium px-2 py-0.5 mt-1 rounded-full text-white ${isFB ? 'bg-blue-500' : 'bg-cyan-500'}">${isFB ? 'FB' : 'TG'}</span>
+                        <div class="text-xs text-gray-400">${chat.lastMessageTime ? moment(chat.lastMessageTime).fromNow() : 'N/A'}</div>
+                        <span class="text-xs font-medium px-2 py-0.5 mt-1 rounded-full text-white ${platformClass}">${isFB ? 'FB' : 'TG'}</span>
                     </div>
                 `;
                 listElement.appendChild(item);
@@ -455,21 +507,28 @@
         }
 
         async function selectChat(chatId) {
-            // Deselect previous chat visually
-            document.querySelectorAll('#chat-list > div').forEach(item => {
+            if (currentChatId === chatId) return; // Prevent double click
+            
+            // 1. Deselect previous chat visually & Select current
+            document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('bg-blue-100', 'border-l-4', 'border-blue-500', 'shadow-inner');
             });
 
-            currentChatId = chatId;
-            const chat = chats[chatId];
-            
-            // Highlight selected chat
-            const selectedItem = document.querySelector(`#chat-list > div[onclick*="${chatId}"]`);
+            const selectedItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
             if (selectedItem) {
                 selectedItem.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500', 'shadow-inner');
             }
 
-            // Update header
+            currentChatId = chatId;
+            const chat = chats[chatId];
+            
+            if (!chat) {
+                console.error(`Chat with ID ${chatId} not found in local cache.`);
+                createMessage('error', 'ရွေးချယ်ထားသော စကားဝိုင်းကို ရှာမတွေ့ပါ။');
+                return;
+            }
+
+            // 2. Update Header
             const isFB = chat.platform === 'facebook';
             const iconClass = isFB ? 'fab fa-facebook-messenger text-blue-600' : 'fab fa-telegram-plane text-cyan-500';
             document.getElementById('header-platform-icon').className = iconClass + ' mr-2';
@@ -477,27 +536,36 @@
             document.getElementById('header-chat-id').textContent = `ID: ${chatId}`;
             document.getElementById('header-platform-icon').classList.remove('hidden');
             
-            // Show reply box
+            // 3. Show reply box
             document.getElementById('reply-box').classList.remove('hidden');
             
+            // 4. Load history
             await loadHistory(chatId);
         }
 
         async function loadHistory(chatId) {
             const historyElement = document.getElementById('message-history');
+            
+            // Show Loading State
             historyElement.innerHTML = `
-                <div class="w-full text-center py-4">
-                    <i class="fas fa-circle-notch fa-spin text-blue-500 text-3xl"></i>
-                    <p class="mt-2 text-gray-600">မှတ်တမ်းများ တင်နေသည်...</p>
+                <div class="w-full text-center py-8 mt-auto">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 text-4xl"></i>
+                    <p class="mt-3 text-gray-600">မှတ်တမ်းများ တင်နေသည်...</p>
                 </div>
             `;
             
             try {
+                // Ensure chat ID is the one currently selected before fetching
+                if (chatId !== currentChatId) return;
+
                 const history = await apiFetch(`/api/chats/${chatId}/history`);
                 renderHistory(history);
             } catch (error) {
                 console.error("Error loading history:", error);
-                historyElement.innerHTML = `<div class="p-4 text-center text-red-500 italic">စကားဝိုင်းမှတ်တမ်း တင်ရာတွင် အမှားပေါ်ခဲ့သည်။</div>`;
+                // Only show error if it's the current chat
+                if (chatId === currentChatId) {
+                     historyElement.innerHTML = `<div class="p-4 text-center text-red-500 italic mt-auto">စကားဝိုင်းမှတ်တမ်း တင်ရာတွင် အမှားပေါ်ခဲ့သည်။</div>`;
+                }
             }
         }
 
@@ -505,8 +573,13 @@
             const historyElement = document.getElementById('message-history');
             historyElement.innerHTML = '';
             
-            // Render in reverse order to utilize flex-col-reverse (scroll to bottom logic)
-            messages.reverse().forEach(message => {
+            if (messages.length === 0) {
+                 historyElement.innerHTML = `<div class="p-4 text-center text-gray-500 italic mt-auto">ဤစကားဝိုင်းတွင် မက်ဆေ့ခ်ျမှတ်တမ်း မရှိပါ။</div>`;
+                 return;
+            }
+
+            // Render in reverse order to utilize flex-col-reverse
+            messages.forEach(message => {
                 const isUser = message.sender === 'user';
                 const messageDiv = document.createElement('div');
                 
@@ -517,12 +590,13 @@
                 let content = '';
 
                 if (message.mediaPath) {
-                    // Placeholder for media (cannot retrieve Telegram media directly from client)
-                    content = `<p class="italic text-gray-600 mb-1">မီဒီယာ: ${message.filename || message.mediaPath}</p>`;
+                    content = `<p class="italic text-gray-600 mb-1">မီဒီယာ: ${message.filename || 'File'} (${message.mediaPath.substring(0, 10)}...)</p>`;
                 }
 
                 if (message.text) {
-                    content += `<p>${message.text}</p>`;
+                    // Replace newlines with <br> for proper rendering in HTML
+                    const formattedText = message.text.replace(/\n/g, '<br>'); 
+                    content += `<p>${formattedText}</p>`;
                 }
                 
                 messageDiv.innerHTML = `
@@ -532,11 +606,11 @@
                     </div>
                 `;
                 
-                historyElement.appendChild(messageDiv);
+                historyElement.insertBefore(messageDiv, historyElement.firstChild); // Insert at the top (since parent is flex-col-reverse)
             });
             
             // Scroll to bottom (since we are using flex-col-reverse, this simulates scroll to bottom)
-            historyElement.scrollTop = 0;
+            historyElement.scrollTop = historyElement.scrollHeight;
         }
 
         // --- Reply Handling (ပြန်ကြားခြင်း) ---
@@ -555,6 +629,7 @@
                 if (response.success) {
                     replyTextElement.value = '';
                     createMessage('success', 'ပြန်ကြားချက် အောင်မြင်စွာ ပို့ပြီးပါပြီ။');
+                    // Message_sent socket event will handle history reload
                 } else {
                     createMessage('error', `ပြန်ကြားချက် ပို့ရန် မအောင်မြင်ပါ: ${response.error}`);
                     console.error("Reply failed:", response.error);
@@ -580,27 +655,30 @@
             console.log('Socket.io server သို့ ချိတ်ဆက်ပြီးပါပြီ။');
         });
 
+        // Handles user messages coming in (Updates list and currently viewed history)
         socket.on('new_message', (data) => {
-            const { chatId, user } = data;
+            const { chatId, user, platform } = data;
             
             // 1. Update chat in local state and dashboard counts
             chats[chatId] = user;
             fetchChats(currentPlatformFilter);
             fetchDashboardCounts();
 
-            // 2. If it's the currently viewed chat, append the message
+            // 2. If it's the currently viewed chat AND on the correct platform view, update history
             if (chatId === currentChatId) {
                 loadHistory(chatId); 
             }
-            createMessage('info', `မက်ဆေ့ခ်ျအသစ်: ${user.username} (${user.platform})!`);
+            createMessage('info', `မက်ဆေ့ခ်ျအသစ်: ${user.username} (${platform})!`);
         });
 
+        // Handles admin messages sent out (Updates list and currently viewed history)
         socket.on('message_sent', (data) => {
             const { chatId, message } = data;
             
             // 1. Update chat list (to update last message text/time)
             if (chats[chatId]) {
                 chats[chatId].lastMessageText = message.text;
+                // Since this might be from another admin, force reload of the list
                 fetchChats(currentPlatformFilter); 
             }
 
