@@ -134,49 +134,72 @@ async function saveMessage(chatId, sender, text, mediaPath = null, username = nu
 }
 
 // -------------------------
-// 7. Telegram message handlers
+// 7. Telegram message handler (including /start command)
 // -------------------------
 
-// Handler for the /start command to explicitly save user info and send a welcome
-bot.onText(/^\/start$/, async (msg) => {
+// NEW: Handler for the /start command to initialize/update user data in USERS_COLLECTION
+bot.onText(/^\/start/, async (msg) => {
     try {
+        const userId = String(msg.from.id);
+        const username = msg.from.username || 'N/A';
+        const firstName = msg.from.first_name || 'N/A';
+        const lastName = msg.from.last_name || '';
         const chatId = msg.chat.id;
-        const username = msg.chat.username || msg.chat.first_name || `Telegram User ${String(chatId).substring(0, 4)}`;
 
-        // 1. Send a welcome message
-        await bot.sendMessage(chatId, `Hello ${username}! Thanks for starting a chat. An administrator will reply to you shortly.`);
+        const userData = {
+            platform: 'telegram',
+            telegramId: userId,
+            username: username,
+            firstName: firstName,
+            lastName: lastName,
+            role: 'Telegram User', // Default role for external users
+            status: 'Active',
+            lastInteraction: admin.firestore.FieldValue.serverTimestamp()
+        };
 
-        // 2. Explicitly update chat metadata in Firestore (using saveMessage helper for consistency)
-        const savedMessage = await saveMessage(chatId, 'user', '/start', null, username, null, 'telegram');
+        // 1. Save/Update user information in the USERS_COLLECTION (as requested)
+        await db.collection(USERS_COLLECTION).doc(userId).set(userData, { merge: true });
 
-        // 3. Notify admin dashboard
+        console.log(`User /start: Saved user ${userId} to USERS_COLLECTION.`);
+        
+        // 2. Save the /start message to the chat history
+        const savedMessage = await saveMessage(
+            chatId,
+            'user',
+            msg.text,
+            null,
+            msg.chat.username || msg.chat.first_name || String(chatId),
+            null,
+            'telegram'
+        );
+
+        // 3. Notify Admin Dashboard
         io.emit('new_message', {
             chatId,
             message: savedMessage,
             user: {
                 telegramId: String(chatId),
-                username,
+                username: firstName + (lastName ? ' ' + lastName : ''),
                 lastMessageTime: savedMessage.timestamp,
                 lastMessageText: savedMessage.text,
                 platform: 'telegram'
             },
             platform: 'telegram'
         });
+
     } catch (err) {
-        console.error("Telegram /start Error:", err);
+        console.error("Telegram /start command error:", err);
     }
 });
 
 
-// General message handler
 bot.on('message', async (msg) => {
     try {
-        const chatId = msg.chat.id;
-        // Skip messages that are just a /start command, as they are handled by onText above
-        if (msg.text && msg.text.startsWith('/start')) {
-            return;
-        }
+        // Since we have a dedicated /start handler, we filter it out here to prevent double processing.
+        const isCommand = msg.entities?.some(entity => entity.type === 'bot_command' && entity.offset === 0);
+        if (isCommand && msg.text.startsWith('/start')) return;
 
+        const chatId = msg.chat.id;
         const username = msg.chat.username || msg.chat.first_name || String(chatId);
         let text = msg.text || '';
         let mediaPath = null;
@@ -244,15 +267,30 @@ app.post('/fb/webhook', async (req, res) => {
                     const psid = event.sender.id;
                     if (event.message && event.message.text) {
                         const text = event.message.text;
-                        // Use a distinct username for FB users usually fetched via Graph API, here simplified
-                        const saved = await saveMessage(psid, 'user', text, null, `FB User ${psid.substring(0,4)}`, null, 'facebook');
+                        const username = `FB User ${psid.substring(0,4)}`;
                         
+                        // 1. Save message to Firestore
+                        const saved = await saveMessage(psid, 'user', text, null, username, null, 'facebook');
+                        
+                        // 2. NEW: Save/Update FB user in USERS_COLLECTION
+                        const userData = {
+                            platform: 'facebook',
+                            facebookId: psid,
+                            username: username,
+                            role: 'Facebook User',
+                            status: 'Active',
+                            lastInteraction: admin.firestore.FieldValue.serverTimestamp()
+                        };
+                        await db.collection(USERS_COLLECTION).doc(psid).set(userData, { merge: true });
+                        // End NEW
+
+                        // 3. Notify Admin Dashboard
                         io.emit('new_message', {
                             chatId: psid,
                             message: saved,
                             user: {
                                 telegramId: String(psid),
-                                username: `FB User ${psid.substring(0,4)}`,
+                                username: username,
                                 lastMessageText: text,
                                 platform: 'facebook'
                             },
