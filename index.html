@@ -139,23 +139,40 @@
             opacity: 1;
         }
 
-        /* Message History container */
-        /* Custom CSS ၏ .chat-messages အပိုင်း */
+        /* Replace previous chat-messages + chat input styles with these */
         .chat-messages {
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; /* စာအောက်ကနေ စပြဖို့ */
+            flex-direction: column; /* show messages top -> bottom, newest at bottom */
             padding: 1rem;
-            flex-grow: 1;
-            min-height: 0; /* ✨ ဒါကို သေချာ ထားပေးပါ။ ✨ */
-            /* height: 0; ကိုတော့ ဖြုတ်ထားပါ။ (စောစောက အကြံပေးထားသည့်အတိုင်း) */
+            height: 100%;
+            gap: 0.5rem;
         }
-        /* Custom Scrollbar (kept for desktop view) */
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #3B82F6; 
-            border-radius: 4px;
+
+        /* Keep custom scrollbar for desktop */
+        .chat-messages::-webkit-scrollbar { width: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #3B82F6;
+            border-radius: 6px;
         }
+        .dark .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #00e0ff;
+        }
+
+        /* Make input area sticky to bottom so it never disappears */
+        #chatInputArea {
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            background-color: var(--tw-bg-opacity, white); /* keep a solid bg so it covers messages behind */
+            padding-top: 0.75rem; /* small gap above */
+            padding-bottom: 0.75rem;
+            box-shadow: 0 -6px 18px rgba(0,0,0,0.06);
+        }
+        .dark #chatInputArea {
+            background-color: #1A192B;
+        }
+
         .dark .chat-messages::-webkit-scrollbar-thumb { 
             background-color: theme('colors.neon-primary'); 
         }
@@ -1170,6 +1187,7 @@
                 sendButton.disabled = false;
                 sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
                 
+                // inside sendReply() callback when successful:
                 if (response.success) {
                     const tempMsg = {
                         chatId: currentChatId,
@@ -1180,8 +1198,13 @@
                         timestamp: new Date().toISOString()
                     };
                     const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
+                    // append newest at bottom and scroll to bottom
+                    historyContainer.appendChild(createMessageBubble(tempMsg));
+                    // small delay to allow DOM render then scroll
+                    setTimeout(() => {
+                        historyContainer.scrollTop = historyContainer.scrollHeight;
+                    }, 30);
+
                     replyInput.value = '';
                     clearFileSelection();
                 } else {
