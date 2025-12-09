@@ -1,629 +1,372 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omni-Channel Admin Dashboard</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter Font -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-    <!-- Load Socket.io Client -->
-    <script src="/socket.io/socket.io.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard - Chat Integrator</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Heroicons (for SVG icons) -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    /* small niceties */
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
+    .menu-item:hover { transform: translateX(6px); }
+    .scroll-shadow { box-shadow: inset 0 -10px 10px -10px rgba(0,0,0,0.3); }
+  </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
-
-    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 flex items-center justify-center z-50">
-        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm">
-            <h2 class="text-3xl font-bold mb-6 text-indigo-400">Admin Login</h2>
-            <div class="space-y-4">
-                <input type="text" id="auth-username" placeholder="Username" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 text-white">
-                <input type="password" id="auth-password" placeholder="Password" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 text-white">
-                <button id="auth-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-                    Log In
-                </button>
-                <p id="auth-error" class="text-red-400 text-sm hidden">Authentication failed. Check credentials.</p>
-            </div>
+<body class="bg-gray-900 text-slate-200 font-sans min-h-screen">
+  <div class="flex h-screen">
+    <!-- Left Sidebar -->
+    <aside class="w-72 bg-gradient-to-b from-slate-800 to-slate-900 p-4 flex flex-col gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">A</div>
+        <div>
+          <div class="text-lg font-semibold">Admin Panel</div>
+          <div class="text-sm text-slate-400">Chat Integrator</div>
         </div>
+      </div>
+
+      <nav class="flex-1">
+        <ul class="space-y-1">
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="dashboard">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4v11H3zM10 3h4v18h-4zM17 7h4v14h-4z"/></svg>
+            <span>Dashboard</span>
+          </li>
+
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="fbchats">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V24l3.219-1.688C17.019 22.934 19.5 22 22 22V12z"/></svg>
+            <span>FB Chats</span>
+          </li>
+
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="tgchats">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21.447 4.697L2.927 11.17c-.944.325-.785 1.513.18 1.711l4.292.695 1.717 5.214c.286.88 1.535.821 1.75-.081L17.06 6.94c.316-1.137-1.05-1.962-1.98-1.243z"/></svg>
+            <span>TG Chats</span>
+          </li>
+
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="users">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m0-4a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span>TG User List</span>
+          </li>
+
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="broadcast">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A2 2 0 0122 9.618v4.764a2 2 0 01-2.447 1.894L15 14M4 9v6m0 0l4-3m-4 3l4 3"/></svg>
+            <span>TG User Broadcast</span>
+          </li>
+
+          <li class="menu-item p-2 rounded-md hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-3" data-view="settings">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-1.164 1.96-1.164 2.259 0a1.724 1.724 0 002.582 1.02c1.088-.63 2.45.42 2.027 1.664a1.724 1.724 0 00.435 1.872c.9.8.374 2.36-.873 2.312a1.724 1.724 0 00-1.46 1.19c-.29 1.088-1.876 1.088-2.166 0a1.724 1.724 0 00-1.459-1.19c-1.247.048-1.773-1.512-.873-2.312a1.724 1.724 0 00.435-1.872c-.423-1.244.939-2.294 2.027-1.664.86.5 1.9-.06 2.582-1.02z"/></svg>
+            <span>Settings</span>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="text-xs text-slate-500">Server: <span id="server-status">unknown</span></div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6">
+      <header class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Admin Dashboard</h1>
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-slate-400">Logged as <span id="admin-user">-</span></div>
+          <button id="logoutBtn" class="px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700 transition">Logout</button>
+        </div>
+      </header>
+
+      <section id="view-container" class="h-[calc(100vh-140px)] overflow-auto scroll-shadow p-4 glass rounded-lg">
+        <!-- Views are injected here -->
+
+        <div id="view-dashboard" class="view hidden">
+          <div class="grid grid-cols-3 gap-4">
+            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Total Chats</div><div id="stat-chats" class="text-2xl mt-2 font-bold">-</div></div>
+            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Users</div><div id="stat-users" class="text-2xl mt-2 font-bold">-</div></div>
+            <div class="p-4 rounded-lg bg-slate-800"> <div class="text-sm text-slate-400">Last Activity</div><div id="stat-last" class="text-2xl mt-2 font-bold">-</div></div>
+          </div>
+
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold mb-2">Recent Messages</h3>
+            <div id="recent-messages" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <div id="view-fbchats" class="view hidden">
+          <h2 class="text-lg font-semibold mb-3">Facebook Chats</h2>
+          <div class="mb-3 flex gap-2">
+            <input id="fb-search" placeholder="Search..." class="flex-1 p-2 rounded bg-slate-900" />
+            <button id="refresh-fb" class="px-3 py-1 rounded bg-indigo-600">Refresh</button>
+          </div>
+          <div id="fb-list" class="space-y-2"></div>
+        </div>
+
+        <div id="view-tgchats" class="view hidden">
+          <h2 class="text-lg font-semibold mb-3">Telegram Chats</h2>
+          <div class="mb-3 flex gap-2">
+            <input id="tg-search" placeholder="Search..." class="flex-1 p-2 rounded bg-slate-900" />
+            <button id="refresh-tg" class="px-3 py-1 rounded bg-indigo-600">Refresh</button>
+          </div>
+          <div id="tg-list" class="space-y-2"></div>
+        </div>
+
+        <div id="view-users" class="view hidden">
+          <h2 class="text-lg font-semibold mb-3">System Users</h2>
+          <div class="mb-3 flex gap-2">
+            <input id="user-name" placeholder="Name" class="p-2 rounded bg-slate-900" />
+            <select id="user-role" class="p-2 rounded bg-slate-900">
+              <option>Viewer</option><option>Moderator</option><option>Admin</option>
+            </select>
+            <button id="create-user" class="px-3 py-1 rounded bg-green-600">Create</button>
+          </div>
+          <div id="user-list" class="space-y-2"></div>
+        </div>
+
+        <div id="view-broadcast" class="view hidden">
+          <h2 class="text-lg font-semibold mb-3">Broadcast</h2>
+          <div class="mb-3">
+            <textarea id="broadcast-text" rows="4" class="w-full p-3 rounded bg-slate-900" placeholder="Message to broadcast"></textarea>
+            <div class="flex items-center gap-2 mt-2">
+              <button id="send-broadcast" class="px-4 py-2 rounded bg-indigo-600">Send to All</button>
+              <div class="text-sm text-slate-400">Be careful — this will send a message to every saved user.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-settings" class="view hidden">
+          <h2 class="text-lg font-semibold mb-3">Settings</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-slate-400">FB Page Token</label>
+              <input id="input-fb-token" class="w-full p-2 rounded bg-slate-900" placeholder="FB_PAGE_ACCESS_TOKEN" />
+            </div>
+            <div>
+              <label class="block text-sm text-slate-400">Telegram Bot Token</label>
+              <input id="input-tg-token" class="w-full p-2 rounded bg-slate-900" placeholder="TELEGRAM_BOT_TOKEN" />
+            </div>
+            <div class="flex gap-2">
+              <button id="save-settings" class="px-4 py-2 rounded bg-green-600">Save</button>
+              <button id="test-connection" class="px-4 py-2 rounded bg-indigo-600">Test Server</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center">
+    <div class="w-[420px] bg-slate-800 p-6 rounded-lg shadow-lg">
+      <h3 class="text-xl font-semibold mb-4">Admin Login</h3>
+      <div class="space-y-3">
+        <input id="auth-user" placeholder="Username" class="w-full p-2 rounded bg-slate-900" />
+        <input id="auth-pass" placeholder="Password" type="password" class="w-full p-2 rounded bg-slate-900" />
+        <div class="flex justify-end gap-2">
+          <button id="loginBtn" class="px-4 py-2 rounded bg-indigo-600">Login</button>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Main Application Container -->
-    <div id="app-container" class="hidden flex h-screen">
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Basic front-end admin dashboard logic
+    const socket = io();
+    let basicAuthHeader = null;
 
-        <!-- Sidebar Navigation -->
-        <nav class="w-64 bg-gray-800 flex flex-col p-4 shadow-lg border-r border-gray-700">
-            <div class="text-2xl font-extrabold text-indigo-400 mb-8">
-                OmniDesk
-            </div>
-            <ul class="space-y-2 flex-grow">
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="dashboard">Dashboard</li>
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="tg_chats">TG Chats</li>
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="fb_chats">FB Chats</li>
-            </ul>
-            <ul class="space-y-2 mt-auto border-t border-gray-700 pt-4">
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="user_list">System Users</li>
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="broadcast">Broadcast (WIP)</li>
-                <li class="nav-item cursor-pointer p-3 rounded-lg hover:bg-gray-700 transition duration-150" data-view="settings">Settings (WIP)</li>
-            </ul>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="flex-1 overflow-auto p-6">
-            <h1 id="main-title" class="text-3xl font-bold text-white mb-6">Dashboard</h1>
-            
-            <div id="content-container" class="bg-gray-800 p-6 rounded-xl shadow-lg h-[calc(100vh-100px)] overflow-auto">
-                <!-- Dynamic content will be rendered here -->
-            </div>
-        </main>
-    </div>
-
-    <!-- Templates for dynamic rendering -->
-    <template id="chat-view-template">
-        <div class="flex h-full -m-6">
-            <!-- Chat List Panel -->
-            <div class="w-80 border-r border-gray-700 bg-gray-900 p-4 overflow-y-auto rounded-l-xl">
-                <div class="sticky top-0 pb-2 bg-gray-900 z-10">
-                    <h3 class="text-xl font-semibold mb-3 text-indigo-400">Conversations</h3>
-                </div>
-                <div id="chat-list-items" class="space-y-2">
-                    <!-- Chat items go here -->
-                </div>
-            </div>
-            <!-- Chat Detail Panel -->
-            <div class="flex-1 flex flex-col p-4 rounded-r-xl">
-                <div id="chat-header" class="border-b border-gray-700 pb-3 mb-4 sticky top-0 bg-gray-800 z-10">
-                    <h4 id="chat-username-title" class="text-xl font-semibold">Select a Chat</h4>
-                    <p id="chat-platform" class="text-sm text-gray-400"></p>
-                </div>
-                <div id="chat-history-messages" class="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
-                    <!-- Messages go here -->
-                </div>
-                <div id="reply-box" class="mt-auto pt-4 border-t border-gray-700 flex items-center">
-                    <input type="text" id="admin-reply-input" placeholder="Type your reply here..." class="flex-1 p-3 rounded-l-lg bg-gray-700 border-t border-b border-l border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 text-white disabled:opacity-50" disabled>
-                    <button id="admin-reply-send" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-r-lg transition duration-200 disabled:opacity-50" disabled>
-                        Send
-                    </button>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <template id="user-list-template">
-        <div class="space-y-6">
-            <h3 class="text-xl font-semibold text-indigo-400">System User Management</h3>
-
-            <!-- Add User Form -->
-            <div class="bg-gray-700 p-4 rounded-lg shadow-md">
-                <h4 class="text-lg font-medium mb-3">Add New User</h4>
-                <div class="flex space-x-4">
-                    <input type="text" id="new-user-name" placeholder="Name" class="p-2 rounded-lg bg-gray-800 border border-gray-600 flex-1" required>
-                    <select id="new-user-role" class="p-2 rounded-lg bg-gray-800 border border-gray-600">
-                        <option value="Viewer">Viewer</option>
-                        <option value="Operator">Operator</option>
-                        <option value="Admin">Admin</option>
-                    </select>
-                    <select id="new-user-status" class="p-2 rounded-lg bg-gray-800 border border-gray-600">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                    <button id="add-user-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
-                        Add User
-                    </button>
-                </div>
-            </div>
-
-            <!-- User Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-table-body" class="bg-gray-800 divide-y divide-gray-700">
-                        <!-- User rows go here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </template>
-    
-<script>
-    // --- GLOBAL STATE & CONFIGURATION ---
-    let authHeader = '';
-    let currentView = 'dashboard';
-    let currentPlatformFilter = null;
-    let chats = [];
-    let currentChatId = null;
-    let socket;
-
-    // --- DOM REFERENCES ---
-    const authModal = document.getElementById('auth-modal');
-    const authSubmit = document.getElementById('auth-submit');
-    const authUsernameInput = document.getElementById('auth-username');
-    const authPasswordInput = document.getElementById('auth-password');
-    const authError = document.getElementById('auth-error');
-    const appContainer = document.getElementById('app-container');
-    const mainTitle = document.getElementById('main-title');
-    const contentContainer = document.getElementById('content-container');
-    const navItems = document.querySelectorAll('.nav-item');
-
-    // --- HELPER FUNCTIONS ---
-    function setAuthHeader(username, password) {
-        const credentials = `${username}:${password}`;
-        authHeader = 'Basic ' + btoa(credentials);
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+      document.getElementById('view-' + name).classList.remove('hidden');
     }
 
-    async function fetchAPI(endpoint, options = {}) {
-        const headers = {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-            ...options.headers
-        };
-        const response = await fetch(endpoint, { ...options, headers });
-        if (response.status === 401) {
-            // If API call fails authentication, show login modal again
-            return showAuthError('Authentication failed. Check credentials.');
-        }
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API Error ${response.status}: ${errorText}`);
-        }
-        return response.json();
-    }
-
-    function showAuthError(message) {
-        authError.textContent = message;
-        authError.classList.remove('hidden');
-        authModal.classList.remove('hidden');
-        appContainer.classList.add('hidden');
-        authHeader = ''; // Clear header on failure
-    }
-
-    function formatTimestamp(isoString) {
-        if (!isoString) return 'N/A';
-        const date = new Date(isoString);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ', ' +
-               date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
-
-    // --- AUTHENTICATION LOGIC ---
-
-    authSubmit.addEventListener('click', async () => {
-        const username = authUsernameInput.value;
-        const password = authPasswordInput.value;
-
-        if (!username || !password) {
-            return showAuthError('Please enter both username and password.');
-        }
-
-        setAuthHeader(username, password);
-        
-        // Test authentication by fetching a simple endpoint
-        try {
-            // Note: The /api/chats endpoint requires basicAuthMiddleware
-            await fetchAPI('/api/chats', { method: 'GET' });
-
-            authModal.classList.add('hidden');
-            appContainer.classList.remove('hidden');
-            initSocketIo();
-            renderView(currentView);
-        } catch (e) {
-            showAuthError('Authentication failed. Check username and password.');
-            console.error(e);
-        }
+    // Menu clicks
+    document.querySelectorAll('[data-view]').forEach(el => {
+      el.addEventListener('click', () => {
+        const view = el.getAttribute('data-view');
+        showView(view);
+        if (view === 'tgchats') loadChats('telegram');
+        if (view === 'fbchats') loadChats('facebook');
+        if (view === 'users') loadUsers();
+      });
     });
 
-    // --- SOCKET.IO & REAL-TIME ---
-
-    function initSocketIo() {
-        if (socket) return;
-        socket = io();
-
-        socket.on('connect', () => {
-            console.log('Connected to Socket.IO');
-        });
-
-        // Handler for new user messages (Telegram or FB)
-        socket.on('new_message', (data) => {
-            console.log('New message received:', data);
-            
-            // 1. Update the local chats list
-            const existingIndex = chats.findIndex(c => c.telegramId === data.chatId);
-            const newChat = {
-                telegramId: String(data.chatId),
-                username: data.user.username,
-                lastMessageTime: data.message.timestamp,
-                lastMessageText: data.message.text || 'Media received',
-                platform: data.platform
-            };
-
-            if (existingIndex > -1) {
-                // Update existing chat and move to top
-                chats.splice(existingIndex, 1);
-                chats.unshift(newChat);
-            } else {
-                // Add new chat to top
-                chats.unshift(newChat);
-            }
-            
-            // 2. Re-render the chat list if visible
-            if (currentView.endsWith('_chats')) {
-                renderChatList();
-            }
-
-            // 3. Update the message history if the current chat is active
-            if (currentChatId === data.chatId) {
-                appendMessageToHistory(data.message, false);
-            }
-        });
-
-        // Handler for admin messages sent via the dashboard
-        socket.on('message_sent', (data) => {
-            console.log('Admin message confirmed sent:', data);
-            if (currentChatId === data.chatId) {
-                // The message has already been saved to Firestore and confirmed
-                // We just need to ensure the local display is updated.
-                // The saveMessage in server.js updates the chat list, but we update the history here.
-                appendMessageToHistory(data.message, true);
-            }
-        });
-    }
-
-    // --- NAVIGATION AND VIEW RENDERING ---
-
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const newView = e.target.dataset.view;
-            if (newView === 'tg_chats' || newView === 'fb_chats') {
-                currentPlatformFilter = newView === 'tg_chats' ? 'telegram' : 'facebook';
-                currentView = 'chat_view';
-            } else {
-                currentPlatformFilter = null;
-                currentView = newView;
-            }
-            renderView(currentView);
-        });
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const user = document.getElementById('auth-user').value.trim();
+      const pass = document.getElementById('auth-pass').value;
+      if (!user || !pass) return alert('Enter credentials');
+      basicAuthHeader = 'Basic ' + btoa(user + ':' + pass);
+      document.getElementById('admin-user').innerText = user;
+      document.getElementById('login-modal').style.display = 'none';
+      serverStatus();
+      showView('dashboard');
+      loadChats();
+      loadUsers();
     });
 
-    function renderView(view) {
-        // Reset scroll position
-        contentContainer.scrollTop = 0;
-        
-        navItems.forEach(item => {
-            const dataView = item.dataset.view;
-            const isActive = (view === 'chat_view' && dataView.endsWith('_chats')) 
-                             ? (currentPlatformFilter === 'telegram' && dataView === 'tg_chats') || (currentPlatformFilter === 'facebook' && dataView === 'fb_chats')
-                             : (dataView === view);
-            item.classList.toggle('bg-gray-700', isActive);
-            item.classList.toggle('text-indigo-400', isActive);
-        });
-        
-        let title = '';
-        let content = '';
-        currentChatId = null; // Clear selected chat on view change
+    document.getElementById('logoutBtn').addEventListener('click', () => location.reload());
 
-        switch (view) {
-            case 'dashboard':
-                title = 'Dashboard';
-                content = renderDashboardView();
-                break;
-            case 'chat_view':
-                title = currentPlatformFilter === 'telegram' ? 'Telegram Chats' : 'Facebook Chats';
-                content = renderChatView();
-                break;
-            case 'user_list':
-                title = 'System User List';
-                content = renderUserListView();
-                break;
-            case 'broadcast':
-                title = 'Broadcast Messages (WIP)';
-                content = `<p class="text-gray-400">This feature for broadcasting messages to all users is currently under construction.</p>`;
-                break;
-            case 'settings':
-                title = 'Settings (WIP)';
-                content = `<p class="text-gray-400">This area will contain application settings, such as API key management and preferences.</p>`;
-                break;
-            default:
-                title = 'Error';
-                content = '<p class="text-red-400">View not found.</p>';
-        }
-
-        mainTitle.textContent = title;
-        contentContainer.innerHTML = content;
-
-        if (view === 'chat_view') {
-            fetchChats(currentPlatformFilter);
-        } else if (view === 'user_list') {
-            fetchUsers();
-            attachUserListListeners();
-        }
+    // API helpers
+    async function apiGet(path, params) {
+      const res = await axios.get(path, { params, headers: { Authorization: basicAuthHeader } });
+      return res.data;
+    }
+    async function apiPost(path, data) {
+      const res = await axios.post(path, data, { headers: { Authorization: basicAuthHeader } });
+      return res.data;
     }
 
-    function renderDashboardView() {
-        return `
-            <div class="space-y-6">
-                <p class="text-gray-400">Welcome to the Omni-Channel Admin Dashboard. Manage Telegram and Facebook Messenger conversations in real-time.</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="bg-indigo-600 p-6 rounded-xl shadow-lg">
-                        <p class="text-sm font-medium opacity-80">Total Chats</p>
-                        <p class="text-3xl font-bold mt-1">${chats.length || '...'}</p>
-                    </div>
-                    <div class="bg-blue-600 p-6 rounded-xl shadow-lg">
-                        <p class="text-sm font-medium opacity-80">Telegram Users</p>
-                        <p class="text-3xl font-bold mt-1">${chats.filter(c => c.platform === 'telegram').length || '...'}</p>
-                    </div>
-                    <div class="bg-sky-600 p-6 rounded-xl shadow-lg">
-                        <p class="text-sm font-medium opacity-80">Facebook Users</p>
-                        <p class="text-3xl font-bold mt-1">${chats.filter(c => c.platform === 'facebook').length || '...'}</p>
-                    </div>
-                </div>
-                <h3 class="text-xl font-semibold mt-6 text-indigo-400">Real-time Activity</h3>
-                <div class="bg-gray-700 p-4 rounded-lg h-40 overflow-y-auto">
-                    <p class="text-gray-400 text-sm">Waiting for real-time messages...</p>
-                    <!-- In a full app, you'd log socket events here -->
-                </div>
+    // Load chats (optionally by platform)
+    async function loadChats(platform) {
+      try {
+        const chats = await apiGet('/api/chats', { platform });
+        const listEl = document.getElementById(platform === 'facebook' ? 'fb-list' : 'tg-list');
+        listEl.innerHTML = '';
+        if (!chats.length) listEl.innerHTML = '<div class="p-3 bg-slate-900 rounded">No chats</div>';
+        chats.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'p-3 bg-slate-900 rounded flex items-start justify-between gap-3';
+          item.innerHTML = `
+            <div>
+              <div class="font-semibold">${c.username || c.telegramId}</div>
+              <div class="text-sm text-slate-400">${c.lastMessageText || ''}</div>
             </div>
-        `;
-    }
-
-    function renderChatView() {
-        const template = document.getElementById('chat-view-template');
-        return template.innerHTML;
-    }
-
-    function renderUserListView() {
-        const template = document.getElementById('user-list-template');
-        return template.innerHTML;
-    }
-
-    // --- CHAT LOGIC ---
-
-    async function fetchChats(platform) {
-        try {
-            const endpoint = `/api/chats${platform ? `?platform=${platform}` : ''}`;
-            chats = await fetchAPI(endpoint);
-            renderChatList();
-        } catch (error) {
-            console.error('Error fetching chats:', error);
-            document.getElementById('chat-list-items').innerHTML = `<p class="text-red-400">Failed to load chats. Check server logs.</p>`;
-        }
-    }
-
-    function renderChatList() {
-        const chatListContainer = document.getElementById('chat-list-items');
-        if (!chatListContainer) return;
-
-        chatListContainer.innerHTML = chats
-            .filter(chat => !currentPlatformFilter || chat.platform === currentPlatformFilter)
-            .map(chat => `
-                <div class="chat-list-item p-3 rounded-lg cursor-pointer transition duration-150 ${chat.telegramId === currentChatId ? 'bg-indigo-700 shadow-xl' : 'bg-gray-800 hover:bg-gray-700'}" 
-                     data-chat-id="${chat.telegramId}" 
-                     data-username="${chat.username}"
-                     data-platform="${chat.platform}">
-                    <div class="flex items-center justify-between">
-                        <span class="font-semibold truncate">${chat.username || chat.telegramId}</span>
-                        <span class="text-xs ${chat.platform === 'telegram' ? 'bg-blue-500' : 'bg-sky-500'} text-white px-2 py-0.5 rounded-full">${chat.platform.substring(0, 2).toUpperCase()}</span>
-                    </div>
-                    <p class="text-sm text-gray-400 truncate mt-1">${chat.lastMessageText}</p>
-                    <p class="text-xs text-gray-500 mt-1">${formatTimestamp(chat.lastMessageTime)}</p>
-                </div>
-            `).join('');
-
-        document.querySelectorAll('.chat-list-item').forEach(item => {
-            item.addEventListener('click', () => {
-                selectChat(item.dataset.chatId, item.dataset.username, item.dataset.platform);
-            });
-        });
-    }
-
-    async function selectChat(chatId, username, platform) {
-        currentChatId = chatId;
-        renderChatList(); // Highlight the selected chat
-
-        // Update chat header
-        document.getElementById('chat-username-title').textContent = username;
-        document.getElementById('chat-platform').textContent = `Platform: ${platform.charAt(0).toUpperCase() + platform.slice(1)} (ID: ${chatId})`;
-        
-        // Prepare history view
-        const historyContainer = document.getElementById('chat-history-messages');
-        const replyInput = document.getElementById('admin-reply-input');
-        const replyButton = document.getElementById('admin-reply-send');
-        
-        historyContainer.innerHTML = '<div class="text-center p-4 text-indigo-400">Loading history...</div>';
-        replyInput.disabled = false;
-        replyButton.disabled = false;
-
-        try {
-            const history = await fetchAPI(`/api/chats/${chatId}/history?limit=50`);
-            historyContainer.innerHTML = '';
-            history.forEach(msg => appendMessageToHistory(msg, false));
-            historyContainer.scrollTop = historyContainer.scrollHeight; // Scroll to bottom
-
-            // Attach reply listener
-            replyButton.onclick = () => sendAdminReply(chatId);
-            replyInput.onkeypress = (e) => {
-                if (e.key === 'Enter') sendAdminReply(chatId);
-            };
-
-        } catch (error) {
-            console.error('Error fetching chat history:', error);
-            historyContainer.innerHTML = `<p class="text-red-400 text-center p-4">Failed to load history.</p>`;
-            replyInput.disabled = true;
-            replyButton.disabled = true;
-        }
-    }
-
-    function appendMessageToHistory(msg, isRealtime) {
-        const historyContainer = document.getElementById('chat-history-messages');
-        if (!historyContainer || msg.chatId !== currentChatId) return;
-
-        const isUser = msg.sender === 'user';
-        const timestamp = formatTimestamp(msg.timestamp);
-
-        let mediaContent = '';
-        if (msg.mediaPath) {
-            // For Telegram, mediaPath is file_id. We need a server endpoint to fetch the actual file.
-            // Since there's no download endpoint in server.js, we display a placeholder.
-            const iconClass = msg.filename ? 'fa-file-alt' : 'fa-image';
-            mediaContent = `
-                <div class="p-3 bg-gray-600 rounded-lg mt-2 inline-block">
-                    <p class="text-sm italic">Media received: ${msg.filename || 'Photo/Document'}</p>
-                    <p class="text-xs text-gray-400">File ID: ${msg.mediaPath.substring(0, 15)}...</p>
-                </div>
-            `;
-        }
-
-        const messageHtml = `
-            <div class="flex ${isUser ? 'justify-start' : 'justify-end'}">
-                <div class="max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-xl shadow-md ${isUser ? 'bg-indigo-600 rounded-bl-none' : 'bg-gray-700 rounded-br-none'}">
-                    <p class="font-medium">${msg.text}</p>
-                    ${mediaContent}
-                    <p class="text-right text-xs mt-1 ${isUser ? 'text-indigo-200' : 'text-gray-400'}">${timestamp}</p>
-                </div>
+            <div class="flex flex-col items-end gap-2">
+              <div class="text-xs text-slate-400">${c.lastMessageTime || '-'}</div>
+              <div class="flex gap-2">
+                <button class="reply-btn px-2 py-1 rounded bg-indigo-600" data-id="${c.telegramId}" data-platform="${c.platform}">Reply</button>
+                <button class="history-btn px-2 py-1 rounded bg-slate-700" data-id="${c.telegramId}">History</button>
+              </div>
             </div>
-        `;
-        
-        historyContainer.insertAdjacentHTML('beforeend', messageHtml);
-        
-        // Only scroll if the user is already near the bottom
-        const shouldScroll = historyContainer.scrollHeight - historyContainer.clientHeight <= historyContainer.scrollTop + 50;
-        if (shouldScroll || isRealtime) {
-            historyContainer.scrollTop = historyContainer.scrollHeight;
-        }
-    }
-
-    function sendAdminReply(chatId) {
-        const input = document.getElementById('admin-reply-input');
-        const text = input.value.trim();
-
-        if (!text || !chatId) return;
-
-        // Optimistic update for the UI
-        appendMessageToHistory({
-            chatId,
-            sender: 'admin',
-            text: text,
-            timestamp: new Date().toISOString()
-        }, true);
-        
-        // Disable input while sending
-        input.value = 'Sending...';
-        input.disabled = true;
-        document.getElementById('admin-reply-send').disabled = true;
-
-        socket.emit('admin_reply', { chatId, text }, (response) => {
-            input.value = '';
-            input.disabled = false;
-            document.getElementById('admin-reply-send').disabled = false;
-
-            if (response.success) {
-                console.log('Reply success:', response.message);
-                // The 'message_sent' socket event will provide the final, Firestore-stamped message, 
-                // but we already did the optimistic update. The confirmation is for the server side.
-            } else {
-                console.error('Reply failed:', response.error);
-                // Note: In a real app, you might want to show a toast/notification about the failure
-            }
+          `;
+          listEl.appendChild(item);
         });
+        attachChatButtons();
+      } catch (err) {
+        console.error(err); alert('Failed to load chats. Check console.');
+      }
     }
 
-    // --- USER LIST LOGIC ---
-
-    async function fetchUsers() {
-        try {
-            const users = await fetchAPI('/api/users');
-            renderUserTable(users);
-        } catch (error) {
-            console.error('Error fetching users:', error);
-            document.getElementById('user-table-body').innerHTML = `<tr><td colspan="4" class="text-red-400 p-4 text-center">Failed to load users.</td></tr>`;
-        }
-    }
-
-    function renderUserTable(users) {
-        const tbody = document.getElementById('user-table-body');
-        if (!tbody) return;
-
-        tbody.innerHTML = users.map(user => `
-            <tr class="hover:bg-gray-700 transition duration-150">
-                <td class="px-4 py-3">${user.name}</td>
-                <td class="px-4 py-3">
-                    <span class="px-3 py-1 text-xs font-medium rounded-full ${user.role === 'Admin' ? 'bg-red-800' : user.role === 'Operator' ? 'bg-yellow-800' : 'bg-green-800'}">
-                        ${user.role}
-                    </span>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="px-3 py-1 text-xs font-medium rounded-full ${user.status === 'Active' ? 'bg-green-600' : 'bg-red-600'}">
-                        ${user.status}
-                    </span>
-                </td>
-                <td class="px-4 py-3">
-                    <button class="delete-user-btn bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-1 px-3 rounded-lg" data-user-id="${user.id}">
-                        Delete
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    function attachUserListListeners() {
-        document.getElementById('add-user-btn')?.addEventListener('click', addUser);
-        document.getElementById('user-table-body')?.addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-user-btn')) {
-                const userId = e.target.dataset.userId;
-                if (userId && window.confirm('Are you sure you want to delete this user?')) {
-                    deleteUser(userId);
-                }
-            }
+    function attachChatButtons() {
+      document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const chatId = btn.getAttribute('data-id');
+          const text = prompt('Message to send:');
+          if (!text) return;
+          socket.emit('admin_reply', { chatId, text }, (resp) => {
+            if (resp.success) alert('Sent'); else alert('Error: '+resp.error);
+          });
         });
+      });
+
+      document.querySelectorAll('.history-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const chatId = btn.getAttribute('data-id');
+          try {
+            const history = await apiGet(`/api/chats/${chatId}/history`);
+            const html = history.map(h => `<div class="p-2 bg-slate-800 rounded mb-1"><div class="text-xs text-slate-400">${h.sender} • ${h.timestamp}</div><div>${h.text || h.filename || 'Media'}</div></div>`).join('');
+            const w = window.open('', '_blank', 'width=600,height=700');
+            w.document.write(`<body style="background:#0f1724;color:#e6eef8;font-family:system-ui;padding:12px;"><h3>History for ${chatId}</h3>${html}</body>`);
+          } catch (err) { console.error(err); alert('Failed to fetch history'); }
+        });
+      });
     }
 
-    async function addUser() {
-        const name = document.getElementById('new-user-name').value;
-        const role = document.getElementById('new-user-role').value;
-        const status = document.getElementById('new-user-status').value;
-
-        if (!name) return alert('User name is required.'); // Using JS alert here for simplicity in an admin tool
-
-        try {
-            await fetchAPI('/api/users', {
-                method: 'POST',
-                body: JSON.stringify({ name, role, status })
-            });
-            document.getElementById('new-user-name').value = '';
-            document.getElementById('new-user-role').value = 'Viewer';
-            document.getElementById('new-user-status').value = 'Active';
-            fetchUsers(); // Refresh list
-        } catch (error) {
-            console.error('Error adding user:', error);
-            alert('Failed to add user: ' + error.message);
-        }
+    // Users
+    async function loadUsers() {
+      try {
+        const users = await apiGet('/api/users');
+        document.getElementById('user-list').innerHTML = '';
+        users.forEach(u => {
+          const el = document.createElement('div');
+          el.className = 'p-3 bg-slate-900 rounded flex items-center justify-between';
+          el.innerHTML = `<div><div class="font-semibold">${u.name}</div><div class="text-xs text-slate-400">${u.role} • ${u.status}</div></div><div class="flex gap-2"><button class='delete-user px-2 py-1 rounded bg-red-600' data-id='${u.id}'>Delete</button></div>`;
+          document.getElementById('user-list').appendChild(el);
+        });
+        document.querySelectorAll('.delete-user').forEach(b => b.addEventListener('click', async () => {
+          if (!confirm('Delete user?')) return;
+          const id = b.getAttribute('data-id');
+          await axios.delete(`/api/users/${id}`, { headers: { Authorization: basicAuthHeader } });
+          loadUsers();
+        }));
+      } catch(err) { console.error(err); }
     }
 
-    async function deleteUser(userId) {
-        try {
-            await fetchAPI(`/api/users/${userId}`, { method: 'DELETE' });
-            fetchUsers(); // Refresh list
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            alert('Failed to delete user: ' + error.message);
-        }
-    }
-    
-    // --- INITIALIZATION ---
-    // Show auth modal on load
-    document.addEventListener('DOMContentLoaded', () => {
-        // Pre-fill fields for easier testing
-        authUsernameInput.value = 'admin';
-        authPasswordInput.value = 'password';
+    document.getElementById('create-user').addEventListener('click', async () => {
+      const name = document.getElementById('user-name').value.trim();
+      const role = document.getElementById('user-role').value;
+      if (!name) return alert('Enter name');
+      try {
+        await apiPost('/api/users', { name, role });
+        document.getElementById('user-name').value = '';
+        loadUsers();
+      } catch(err){ console.error(err); alert('Failed to create'); }
     });
 
-</script>
+    // Broadcast (simple: will iterate users and send via admin_reply, but server does not provide broadcast endpoint)
+    document.getElementById('send-broadcast').addEventListener('click', async () => {
+      const text = document.getElementById('broadcast-text').value.trim();
+      if (!text) return alert('Enter message');
+      if (!confirm('Send broadcast to all users?')) return;
+      try {
+        const users = await apiGet('/api/users');
+        for (const u of users) {
+          socket.emit('admin_reply', { chatId: u.id, text }, (r) => console.log('sent', r));
+        }
+        alert('Broadcast sent (requests queued)');
+      } catch (err) { console.error(err); alert('Failed to broadcast'); }
+    });
+
+    // Settings
+    document.getElementById('save-settings').addEventListener('click', () => {
+      alert('Settings are stored as env on server. Edit .env or use your deployment to change tokens.');
+    });
+
+    document.getElementById('test-connection').addEventListener('click', serverStatus);
+
+    async function serverStatus() {
+      try {
+        const chats = await apiGet('/api/chats');
+        document.getElementById('server-status').innerText = 'online';
+        document.getElementById('stat-chats').innerText = chats.length;
+        document.getElementById('stat-last').innerText = chats[0]?.lastMessageTime || '-';
+        const users = await apiGet('/api/users');
+        document.getElementById('stat-users').innerText = users.length;
+
+        // recent messages
+        const rec = chats.slice(0,5).map(c => `<div class="p-2 bg-slate-800 rounded"><div class="font-medium">${c.username||c.telegramId}</div><div class="text-sm text-slate-400">${c.lastMessageText||''}</div></div>`).join('');
+        document.getElementById('recent-messages').innerHTML = rec;
+      } catch (err) {
+        document.getElementById('server-status').innerText = 'offline';
+        console.error(err);
+        alert('Server not reachable or auth failed');
+      }
+    }
+
+    // Socket events
+    socket.on('connect', () => console.log('socket connected'));
+    socket.on('new_message', (data) => {
+      // show a toast briefly
+      const t = document.createElement('div');
+      t.className = 'fixed right-6 bottom-6 p-3 rounded bg-indigo-600 shadow';
+      t.innerHTML = `<div class="font-semibold">New: ${data.user.username||data.chatId}</div><div class="text-xs">${data.message.text||'Media'}</div>`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), 6000);
+      // update small stats
+      const statEl = document.getElementById('stat-chats');
+      if (statEl) statEl.innerText = (parseInt(statEl.innerText || '0') + 1).toString();
+    });
+
+    // show initial login modal
+    document.getElementById('login-modal').style.display = 'flex';
+
+    // small UX: keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '1') showView('dashboard');
+      if (e.key === '2') showView('fbchats');
+      if (e.key === '3') showView('tgchats');
+    });
+  </script>
 </body>
 </html>
