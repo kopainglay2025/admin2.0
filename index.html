@@ -1,671 +1,310 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Platform Chat Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- Assuming Socket.io client is served by the server, or use a CDN for development -->
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Use the Inter font for a clean, modern look -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f9;
-        }
-        /* Custom scrollbar for chat history */
-        .chat-history::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat-history::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* slate-300 */
-            border-radius: 10px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Chat Dashboard</title>
+  <!-- CDN libs -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <!-- socket.io client will be served from your server at /socket.io/socket.io.js -->
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#60a5fa;--muted:#94a3b8;--white:#e6eef8}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:linear-gradient(180deg,#071029 0%, #071b2b 100%);color:var(--white);height:100vh;display:flex;align-items:stretch}
+    .container{display:grid;grid-template-columns:320px 1fr;gap:18px;padding:18px;width:100%}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .left{display:flex;flex-direction:column;height:calc(100vh - 36px);}
+    .search{margin-bottom:8px}
+    .chat-list{overflow:auto;flex:1;padding-right:6px}
+    .chat-item{padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.03)}
+    .chat-item:hover{background:rgba(255,255,255,0.02)}
+    .chat-item.active{background:linear-gradient(90deg, rgba(96,165,250,0.12), rgba(59,130,246,0.06));border-color:rgba(96,165,250,0.14)}
+    .chat-meta{flex:1}
+    .chat-name{font-weight:600}
+    .chat-last{font-size:13px;color:var(--muted)}
+
+    .right{display:flex;flex-direction:column;height:calc(100vh - 36px)}
+    .header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .messages{flex:1;overflow:auto;padding:12px}
+    .msg{max-width:70%;padding:10px;border-radius:12px;margin-bottom:10px;background:rgba(255,255,255,0.02)}
+    .msg.admin{margin-left:auto;background:linear-gradient(90deg, rgba(96,165,250,0.14), rgba(59,130,246,0.06));}
+    .msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .composer{display:flex;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.03)}
+    textarea{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white);min-height:56px;resize:vertical}
+    button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#002833;font-weight:600;cursor:pointer}
+    .small{font-size:13px;color:var(--muted)}
+    .badge{background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:999px;font-size:12px}
+    .topbar{display:flex;gap:8px;align-items:center}
+    .platform{font-size:12px;padding:6px;border-radius:6px}
+  </style>
 </head>
-<body class="h-screen flex flex-col">
-
-    <!-- Loading/Authentication Overlay -->
-    <div id="overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Admin Login</h2>
-            <p class="text-sm text-gray-600 mb-4 text-center">Enter your Basic Auth credentials (admin/password).</p>
-            <input type="text" id="usernameInput" placeholder="Username (e.g., admin)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <input type="password" id="passwordInput" placeholder="Password (e.g., password)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <button id="loginButton" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
-                Login
-            </button>
-            <p id="authError" class="text-red-500 text-sm mt-3 text-center hidden"></p>
+<body>
+  <div class="container">
+    <div class="panel left">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:18px;font-weight:700">Admin Chats</div>
+          <div class="small">Connected to server at <span id="server-url"></span></div>
         </div>
-    </div>
-    
-    <!-- Main Dashboard Structure (hidden until auth) -->
-    <div id="dashboard" class="flex flex-1 overflow-hidden" style="display: none;">
-        
-        <!-- Sidebar - Chat List -->
-        <div class="w-full sm:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col">
-            
-            <div class="p-4 border-b border-gray-200 flex flex-col space-y-3">
-                <h1 class="text-xl font-bold text-gray-900">Support Dashboard</h1>
-                <div class="flex space-x-2 text-sm font-medium">
-                    <button id="tabChat" class="px-3 py-1 rounded-full bg-indigo-600 text-white transition duration-150">Chats</button>
-                    <button id="tabUsers" class="px-3 py-1 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition duration-150">Users</button>
-                </div>
-
-                <!-- Platform Filters -->
-                <div id="chatFilters" class="flex space-x-2 pt-2">
-                    <button data-platform="" class="filter-btn text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-medium transition duration-150">All</button>
-                    <button data-platform="telegram" class="filter-btn text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition duration-150">Telegram</button>
-                    <button data-platform="facebook" class="filter-btn text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition duration-150">Facebook</button>
-                </div>
-            </div>
-
-            <!-- Chat List -->
-            <div id="chatList" class="flex-1 overflow-y-auto divide-y divide-gray-100">
-                <div class="p-4 text-gray-500 text-sm">Loading chats...</div>
-            </div>
+        <div style="text-align:right">
+          <div id="auth-status" class="badge">Not authenticated</div>
         </div>
+      </div>
 
-        <!-- Main Content Area (Chat Detail & User Management) -->
-        <div class="flex-1 flex flex-col overflow-hidden bg-white">
-            
-            <!-- Chat Detail View -->
-            <div id="chatView" class="flex-1 flex flex-col overflow-hidden" style="display: flex;">
-                
-                <!-- Chat Header -->
-                <div id="chatHeader" class="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                    <span class="text-lg font-semibold text-gray-800">Select a Chat</span>
-                </div>
+      <div class="search">
+        <input id="filter-input" placeholder="Filter by name or platform" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)" />
+      </div>
 
-                <!-- Chat History -->
-                <div id="chatHistory" class="chat-history flex-1 p-4 space-y-4 overflow-y-auto bg-gray-50">
-                    <div class="text-center text-gray-500 mt-10">Click on a conversation to view the history.</div>
-                </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="platform-filter" style="padding:8px;border-radius:8px;background:transparent;color:var(--white);border:1px solid rgba(255,255,255,0.04)">
+          <option value="">All platforms</option>
+          <option value="telegram">Telegram</option>
+          <option value="facebook">Facebook</option>
+        </select>
+        <button id="refresh-btn">Refresh</button>
+      </div>
 
-                <!-- Message Input -->
-                <div id="replyBox" class="p-4 border-t border-gray-200 bg-white hidden">
-                    <form id="replyForm" class="flex space-x-3">
-                        <input type="text" id="replyText" placeholder="Type your reply here..." class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm" required>
-                        <button type="submit" class="px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
-                            Send
-                        </button>
-                    </form>
-                    <p id="replyStatus" class="text-sm mt-2 hidden"></p>
-                </div>
-            </div>
-            
-            <!-- User Management View -->
-            <div id="userView" class="flex-1 flex-col overflow-hidden p-6" style="display: none;">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800">System User Management</h2>
-                
-                <!-- Add User Form -->
-                <div class="bg-gray-100 p-4 rounded-xl shadow-inner mb-6">
-                    <h3 class="text-lg font-semibold mb-3">Add New User</h3>
-                    <form id="addUserForm" class="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-                        <input type="text" id="newUserName" placeholder="Name" class="p-2 border rounded-lg flex-1" required>
-                        <select id="newUserRole" class="p-2 border rounded-lg w-full sm:w-auto">
-                            <option value="Viewer">Viewer</option>
-                            <option value="Agent">Agent</option>
-                            <option value="Admin">Admin</option>
-                        </select>
-                        <select id="newUserStatus" class="p-2 border rounded-lg w-full sm:w-auto">
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                        <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-150">Add User</button>
-                    </form>
-                </div>
-                
-                <!-- User List Table -->
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userListTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- User rows will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-        </div>
+      <div class="chat-list" id="chat-list"></div>
     </div>
 
-    <script>
-        // Global State
-        const state = {
-            authToken: null,
-            currentChat: null, // { chatId, platform, username }
-            chats: [],
-            users: [],
-            activeTab: 'chats', // 'chats' or 'users'
-            activePlatform: '', // '' for all, 'telegram', 'facebook'
-        };
+    <div class="panel right">
+      <div class="header">
+        <div>
+          <div id="selected-name" style="font-size:16px;font-weight:700">Select a chat</div>
+          <div class="small" id="selected-info">No chat selected</div>
+        </div>
+        <div class="topbar">
+          <div class="small">Server time: <span id="server-time">--</span></div>
+          <div style="width:12px"></div>
+          <div id="connection-status" class="badge">Disconnected</div>
+        </div>
+      </div>
 
-        // DOM Elements
-        const $overlay = document.getElementById('overlay');
-        const $dashboard = document.getElementById('dashboard');
-        const $usernameInput = document.getElementById('usernameInput');
-        const $passwordInput = document.getElementById('passwordInput');
-        const $loginButton = document.getElementById('loginButton');
-        const $authError = document.getElementById('authError');
-        
-        const $chatList = document.getElementById('chatList');
-        const $chatHeader = document.getElementById('chatHeader');
-        const $chatHistory = document.getElementById('chatHistory');
-        const $replyBox = document.getElementById('replyBox');
-        const $replyForm = document.getElementById('replyForm');
-        const $replyText = document.getElementById('replyText');
-        const $replyStatus = document.getElementById('replyStatus');
-        
-        const $tabChat = document.getElementById('tabChat');
-        const $tabUsers = document.getElementById('tabUsers');
-        const $chatView = document.getElementById('chatView');
-        const $userView = document.getElementById('userView');
-        const $chatFilters = document.getElementById('chatFilters');
-        
-        const $addUserForm = document.getElementById('addUserForm');
-        const $newUserName = document.getElementById('newUserName');
-        const $newUserRole = document.getElementById('newUserRole');
-        const $newUserStatus = document.getElementById('newUserStatus');
-        const $userListTableBody = document.getElementById('userListTableBody');
+      <div class="messages" id="messages"></div>
 
-        let socket;
-        let API_URL = '/api';
+      <div class="composer">
+        <textarea id="reply-text" placeholder="Type your reply here..."></textarea>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="send-btn">Send</button>
+          <button id="clear-btn" style="background:rgba(255,255,255,0.04);color:var(--white);font-weight:600">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // --- Utility Functions ---
+  <script>
+    // Basic configuration
+    const SERVER_ORIGIN = location.origin; // adjust if using a different origin
+    document.getElementById('server-url').textContent = SERVER_ORIGIN;
 
-        /**
-         * Creates a basic Axios instance with the stored authorization token.
-         */
-        const api = axios.create({
-            baseURL: API_URL,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+    // --- Simple Basic Auth prompt (will be reused for fetch/axios) ---
+    let AUTH = null; // { username, password, header }
+    function askForCredentials() {
+      const u = prompt('Admin username', 'admin');
+      if (u === null) return false;
+      const p = prompt('Admin password', 'password');
+      if (p === null) return false;
+      AUTH = { username: u, password: p, header: 'Basic ' + btoa(u + ':' + p) };
+      document.getElementById('auth-status').textContent = `Auth: ${u}`;
+      return true;
+    }
 
-        // Set the Authorization header on every request
-        api.interceptors.request.use(config => {
-            if (state.authToken) {
-                config.headers['Authorization'] = `Basic ${state.authToken}`;
-            }
-            return config;
-        }, error => {
-            return Promise.reject(error);
-        });
+    // Try to get credentials on load
+    if (!askForCredentials()) {
+      alert('You must provide admin credentials to use the dashboard.');
+    }
 
-        // Handle 401 Unauthorized errors (session timeout or invalid creds)
-        api.interceptors.response.use(response => response, error => {
-            if (error.response && error.response.status === 401) {
-                alert("Session expired or unauthorized. Please log in again.");
-                location.reload(); // Simple way to restart auth flow
-            }
-            return Promise.reject(error);
-        });
+    // Axios defaults
+    axios.defaults.baseURL = SERVER_ORIGIN;
+    axios.interceptors.request.use(cfg => {
+      if (AUTH) cfg.headers['Authorization'] = AUTH.header;
+      return cfg;
+    });
 
-        /**
-         * Formats a Unix timestamp or ISO string into a readable time.
-         */
-        function formatTime(timestamp) {
-            if (!timestamp) return 'N/A';
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    // Socket.io connection
+    const socket = io();
+
+    const chatListEl = document.getElementById('chat-list');
+    const messagesEl = document.getElementById('messages');
+    const selectedNameEl = document.getElementById('selected-name');
+    const selectedInfoEl = document.getElementById('selected-info');
+    const serverTimeEl = document.getElementById('server-time');
+    const connectionStatusEl = document.getElementById('connection-status');
+
+    let CHATS = [];
+    let SELECTED_CHAT = null;
+
+    // Update connection status
+    socket.on('connect', () => {
+      connectionStatusEl.textContent = 'Connected';
+      connectionStatusEl.style.background = 'rgba(255,255,255,0.04)';
+    });
+    socket.on('disconnect', () => {
+      connectionStatusEl.textContent = 'Disconnected';
+    });
+
+    // Incoming real-time messages
+    socket.on('new_message', (data) => {
+      // If the chat exists in our list, update lastMessage; otherwise push
+      const idx = CHATS.findIndex(c => String(c.telegramId) === String(data.chatId));
+      const chatItem = {
+        telegramId: String(data.chatId),
+        username: data.user.username || (`User ${String(data.chatId).slice(0,6)}`),
+        lastMessageText: data.message.text || 'Media',
+        lastMessageTime: data.message.timestamp || new Date().toISOString(),
+        platform: data.platform || 'telegram'
+      };
+
+      if (idx >= 0) {
+        CHATS[idx] = { ...CHATS[idx], ...chatItem };
+      } else {
+        CHATS.unshift(chatItem);
+      }
+      renderChatList();
+
+      // If currently selected chat, push the message to message view
+      if (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(data.chatId)) {
+        appendMessageToView(data.message, 'user');
+      }
+    });
+
+    socket.on('message_sent', (data) => {
+      // When server confirms message saved
+      if (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(data.chatId)) {
+        appendMessageToView(data.message, 'admin');
+      }
+      // Update chat list last message
+      const idx = CHATS.findIndex(c => String(c.telegramId) === String(data.chatId));
+      if (idx >= 0) {
+        CHATS[idx].lastMessageText = data.message.text || 'Media';
+        CHATS[idx].lastMessageTime = data.message.timestamp || new Date().toISOString();
+        renderChatList();
+      }
+    });
+
+    // Helper: render chat list
+    function renderChatList() {
+      const filter = document.getElementById('filter-input').value.toLowerCase();
+      const platformFilter = document.getElementById('platform-filter').value;
+      chatListEl.innerHTML = '';
+      CHATS.forEach(c => {
+        if (platformFilter && c.platform !== platformFilter) return;
+        if (filter && !(c.username || '').toLowerCase().includes(filter) && !(c.lastMessageText||'').toLowerCase().includes(filter)) return;
+        const el = document.createElement('div');
+        el.className = 'chat-item' + (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(c.telegramId) ? ' active' : '');
+        el.innerHTML = `
+          <div style="flex:1">
+            <div class="chat-name">${escapeHtml(c.username || c.telegramId)}</div>
+            <div class="chat-last">${escapeHtml(c.lastMessageText || '')}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">${new Date(c.lastMessageTime||Date.now()).toLocaleString()}</div>
+            <div class="small">${escapeHtml(c.platform)}</div>
+          </div>
+        `;
+        el.onclick = () => selectChat(c);
+        chatListEl.appendChild(el);
+      });
+    }
+
+    // Helpers
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m];}); }
+
+    // Load chats from server
+    async function loadChats() {
+      try {
+        const platform = document.getElementById('platform-filter').value;
+        const url = platform ? `/api/chats?platform=${encodeURIComponent(platform)}` : '/api/chats';
+        const res = await axios.get(url);
+        CHATS = (res.data || []).map(c => ({ ...c, telegramId: c.telegramId || c.id }));
+        renderChatList();
+      } catch (err) {
+        console.error('Failed to load chats', err);
+        alert('Failed to load chats: ' + (err.response?.data?.error || err.message));
+      }
+    }
+
+    // Select a chat
+    async function selectChat(chat) {
+      SELECTED_CHAT = chat;
+      selectedNameEl.textContent = chat.username || chat.telegramId;
+      selectedInfoEl.textContent = `${chat.platform || 'telegram'} • ${chat.lastMessageText || ''}`;
+      renderChatList();
+      await loadHistory(String(chat.telegramId));
+    }
+
+    // Load history
+    async function loadHistory(chatId) {
+      messagesEl.innerHTML = '';
+      try {
+        const res = await axios.get(`/api/chats/${encodeURIComponent(chatId)}/history?limit=200`);
+        const msgs = res.data || [];
+        msgs.forEach(m => appendMessageToView(m, m.sender));
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      } catch (err) {
+        console.error('Failed to load history', err);
+        alert('Failed to load history: ' + (err.response?.data?.error || err.message));
+      }
+    }
+
+    // Append single message
+    function appendMessageToView(msg, senderOverride) {
+      const s = senderOverride || msg.sender || 'user';
+      const div = document.createElement('div');
+      div.className = 'msg ' + (s === 'admin' ? 'admin' : 'user');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `${s === 'admin' ? 'Admin' : 'User'} • ${new Date(msg.timestamp || Date.now()).toLocaleString()}`;
+      const body = document.createElement('div');
+      body.innerHTML = msg.text ? escapeHtml(msg.text).replace(/\n/g,'<br/>') : (msg.filename ? `<i>${escapeHtml(msg.filename)}</i>` : '<i>Media</i>');
+      div.appendChild(meta);
+      div.appendChild(body);
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Send reply using socket.io admin_reply event
+    document.getElementById('send-btn').addEventListener('click', sendReply);
+    document.getElementById('clear-btn').addEventListener('click', () => { document.getElementById('reply-text').value = ''; });
+
+    async function sendReply() {
+      if (!SELECTED_CHAT) return alert('Select a chat first');
+      const text = document.getElementById('reply-text').value.trim();
+      if (!text) return alert('Type a message');
+
+      const payload = { chatId: String(SELECTED_CHAT.telegramId), text };
+      socket.emit('admin_reply', payload, (res) => {
+        if (res && res.success) {
+          // appended on message_sent event
+          document.getElementById('reply-text').value = '';
+        } else {
+          alert('Failed to send: ' + (res?.error || 'unknown'));
         }
+      });
+    }
 
-        // --- Core Application Logic ---
+    // UI actions
+    document.getElementById('refresh-btn').addEventListener('click', loadChats);
+    document.getElementById('platform-filter').addEventListener('change', loadChats);
+    document.getElementById('filter-input').addEventListener('input', renderChatList);
 
-        /**
-         * Handles the Basic Auth login process.
-         */
-        async function handleLogin() {
-            const username = $usernameInput.value.trim();
-            const password = $passwordInput.value.trim();
+    // Periodic server time updater (calls an endpoint to get server time if you have one)
+    setInterval(() => {
+      serverTimeEl.textContent = new Date().toLocaleString();
+    }, 1000);
 
-            if (!username || !password) {
-                $authError.textContent = "Please enter both username and password.";
-                $authError.style.display = 'block';
-                return;
-            }
+    // Initial load
+    (async () => {
+      await loadChats();
+    })();
 
-            // Base64 encode the credentials
-            const token = btoa(`${username}:${password}`);
-            state.authToken = token;
-
-            // Test the credentials by fetching the chat list
-            try {
-                $loginButton.disabled = true;
-                $loginButton.textContent = 'Verifying...';
-                await fetchChats(state.activePlatform, false); // Fetch chats without rendering initially
-
-                // Success
-                $overlay.style.display = 'none';
-                $dashboard.style.display = 'flex';
-                initSocket();
-                renderAll();
-            } catch (error) {
-                console.error('Authentication Test Failed:', error);
-                $authError.textContent = 'Login failed. Check username and password.';
-                $authError.style.display = 'block';
-                state.authToken = null;
-            } finally {
-                $loginButton.disabled = false;
-                $loginButton.textContent = 'Login';
-            }
-        }
-        
-        /**
-         * Fetches all system users and updates state.
-         */
-        async function fetchUsers() {
-            try {
-                const response = await api.get('/users');
-                state.users = response.data;
-                if (state.activeTab === 'users') {
-                    renderUserList();
-                }
-            } catch (error) {
-                console.error('Error fetching users:', error);
-                alert('Failed to fetch system users.');
-            }
-        }
-
-        /**
-         * Fetches the chat list from the server.
-         */
-        async function fetchChats(platform, shouldRender = true) {
-            try {
-                const endpoint = platform ? `/chats?platform=${platform}` : '/chats';
-                const response = await api.get(endpoint);
-                state.chats = response.data;
-                if (shouldRender) {
-                    renderChatList();
-                }
-            } catch (error) {
-                console.error('Error fetching chats:', error);
-                if (error.response && error.response.status === 401) {
-                    throw error; // Re-throw to handle auth failure
-                }
-                $chatList.innerHTML = '<div class="p-4 text-red-500 text-sm">Error loading chats.</div>';
-            }
-        }
-
-        /**
-         * Fetches message history for the selected chat.
-         */
-        async function fetchHistory(chatId) {
-            try {
-                $chatHistory.innerHTML = '<div class="text-center text-indigo-600 mt-10">Loading history...</div>';
-                const response = await api.get(`/chats/${chatId}/history?limit=50`);
-                state.currentChat.history = response.data;
-                renderChatDetail();
-            } catch (error) {
-                console.error('Error fetching chat history:', error);
-                $chatHistory.innerHTML = '<div class="text-center text-red-500 mt-10">Error loading history.</div>';
-            }
-        }
-
-        // --- Rendering Functions ---
-
-        /**
-         * Renders the main chat list in the sidebar.
-         */
-        function renderChatList() {
-            $chatList.innerHTML = '';
-            
-            if (state.chats.length === 0) {
-                $chatList.innerHTML = `<div class="p-4 text-gray-500 text-sm">No chats found for the selected filter.</div>`;
-                return;
-            }
-
-            state.chats.forEach(chat => {
-                const isSelected = state.currentChat && state.currentChat.chatId === chat.telegramId;
-                const platformIcon = chat.platform === 'facebook' ? '&#x1F4AC;' : '&#x1F4E9;'; // 💬 or 📩
-
-                const chatItem = document.createElement('div');
-                chatItem.className = `p-4 cursor-pointer hover:bg-gray-100 transition duration-150 ${isSelected ? 'bg-indigo-100 border-l-4 border-indigo-600' : ''}`;
-                chatItem.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-semibold text-gray-800">${chat.username || chat.telegramId}</span>
-                        <span class="text-xs text-gray-500">${formatTime(chat.lastMessageTime)}</span>
-                    </div>
-                    <p class="text-xs text-gray-500 truncate mt-1">
-                        <span class="mr-1">${platformIcon}</span>
-                        ${chat.lastMessageText || 'Media message'}
-                    </p>
-                `;
-                chatItem.onclick = () => selectChat(chat);
-                $chatList.appendChild(chatItem);
-            });
-        }
-        
-        /**
-         * Renders the selected chat's message history and reply box.
-         */
-        function renderChatDetail() {
-            const chat = state.currentChat;
-            if (!chat || !chat.history) {
-                $chatHeader.innerHTML = `<span class="text-lg font-semibold text-gray-800">Select a Chat</span>`;
-                $chatHistory.innerHTML = '<div class="text-center text-gray-500 mt-10">Click on a conversation to view the history.</div>';
-                $replyBox.classList.add('hidden');
-                return;
-            }
-
-            $replyBox.classList.remove('hidden');
-
-            const platformIcon = chat.platform === 'facebook' ? '&#x1F4AC;' : '&#x1F4E9;';
-            $chatHeader.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <span class="text-xl">${platformIcon}</span>
-                    <span class="text-lg font-semibold text-gray-800">${chat.username || 'Chat ID: ' + chat.chatId}</span>
-                    <span class="text-sm font-light text-gray-500">(${chat.platform.toUpperCase()})</span>
-                </div>
-            `;
-
-            $chatHistory.innerHTML = '';
-            chat.history.forEach(msg => {
-                const isUser = msg.sender === 'user';
-                const messageClass = isUser ? 'bg-indigo-50 text-gray-800 ml-auto' : 'bg-gray-200 text-gray-800 mr-auto';
-                const alignment = isUser ? 'justify-end' : 'justify-start';
-
-                let contentHtml = '';
-                
-                if (msg.mediaPath) {
-                    // Telegram media files need to be downloaded via the bot API.
-                    // For simplicity, we just show a link/placeholder.
-                    const fileType = msg.filename ? `File: ${msg.filename}` : 'Media';
-                    contentHtml = `
-                        <p class="font-bold">${fileType}</p>
-                        <p class="text-sm italic">${msg.text || ''}</p>
-                        <a href="https://api.telegram.org/bot${'TELEGRAM_BOT_TOKEN'}/getFile?file_id=${msg.mediaPath}" target="_blank" class="text-xs text-indigo-600 hover:underline">
-                            (Download Link - Requires Server Token)
-                        </a>
-                    `;
-                } else {
-                    contentHtml = `<p class="whitespace-pre-wrap">${msg.text}</p>`;
-                }
-
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `flex ${alignment}`;
-                messageDiv.innerHTML = `
-                    <div class="max-w-xs sm:max-w-md p-3 rounded-xl shadow-sm ${messageClass}">
-                        <div class="text-xs font-semibold mb-1 ${isUser ? 'text-indigo-700' : 'text-gray-600'}">
-                            ${isUser ? (chat.username || 'User') : 'Admin'}
-                        </div>
-                        ${contentHtml}
-                        <div class="text-right text-xs mt-1 text-gray-500/80">
-                            ${formatTime(msg.timestamp)}
-                        </div>
-                    </div>
-                `;
-                $chatHistory.appendChild(messageDiv);
-            });
-
-            // Scroll to the bottom of the chat history
-            $chatHistory.scrollTop = $chatHistory.scrollHeight;
-        }
-
-        /**
-         * Renders the system user list table.
-         */
-        function renderUserList() {
-            $userListTableBody.innerHTML = '';
-            
-            if (state.users.length === 0) {
-                $userListTableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500">No system users defined.</td></tr>`;
-                return;
-            }
-
-            state.users.forEach(user => {
-                const statusColor = user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-[100px]">${user.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                            ${user.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button data-id="${user.id}" class="delete-user-btn text-red-600 hover:text-red-900 transition duration-150">Delete</button>
-                    </td>
-                `;
-                $userListTableBody.appendChild(row);
-            });
-
-            // Re-attach listeners for delete buttons
-            document.querySelectorAll('.delete-user-btn').forEach(button => {
-                button.onclick = (e) => deleteUser(e.target.dataset.id);
-            });
-        }
-        
-        /**
-         * Renders the current active view (Chat or Users).
-         */
-        function renderAll() {
-            if (state.activeTab === 'chats') {
-                $chatView.style.display = 'flex';
-                $userView.style.display = 'none';
-                $tabChat.classList.remove('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                $tabChat.classList.add('bg-indigo-600', 'text-white');
-                $tabUsers.classList.remove('bg-indigo-600', 'text-white');
-                $tabUsers.classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                $chatFilters.style.display = 'flex';
-                fetchChats(state.activePlatform, true);
-            } else { // 'users'
-                $chatView.style.display = 'none';
-                $userView.style.display = 'flex';
-                $tabUsers.classList.remove('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                $tabUsers.classList.add('bg-indigo-600', 'text-white');
-                $tabChat.classList.remove('bg-indigo-600', 'text-white');
-                $tabChat.classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                $chatFilters.style.display = 'none';
-                fetchUsers();
-            }
-        }
-        
-        // --- Event Handlers ---
-
-        /**
-         * Switches the active chat and loads its history.
-         */
-        function selectChat(chat) {
-            state.currentChat = {
-                chatId: chat.telegramId,
-                platform: chat.platform,
-                username: chat.username,
-                history: []
-            };
-            renderChatList(); // Rerender to highlight the selected chat
-            fetchHistory(chat.telegramId);
-        }
-
-        /**
-         * Sends a reply to the current chat via Socket.io.
-         */
-        function handleReply(e) {
-            e.preventDefault();
-            if (!state.currentChat || !$replyText.value.trim()) return;
-
-            const text = $replyText.value.trim();
-            const chatId = state.currentChat.chatId;
-
-            $replyText.disabled = true;
-            $replyStatus.textContent = 'Sending...';
-            $replyStatus.className = 'text-sm mt-2 text-indigo-600';
-            $replyStatus.style.display = 'block';
-
-            socket.emit('admin_reply', { chatId, text }, (response) => {
-                $replyText.disabled = false;
-                $replyText.value = '';
-
-                if (response.success) {
-                    $replyStatus.textContent = response.message;
-                    $replyStatus.className = 'text-sm mt-2 text-green-600';
-                    // Message will be added to history via 'message_sent' socket event
-                } else {
-                    $replyStatus.textContent = `Error: ${response.error}`;
-                    $replyStatus.className = 'text-sm mt-2 text-red-600';
-                }
-                setTimeout(() => $replyStatus.style.display = 'none', 3000);
-            });
-        }
-        
-        /**
-         * Adds a new system user.
-         */
-        async function addUser(e) {
-            e.preventDefault();
-            const name = $newUserName.value.trim();
-            const role = $newUserRole.value;
-            const status = $newUserStatus.value;
-
-            if (!name) return;
-            
-            try {
-                const newUser = { name, role, status };
-                await api.post('/users', newUser);
-                $newUserName.value = '';
-                await fetchUsers();
-                alert('User added successfully!');
-            } catch (error) {
-                console.error('Error adding user:', error);
-                alert('Failed to add user.');
-            }
-        }
-
-        /**
-         * Deletes a system user.
-         */
-        async function deleteUser(id) {
-            if (confirm(`Are you sure you want to delete user ID: ${id}?`)) {
-                try {
-                    await api.delete(`/users/${id}`);
-                    await fetchUsers();
-                    alert('User deleted successfully!');
-                } catch (error) {
-                    console.error('Error deleting user:', error);
-                    alert('Failed to delete user.');
-                }
-            }
-        }
-        
-        // --- Socket.io Setup ---
-
-        function initSocket() {
-            // Socket.io client setup
-            socket = io();
-
-            socket.on('connect', () => {
-                console.log('Connected to Socket.io server.');
-            });
-
-            // Real-time update for new incoming user message
-            socket.on('new_message', (data) => {
-                const { chatId, message, user } = data;
-                console.log('New message received:', data);
-
-                // 1. Update/Add chat in the chat list
-                const chatIndex = state.chats.findIndex(c => c.telegramId === chatId);
-                
-                const updatedChat = {
-                    telegramId: String(chatId),
-                    username: user.username,
-                    lastMessageText: message.text || (message.mediaPath ? (message.filename || 'Media') : 'No text'),
-                    lastMessageTime: message.timestamp,
-                    platform: user.platform
-                };
-
-                if (chatIndex > -1) {
-                    // Update existing chat and move to top
-                    state.chats.splice(chatIndex, 1);
-                }
-                state.chats.unshift(updatedChat);
-                renderChatList();
-
-                // 2. If this is the currently selected chat, update history
-                if (state.currentChat && state.currentChat.chatId === chatId) {
-                    state.currentChat.history.push(message);
-                    renderChatDetail();
-                }
-            });
-
-            // Confirmation that admin message was sent and saved
-            socket.on('message_sent', (data) => {
-                const { chatId, message } = data;
-                console.log('Admin message confirmed sent:', data);
-                
-                // If this is the currently selected chat, update history
-                if (state.currentChat && state.currentChat.chatId === chatId) {
-                    state.currentChat.history.push(message);
-                    renderChatDetail();
-                }
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Disconnected from Socket.io server.');
-            });
-        }
-
-        // --- Initialization and Event Listeners ---
-        
-        $loginButton.addEventListener('click', handleLogin);
-        $replyForm.addEventListener('submit', handleReply);
-        $addUserForm.addEventListener('submit', addUser);
-
-        // Tab switching
-        $tabChat.addEventListener('click', () => {
-            state.activeTab = 'chats';
-            renderAll();
-        });
-        $tabUsers.addEventListener('click', () => {
-            state.activeTab = 'users';
-            renderAll();
-        });
-        
-        // Platform filtering
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const platform = e.target.dataset.platform;
-                state.activePlatform = platform;
-                
-                // Update button styles
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'text-white');
-                    b.classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                });
-                e.target.classList.remove('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-                e.target.classList.add('bg-indigo-600', 'text-white');
-                
-                fetchChats(platform, true);
-            });
-        });
-
-        // Initial setup
-        document.addEventListener('DOMContentLoaded', () => {
-            // Pre-fill fields for convenience during testing
-            $usernameInput.value = 'admin';
-            $passwordInput.value = 'password';
-            
-            // Set initial filter button state
-            document.querySelector('.filter-btn[data-platform=""]').classList.remove('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
-            document.querySelector('.filter-btn[data-platform=""]').classList.add('bg-indigo-600', 'text-white');
-        });
-        
-
-    </script>
+    // Basic keyboard shortcut: Enter to send when textarea focused + Ctrl/Cmd+Enter to newline
+    document.getElementById('reply-text').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendReply();
+      }
+    });
+  </script>
 </body>
 </html>
