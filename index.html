@@ -33,1275 +33,735 @@
     <style>
         /* Base styles that apply to both themes */
         body { 
-            font-family: 'Inter', sans-serif;
-            /* Enhanced transition for theme switch */
-            transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+            font-family: 'Inter', sans-serif; 
+            min-height: 100vh;
         }
-
-        /* Sidebar Styling for desktop/tablet, and mobile transitions */
-        .sidebar {
-            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Faster transition for mobile slide */
+        /* Style for the current active nav item in the sidebar */
+        .nav-item.active {
+            @apply bg-opacity-10 text-neon-primary border-r-4 border-neon-primary;
         }
-        .dark .sidebar {
-            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
+        /* Custom scrollbar for better aesthetics, especially in dark mode */
+        #messageHistory::-webkit-scrollbar {
+            width: 8px;
         }
-
-        /* Backdrop for mobile sidebar */
-        #mobile-backdrop {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s;
-        }
-        .sidebar-open #mobile-backdrop {
-            opacity: 0.7;
-            visibility: visible;
-        }
-        .sidebar-open .sidebar {
-            transform: translateX(0); /* Slides in */
-        }
-
-        /* Nav Item Styling */
-        .nav-item {
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 14px; 
-            color: #4B5563; /* Default gray text */
-        }
-        .dark .nav-item {
-            color: #9CA3AF; /* Default light gray text in dark mode */
-        }
-        
-        .nav-item:hover {
-            color: #111827; 
-            background-color: #F3F4F6; 
-            transform: scale(1.02);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
-        }
-        .dark .nav-item:hover {
-            color: theme('colors.neon-primary'); 
-            background-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.15); 
-        }
-
-        /* Active Nav Item - CRUCIAL EFFECT */
-        .active-nav {
-            font-weight: 700 !important;
-            background-color: theme('colors.white') !important; 
-            color: theme('colors.blue.700') !important;
-            border: 1px solid theme('colors.blue.500');
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); 
-        }
-        .dark .active-nav {
-            font-weight: 700 !important;
-            background-color: theme('colors.dark-card') !important;
-            color: theme('colors.neon-primary') !important;
-            border: 1px solid theme('colors.neon-primary');
-            box-shadow: 0 0 12px rgba(0, 224, 255, 0.8); 
-        }
-        .active-nav svg { color: theme('colors.blue.600') !important; }
-        .dark .active-nav svg { color: theme('colors.neon-primary') !important; }
-
-
-        /* Chat Item Styling */
-        .chat-item {
-            background-color: theme('colors.light-card');
-            border: 1px solid theme('colors.light-border');
-            transition: all 0.3s;
-            border-radius: 12px;
-        }
-        .dark .chat-item {
-            background-color: theme('colors.dark-card');
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .dark .chat-item:hover {
-            background-color: rgba(26, 25, 43, 0.8);
-            border-color: theme('colors.neon-primary');
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
-        }
-        
-        /* Active Chat Item - Secondary Neon Accent */
-        .chat-item.active {
-            background-color: #DBEAFE; /* Light Blue Accent */
-            color: theme('colors.gray.900') !important; 
-            border: 2px solid theme('colors.blue.700');
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
-        }
-        .dark .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
-            color: white !important; 
-            border: 2px solid theme('colors.neon-secondary');
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
-        }
-        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
-            color: inherit !important; 
-            opacity: 1;
-        }
-
-        /* Message History container */
-        .chat-messages {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse; 
-            padding: 1rem;
-        }
-        
-        /* Custom Scrollbar (kept for desktop view) */
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #3B82F6; 
+        #messageHistory::-webkit-scrollbar-track {
+            background: theme('colors.light-bg');
             border-radius: 4px;
         }
-        .dark .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: theme('colors.neon-primary'); 
+        .dark #messageHistory::-webkit-scrollbar-track {
+            background: theme('colors.dark-card');
         }
-        .chat-messages::-webkit-scrollbar-track {
-             background-color: #E5E7EB;
+        #messageHistory::-webkit-scrollbar-thumb {
+            background: theme('colors.gray.400');
+            border-radius: 4px;
         }
-        .dark .chat-messages::-webkit-scrollbar-track {
-             background-color: theme('colors.dark-card');
+        .dark #messageHistory::-webkit-scrollbar-thumb {
+            background: theme('colors.gray.600');
         }
-        
-        /* Unread Badge */
-        .badge-style {
-            background-color: #EF4444; 
-            color: white; 
-            font-weight: 900; 
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-        }
-        .dark .badge-style {
-            background-color: theme('colors.neon-secondary'); 
-            color: theme('colors.dark-bg'); 
-            box-shadow: 0 0 8px theme('colors.neon-secondary');
-        }
-
-        /* Message Bubbles */
-        .admin-bubble {
-            background-color: #3B82F6; 
-            color: white;
-            border-bottom-right-radius: 8px !important;
-        }
-        .dark .admin-bubble {
-            background-color: #312e81; 
-        }
-        .user-bubble {
-            background-color: #E5E7EB; 
-            color: #1F2937; 
-            border-bottom-left-radius: 8px !important;
-        }
-        .dark .user-bubble {
-            background-color: #374151; 
-            color: #F9FAFB; 
-        }
-        
-        /* Card Styles for Dashboard */
-        .stat-card {
-            border: 1px solid #D1D5DB;
-            transition: all 0.5s ease-in-out;
-            border-radius: 16px; 
-            overflow: hidden;
-            position: relative;
-        }
-        .dark .stat-card {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .dark .stat-card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3B82F6, #10B981); 
-        }
-        .dark .stat-card::before {
-            background: linear-gradient(90deg, theme('colors.neon-primary'), theme('colors.neon-secondary'));
-        }
-
-        /* Input/Textarea Focus Glow */
-        input:focus, textarea:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
-            border-color: #3B82F6 !important;
-        }
-        .dark input:focus, .dark textarea:focus {
-            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
-            border-color: theme('colors.neon-primary') !important;
-        }
-
-        /* Send Button Glow */
-        #sendButton {
-            background-color: #3B82F6;
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
-            transition: all 0.2s;
-        }
-        #sendButton:hover {
-             background-color: #2563EB;
-        }
-        .dark #sendButton {
-            background-color: theme('colors.neon-primary');
-            color: theme('colors.dark-bg');
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
-        }
-        .dark #sendButton:hover {
-             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
-             background-color: #00ffff;
-        }
-
     </style>
 </head>
-<!-- Main container uses light-bg by default, dark-bg in dark mode -->
-<body class="bg-light-bg dark:bg-dark-bg h-screen overflow-hidden flex text-gray-900 dark:text-gray-200">
-
-    <!-- Mobile Sidebar Backdrop (Only visible when sidebar is open on small screens) -->
-    <div id="mobile-backdrop" class="fixed inset-0 bg-black z-30 md:hidden" onclick="toggleSidebar()"></div>
-
-    <!-- 1. Full Sidebar (Responsive: fixed & hidden on mobile, static on desktop) -->
-    <div id="sidebar" class="w-64 sidebar bg-light-card dark:bg-darker-sidebar border-r border-light-border dark:border-gray-700/30 shadow-2xl flex flex-col flex-shrink-0 z-40
-                fixed h-full top-0 left-0 transform -translate-x-full md:relative md:transform-none md:flex transition-transform duration-500">
-        
-        <!-- Logo/Title: Neon Emphasis -->
-        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
-            <svg class="w-8 h-8 mr-3 text-blue-600 dark:text-neon-secondary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-            <span class="tracking-widest">Admin Plan</span>
-        </div>
-
-        <!-- Navigation Menu -->
-        <nav id="mainNav" class="p-4 space-y-2 flex-grow overflow-y-auto">
-            
-            <!-- 1. Dashboard -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 active-nav" data-section="dashboard">
-                <svg class="w-6 h-6 mr-3 text-blue-600 dark:text-neon-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span>Dashboard</span>
-            </a>
-
-             <!-- 2. FB Page Messenger (New) -->
-             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="fb-messenger">
-                <!-- Messenger Icon -->
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                </svg>
-                <span>FB Page Messenger</span>
-            </a>
-            
-            <!-- 3. Chats -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 justify-between" data-section="chat">
-                <div class="flex items-center">
-                    <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    <span>Chats</span>
-                </div>
-                <!-- Total Unread Count Badge -->
-                <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
-            </a>
-
-            <!-- 4. User List (New) -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="user-list">
-                <!-- User Group Icon -->
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <span>User List</span>
-            </a>
-            
-            <!-- 5. Broadcast -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="broadcast">
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span>Broadcast</span>
-            </a>
-            
-            <!-- 6. Settings -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="settings">
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span>Settings</span>
-            </a>
-        </nav>
-        
-        <!-- Dark Mode Toggle Button -->
-        <div class="p-6 border-t border-light-border dark:border-gray-700/30 transition-colors duration-500">
-             <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800/50 dark:hover:bg-gray-700 transition duration-300 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-300 dark:border-gray-700/50">
-                <svg id="themeIcon" class="w-6 h-6 text-yellow-600 dark:text-neon-secondary transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24">
-                    <!-- Icon updated by JS -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <span id="themeText" class="font-medium text-sm hidden sm:inline transition-colors duration-300">Switch Theme</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- 2. Chat List Panel (Responsive: full width on mobile, w-80 on desktop/tablet) -->
-    <div id="chatListPanel" class="w-full md:w-80 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-gray-700/30 flex-col flex-shrink-0 z-30 transition-colors duration-500 shadow-xl hidden">
-        <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-light-border dark:border-gray-700/30 h-20 flex items-center transition-colors duration-500">
-            Conversations Log
-        </div>
-
-        <!-- Chat List Search Input -->
-        <div class="p-4 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
-            <input type="text" id="chatListSearch" placeholder="Chat/User ID ကိုရှာရန်..."
-                   onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-        </div>
-
-        <!-- Chat List Container -->
-        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
-        </div>
-    </div>
-
-    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col transition-colors duration-500 relative">
-        
-        <!-- === NEW: Shared Top Nav Bar (Desktop/Tablet) === -->
-        <nav id="desktopTopNav" class="hidden md:flex p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 items-center justify-end sticky top-0 z-20 shadow-md">
-            <div id="myanmarTimeDisplay" class="text-base font-semibold text-gray-700 dark:text-neon-primary flex items-center space-x-2 transition-colors duration-500">
-                <!-- Content filled by JS (Myanmar Time) -->
-            </div>
-        </nav>
-        
-        <!-- Mobile Header (Visible only on small screens) - Modified to include time -->
-        <header id="mobileHeader" class="md:hidden p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-20 shadow-lg">
-            <!-- Menu Toggle Button -->
-            <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200">
-                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-            </button>
-            
-            <div class="flex flex-col items-center">
-                <span id="mobileHeaderTitle" class="text-sm font-bold text-gray-800 dark:text-gray-200">Dashboard</span>
-                <span id="mobileHeaderTime" class="text-xs text-red-500 dark:text-neon-primary font-mono mt-0.5">--:--:--</span>
+<body class="bg-light-bg dark:bg-dark-bg transition-colors duration-300">
+    <div id="app" class="h-screen flex">
+        <!-- Sidebar - Left Panel (Chat List/Navigation) -->
+        <aside id="sidebar" class="w-20 md:w-64 bg-white dark:bg-darker-sidebar border-r dark:border-dark-border flex flex-col transition-all duration-300">
+            <div class="p-4 text-center border-b dark:border-dark-border">
+                <h1 class="text-xl font-bold text-gray-800 dark:text-neon-primary md:block hidden">AdminPlan</h1>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-neon-primary md:hidden block">AP</h1>
             </div>
             
-            <!-- Back Button for Chat View (hidden by default) -->
-             <button id="chatBackButton" onclick="backToChatList()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200 hidden">
-                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            <div class="w-10 h-10 md:hidden"></div> <!-- Placeholder for alignment -->
-        </header>
+            <!-- Navigation -->
+            <nav class="flex flex-col flex-grow p-2">
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-light-bg dark:hover:bg-dark-card transition-colors duration-200 active" data-section="dashboard">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <span class="md:inline hidden">Chat Dashboard</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-light-bg dark:hover:bg-dark-card transition-colors duration-200" data-section="settings">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="md:inline hidden">Settings</span>
+                </a>
+            </nav>
 
-        
-        <!-- === SECTION 1: Dashboard === -->
-        <div id="section-dashboard" class="main-section flex-grow p-4 md:p-8 overflow-y-auto">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                🚀 Dashboard 
-            </h1>
-            <p class="text-gray-500 dark:text-gray-400 mb-6 md:mb-10 border-b border-light-border dark:border-gray-700/50 pb-4 transition-colors duration-500">
-                အချိန်နှင့်တပြေးညီ အချက်အလက်နှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။
-            </p>
-            <!-- Adjusted grid for better mobile flow (1 col, 3 cols on md) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <!-- Card 1 -->
-                <div class="stat-card p-6 md:p-8 bg-blue-500 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၁,၂၄၅</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">မှတ်ပုံတင်ထားသော အသုံးပြုသူ စုစုပေါင်း</div>
-                </div>
-                <!-- Card 2 -->
-                <div class="stat-card p-6 md:p-8 bg-green-500 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၂၅</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">လက်ရှိအသုံးပြုနေသော စက်ရှင်များ</div>
-                </div>
-                <!-- Card 3 -->
-                <div class="stat-card p-6 md:p-8 bg-purple-500 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၁၅၆</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">ဖြေရှင်းရန် ကျန်ရှိသော လက်မှတ်များ</div>
-                </div>
+            <!-- Dark Mode Toggle and Time -->
+            <div class="p-4 border-t dark:border-dark-border text-center">
+                <p id="myanmarTime" class="text-sm text-gray-500 dark:text-gray-400 mb-2 md:block hidden">--:--:--</p>
+                <button id="darkModeToggle" class="w-full p-2 rounded-full bg-light-bg dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <svg id="sunIcon" class="w-6 h-6 mx-auto text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="moonIcon" class="w-6 h-6 mx-auto text-purple-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
             </div>
-            
-            <div class="mt-8 md:mt-12 bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-2xl transition-colors duration-500 border border-light-border dark:border-gray-700/50">
-                <h3 class="text-xl md:text-2xl font-bold mb-4 text-purple-600 dark:text-neon-secondary transition-colors duration-500">စနစ်ဝန်ထုပ်ဝန်ပိုး မြင်ကွင်း</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-500">နောက်ဆုံး ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။</p>
-                <div class="h-48 md:h-64 bg-gray-200 dark:bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-400 dark:text-gray-700 border border-gray-300 dark:border-gray-700/50 transition-colors duration-500">
-                    [Holographic Data Display Placeholder]
-                </div>
-            </div>
-        </div>
+        </aside>
 
-        <!-- === SECTION 2: FB Page Messenger (NEW REAL IMPLEMENTATION) === -->
-        <div id="section-fb-messenger" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                💬 FB Page Messenger
-            </h1>
-            <div class="flex h-[calc(100vh-250px)] bg-light-card dark:bg-dark-card rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 overflow-hidden">
-                <!-- FB List -->
-                <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto" id="fbChatList">
-                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
-                        Facebook Inbox
-                    </div>
-                    <!-- Dynamic FB Chat Items go here -->
-                    <div class="text-center p-4 text-gray-500 text-sm">Loading FB chats...</div>
-                </div>
-
-                <!-- FB Placeholder / View -->
-                <div class="w-2/3 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
-                    <div class="text-center">
-                        <svg class="mx-auto h-16 w-16 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-200">Select a Conversation</h3>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">View and reply to Facebook messages here.</p>
-                        <button onclick="fetchFBChats()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Refresh Inbox</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- === SECTION 3: Chats (Existing Chat Logic) === -->
-        <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat View (History/Input) - Hidden on mobile by default until a chat is selected -->
-            <div id="chatView" class="flex-grow flex-col hidden md:flex flex"> 
-                <!-- Chat Header (Desktop View) -->
-                <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
-                    <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
-                </header>
+        <!-- Main Content Area -->
+        <main class="flex-grow p-4 overflow-hidden">
+            <div id="dashboard" class="h-full flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
                 
-                <!-- Chat History Search Input -->
-                <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
-                    <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
-                           onkeyup="filterChatHistory(this.value)"
-                           class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-                </div>
+                <!-- Chat List Panel -->
+                <section id="chatListPanel" class="w-full lg:w-2/5 xl:w-1/3 h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-4 border-b dark:border-dark-border">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">လက်ခံရရှိထားသော စာများ (Chats)</h2>
+                        <input type="text" id="chatListSearch" placeholder="ရှာဖွေရန်..." class="w-full p-2 border rounded-lg bg-light-bg dark:bg-darker-sidebar dark:border-dark-border text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-neon-primary focus:border-neon-primary outline-none" oninput="filterChatList(this.value)">
+                    </div>
+                    <div id="chatList" class="flex-grow overflow-y-auto divide-y dark:divide-dark-border">
+                        <!-- Chat items will be dynamically loaded here -->
+                        <p class="text-center text-gray-500 dark:text-gray-400 mt-20">Loading chats...</p>
+                    </div>
+                </section>
 
-                <!-- Message History -->
-                <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-500">
-                    <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
-                </div>
-
-                <!-- Message Input -->
-                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50">
+                <!-- Chat Section (Message History & Reply) -->
+                <section id="chatSection" class="hidden w-full lg:w-3/5 xl:w-2/3 h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-lg">
                     
-                    <!-- File/Image Preview Area -->
-                    <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
-                                <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
-                                <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
+                    <!-- Chat Header (User Info) -->
+                    <div id="chatHeader" class="p-4 border-b dark:border-dark-border flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span id="chatAvatar" class="w-10 h-10 rounded-full bg-neon-primary flex items-center justify-center text-white font-bold mr-3">U</span>
+                            <div>
+                                <h3 id="chatUserName" class="text-lg font-semibold text-gray-800 dark:text-white">User Name</h3>
+                                <p id="chatPlatform" class="text-sm text-gray-500 dark:text-gray-400">Platform</p>
                             </div>
-                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </div>
+                        <button id="closeChatButton" class="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Search History -->
+                    <div class="p-4 border-b dark:border-dark-border">
+                        <input type="text" id="chatHistorySearch" placeholder="စာကြောင်းရှာဖွေရန်..." class="w-full p-2 border rounded-lg bg-light-bg dark:bg-darker-sidebar dark:border-dark-border text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-neon-primary focus:border-neon-primary outline-none" oninput="filterChatHistory(this.value)">
+                    </div>
+
+                    <!-- Message History Container (ပြင်ဆင်ထားသော Scroll Bar ပါဝင်သည်) -->
+                    <div id="messageHistory" class="flex-grow p-4 space-y-3 overflow-y-auto">
+                        <!-- Messages go here -->
+                        <p class="text-center text-gray-500 dark:text-gray-400 mt-20">Chat စတင်ရန် စာတစ်စောင် ရွေးချယ်ပါ။</p>
+                    </div>
+
+                    <!-- Reply Box (အောက်ခြေတွင် ပုံသေထားရှိသည်) -->
+                    <div id="replyBox" class="p-4 border-t dark:border-dark-border">
+                        <div class="flex items-end space-x-2">
+                            <textarea id="replyInput" class="flex-grow resize-none p-3 border rounded-lg bg-light-bg dark:bg-darker-sidebar dark:border-dark-border text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-neon-primary focus:border-neon-primary outline-none max-h-32" rows="1" placeholder="စာပြန်ရန်..."></textarea>
+                            <button id="sendReplyButton" class="p-3 rounded-lg bg-neon-primary text-dark-bg hover:bg-neon-primary/80 transition-colors duration-200 shadow-lg shadow-neon-primary/50 disabled:opacity-50" disabled>
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </button>
                         </div>
                     </div>
-
-                    <div class="flex space-x-2">
-                        <!-- Hidden File Input -->
-                        <input type="file" id="fileInput" class="hidden" 
-                               onchange="handleFileSelect(event)" 
-                               accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                               
-                        <!-- Attach Button -->
-                        <button onclick="document.getElementById('fileInput').click()" 
-                                class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        </button>
-                        
-                        <!-- Input field with neon focus style -->
-                        <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
-                               class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
-                               onkeypress="if(event.key === 'Enter') sendReply()">
-                               
-                        <!-- Send button with vibrant glow -->
-                        <button id="sendButton" onclick="sendReply()"
-                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- === SECTION 4: User List (NEW REAL IMPLEMENTATION) === -->
-        <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                👥 User List
-            </h1>
-            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-gray-500 dark:text-gray-400 transition-colors duration-500">
-                        စနစ်အသုံးပြုသူများ စာရင်း။
-                    </p>
-                    <button onclick="promptAddUser()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition shadow-lg hover:scale-105 transform">
-                        + Add New User
-                    </button>
-                </div>
+                </section>
                 
-                <!-- Dynamic User Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                                <th class="py-3 px-4">Name</th>
-                                <th class="py-3 px-4">Role</th>
-                                <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody" class="text-gray-800 dark:text-gray-200">
-                           <tr><td colspan="4" class="text-center py-4 text-gray-500">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- === SECTION 5: Broadcast === -->
-        <div id="section-broadcast" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု (Global Broadcast)</h1>
-            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                <p class="mb-6 text-gray-500 dark:text-gray-400 transition-colors duration-500">
-                    ပစ်မှတ်ထားသော အသုံးပြုသူ အပိုင်းများသို့ ဦးစားပေး မက်ဆေ့ခ်ျများ ပေးပို့ပါ။
-                </p>
-                <textarea class="w-full p-4 border rounded-xl bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-purple-500 dark:focus:ring-neon-secondary transition duration-300 text-base" rows="8" placeholder="ဤနေရာတွင် ထုတ်လွှင့်မည့် မက်ဆေ့ခ်ျကို ရိုက်ထည့်ပါ..."></textarea>
-                <button class="mt-4 bg-purple-600 dark:bg-neon-secondary text-white dark:text-dark-bg p-4 rounded-xl font-bold hover:bg-purple-700 dark:hover:bg-fuchsia-400 transition duration-300 shadow-xl transform hover:scale-[1.02] dark:shadow-[0_0_10px_rgba(255,0,255,0.6)]">
-                    <span class="flex items-center space-x-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span>ထုတ်လွှင့်မှုကို စတင်ပါ</span>
-                    </span>
-                </button>
-            </div>
-        </div>
-
-        <!-- === SECTION 6: Settings === -->
-        <div id="section-settings" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">⚙️ စနစ်ဖွဲ့စည်းပုံ (System Configuration)</h1>
-            <div class="space-y-6 md:space-y-8">
-                <!-- Setting Card 1 -->
-                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">API Key စီမံခန့်ခွဲမှု</h3>
-                    <p class="text-sm text-gray-500 mb-4 transition-colors duration-500">လုံခြုံသော ဝင်ရောက်မှု ပရိုတိုကော အထောက်အထားများ။</p>
-                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 transition duration-300 text-base">
-                </div>
-                <!-- Setting Card 2 -->
-                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">Bot အခြေအနေ ထိန်းချုပ်မှု</h3>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-600 dark:text-gray-400 text-base md:text-lg transition-colors duration-500">Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" value="" class="sr-only peer" checked>
-                            <!-- Toggle switch with vibrant colors and transition -->
-                            <div class="w-14 h-8 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-primary dark:shadow-lg dark:peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)] transition-colors duration-300"></div>
-                        </label>
+                <!-- Placeholder for initial view -->
+                <section id="chatPlaceholder" class="w-full lg:w-3/5 xl:w-2/3 h-full flex items-center justify-center bg-light-card dark:bg-dark-card rounded-lg shadow-lg">
+                    <div class="text-center text-gray-500 dark:text-gray-400">
+                        <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                        <h2 class="text-xl font-semibold">Chat ရွေးချယ်ရန်</h2>
+                        <p>ဘယ်ဘက်ရှိ စာရင်းမှ Chat တစ်ခုကို ရွေးချယ်ပါ</p>
                     </div>
-                </div>
-            </div>
-        </div>
+                </section>
 
+                <!-- Settings Section -->
+                <section id="settings" class="hidden w-full h-full bg-light-card dark:bg-dark-card rounded-lg shadow-lg p-6 overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">ချိန်ညှိချက်များ (Settings)</h2>
+                    <div class="space-y-6">
+                        <!-- Dark Mode Setting -->
+                        <div class="p-4 border rounded-lg dark:border-dark-border dark:bg-darker-sidebar">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">အပြင်အဆင် (Theme)</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-3">အလင်းရောင် (Light) သို့မဟုတ် အမှောင်ရောင် (Dark) ပုံစံကို ရွေးချယ်ပါ။</p>
+                            <button id="settingsDarkModeToggle" class="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200 bg-gray-500 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600">
+                                <span>Theme ကိုပြောင်းရန်</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Notifications Setting -->
+                        <div class="p-4 border rounded-lg dark:border-dark-border dark:bg-darker-sidebar">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">အသံမြည်ခြင်း (Notifications)</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-3">စာအသစ်ဝင်ရောက်ပါက အသံမြည်စေရန် ဖွင့်/ပိတ်ပါ။</p>
+                            <label for="notificationToggle" class="inline-flex relative items-center cursor-pointer">
+                                <input type="checkbox" id="notificationToggle" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-neon-primary dark:peer-focus:ring-neon-secondary dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-neon-primary"></div>
+                                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">အသံမြည်ခြင်းကို ဖွင့်ထားသည်</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // --- Client-side State Management ---
-        const apiKey = ""; 
-        const BASE_URL = ''; 
-        let socket;
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        // --- Global Variables (Canvas Provided) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const LLM_API_KEY = typeof __llm_api_key !== 'undefined' ? __llm_api_key : '';
+        const MESSAGES_COLLECTION_NAME = 'messages';
+        const CHATS_COLLECTION_NAME = 'chats';
+
+        // --- Firebase Initialization ---
+        setLogLevel('Debug');
+        let app, db, auth, userId = null;
+        let isAuthReady = false;
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+                document.getElementById('chatList').innerHTML = `<p class="text-center text-red-500 mt-20">Firebase စတင်ရန် မအောင်မြင်ပါ။</p>`;
+            }
+        } else {
+            console.error("Firebase config is missing or empty.");
+        }
+
+
+        // --- State Management ---
         let currentChatId = null;
-        let unreadCounts = {}; 
-        let allChats = []; 
-        const htmlElement = document.documentElement;
-
-        // --- File State Variables ---
-        let selectedFile = null;
-        let mediaPath = null;
-        let mediaType = null;
-        let filename = null;
-
-        // --- Responsive State Variable ---
-        let isMobileSidebarOpen = false;
+        let chatListUnsubscribe = null;
+        let chatHistoryUnsubscribe = null;
 
         // --- Utility Functions ---
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        // Function to handle exponential backoff for fetch requests
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    console.error(`Fetch attempt ${i + 1} failed for ${url}:`, error);
+                    if (i === maxRetries - 1) throw error; // Re-throw if last attempt
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000; // Exponential backoff
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
         }
         
-        function getFileIcon(mimeType) {
-            if (mimeType.startsWith('image/')) return '🖼️';
-            if (mimeType.includes('pdf')) return '📄';
-            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
-            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-            return '📎';
-        }
-        
-        function updateMyanmarTime() {
-            const now = new Date();
-            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const mstOffset = 6.5 * 3600 * 1000;
-            const mstTime = new Date(utcTime + mstOffset);
+        // Function to create a message bubble
+        function createMessageBubble(message) {
+            const isSentByAdmin = message.sender === 'admin';
+            const bubble = document.createElement('div');
+            bubble.classList.add('flex', isSentByAdmin ? 'justify-end' : 'justify-start');
+
+            const content = document.createElement('div');
+            content.classList.add(
+                'max-w-xs', 'md:max-w-md', 'lg:max-w-lg', 'p-3', 'rounded-xl', 'shadow-md',
+                isSentByAdmin
+                    ? 'bg-neon-primary text-dark-bg rounded-br-none'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-tl-none'
+            );
+            content.innerHTML = `<p>${message.text}</p>`;
             
-            const timeString = mstTime.toLocaleTimeString('en-US', { hour12: false });
-            const dateString = mstTime.toLocaleDateString('en-US', {
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit'
-            });
+            // Add timestamp
+            const timestamp = document.createElement('p');
+            timestamp.classList.add(
+                'text-xs', 'mt-1', 
+                isSentByAdmin 
+                    ? 'text-dark-bg/70 text-right' 
+                    : 'text-gray-500 dark:text-gray-400 text-left'
+            );
+            const date = message.timestamp ? new Date(message.timestamp) : new Date();
+            timestamp.textContent = date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-            const fullDisplay = `
-                <svg class="w-5 h-5 text-red-500 dark:text-neon-primary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"></path></svg>
-                <span class="hidden sm:inline">MYANMAR TIME (MST): </span>
-                <span class="font-mono">${dateString} ${timeString}</span>
-            `;
-
-            const desktopDisplay = document.getElementById('myanmarTimeDisplay');
-            if (desktopDisplay) desktopDisplay.innerHTML = fullDisplay;
-            
-            const mobileHeaderTime = document.getElementById('mobileHeaderTime');
-            if (mobileHeaderTime) mobileHeaderTime.textContent = `${timeString}`;
-        }
-        setInterval(updateMyanmarTime, 1000); 
-
-        // --- Dark Mode Functions ---
-        function toggleDarkMode() {
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            updateThemeIcon();
+            content.appendChild(timestamp);
+            bubble.appendChild(content);
+            return bubble;
         }
 
-        function updateThemeIcon() {
-            const isDark = htmlElement.classList.contains('dark');
-            const iconPath = isDark
-                ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" 
-                : "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"; 
-
-            document.getElementById('themeIcon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>`;
-            document.getElementById('themeText').textContent = isDark ? 'Switch to Day Mode' : 'Switch to Night Mode';
-        }
-
-        function loadDarkModePreference() {
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                htmlElement.classList.add('dark');
-            } else if (savedTheme === 'light') {
-                htmlElement.classList.remove('dark');
-            }
-            updateThemeIcon();
-        }
-        
-        function toggleSidebar() {
-            isMobileSidebarOpen = !isMobileSidebarOpen;
-            const sidebar = document.getElementById('sidebar');
-            const body = document.body;
-
-            if (isMobileSidebarOpen) {
-                body.classList.add('sidebar-open');
-            } else {
-                body.classList.remove('sidebar-open');
-            }
-        }
-
-        function isMobileView() {
-            return window.matchMedia('(max-width: 767px)').matches;
-        }
-
-        function backToChatList() {
-             const chatView = document.getElementById('chatView');
-             const chatListPanel = document.getElementById('chatListPanel');
-             chatView.classList.add('hidden');
-             chatListPanel.classList.remove('hidden');
-             document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
-             document.getElementById('chatBackButton').classList.add('hidden');
-             currentChatId = null;
-             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-        }
-
-        function updateTotalUnreadBadge() {
-            const badge = document.getElementById('totalUnreadBadge');
-            let totalCount = 0;
-            for (const chatId in unreadCounts) {
-                totalCount += unreadCounts[chatId];
-            }
-            if (badge) {
-                if (totalCount > 0) {
-                    badge.textContent = totalCount > 99 ? '99+' : totalCount;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.textContent = '';
-                    badge.classList.add('hidden');
-                }
-            }
-        }
-
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
-
-            const targetSection = document.getElementById(`section-${sectionId}`);
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                let title = 'Dashboard';
-                if(sectionId === 'fb-messenger') {
-                    title = 'FB Messenger';
-                    fetchFBChats(); // Fetch FB chats when section loads
-                }
-                else if(sectionId === 'user-list') {
-                    title = 'User List';
-                    fetchUsers(); // Fetch Users when section loads
-                }
-                else title = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
-                
-                document.getElementById('mobileHeaderTitle').textContent = title;
-                
-                if (sectionId === 'chat') {
-                     targetSection.classList.add('flex-col');
-                } else {
-                     targetSection.classList.remove('flex-col');
-                }
-            }
-
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active-nav');
-            }
-            
-            if (isMobileSidebarOpen) {
-                toggleSidebar();
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            const chatView = document.getElementById('chatView');
-            const chatBackButton = document.getElementById('chatBackButton');
-
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                if (!isMobileView()) {
-                     chatView.classList.remove('hidden');
-                     chatBackButton.classList.add('hidden');
-                     document.getElementById('mobileHeaderTitle').textContent = 'Chat'; 
-                } else {
-                     chatView.classList.add('hidden');
-                     chatBackButton.classList.add('hidden');
-                     document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
-                }
-
-                if (allChats.length === 0) {
-                    fetchChats();
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                }
-            } else {
-                chatListPanel.classList.add('hidden');
-                chatView.classList.add('hidden');
-                chatBackButton.classList.add('hidden');
-                if (sectionId !== 'fb-messenger') {
-                     currentChatId = null;
-                }
-                document.getElementById('chatHistorySearch').value = ''; 
-                clearFileSelection(); 
-            }
-        }
-
-        // --- NEW: User List Logic ---
-        async function fetchUsers() {
-            const tableBody = document.getElementById('userTableBody');
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Loading...</td></tr>';
-            try {
-                const res = await fetch(`${BASE_URL}/api/users?key=${apiKey}`);
-                const users = await res.json();
-                
-                tableBody.innerHTML = '';
-                if(users.length === 0) {
-                     tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found.</td></tr>';
-                     return;
-                }
-
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition';
-                    const initials = user.name.slice(0,2).toUpperCase();
-                    
-                    row.innerHTML = `
-                        <td class="py-3 px-4 flex items-center">
-                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3 text-xs">${initials}</div>
-                            <span>${user.name}</span>
-                        </td>
-                        <td class="py-3 px-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded text-xs">${user.role}</span></td>
-                        <td class="py-3 px-4"><span class="flex items-center text-green-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>${user.status}</span></td>
-                        <td class="py-3 px-4 text-right">
-                            <button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            } catch(e) {
-                console.error(e);
-                tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Error loading users.</td></tr>';
-            }
-        }
-
-        async function promptAddUser() {
-            const name = prompt("Enter User Name:");
-            if(!name) return;
-            const role = prompt("Enter Role (e.g. Admin, Editor):", "Viewer");
-            
-            try {
-                await fetch(`${BASE_URL}/api/users?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name, role, status: 'Active' })
-                });
-                fetchUsers(); // Refresh
-            } catch(e) {
-                alert("Failed to add user");
-            }
-        }
-
-        async function deleteUser(id) {
-            if(!confirm("Are you sure?")) return;
-            try {
-                await fetch(`${BASE_URL}/api/users/${id}?key=${apiKey}`, { method: 'DELETE' });
-                fetchUsers();
-            } catch(e) {
-                alert("Failed to delete user");
-            }
-        }
-
-        // --- NEW: FB Messenger Logic ---
-        async function fetchFBChats() {
-            const list = document.getElementById('fbChatList');
-            // Keep header, clear items
-            list.innerHTML = `
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
-                    Facebook Inbox
-                </div>
-                <div class="text-center p-4 text-gray-500 text-sm">Loading...</div>
-            `;
-            
-            try {
-                // Fetch chats with platform=facebook filter
-                const res = await fetch(`${BASE_URL}/api/chats?platform=facebook&key=${apiKey}`);
-                const chats = await res.json();
-                
-                // Remove loading
-                const loading = list.querySelector('.text-center');
-                if(loading) loading.remove();
-
-                if(chats.length === 0) {
-                     const empty = document.createElement('div');
-                     empty.className = "text-center p-4 text-gray-500 text-sm";
-                     empty.innerText = "No Facebook messages found.";
-                     list.appendChild(empty);
-                     return;
-                }
-
-                chats.forEach(chat => {
-                    const item = document.createElement('div');
-                    item.className = "p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition";
-                    item.onclick = () => {
-                        // Switch to main chat view context for this user
-                        // We reuse the main selectChat logic but ensure it opens in the right context
-                        // For simplicity, we redirect to the main 'chat' tab with this ID
-                        showSection('chat');
-                        selectChat(chat.telegramId, chat.username || 'FB User');
-                    };
-                    item.innerHTML = `
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">f</div>
-                            <div class="flex-grow min-w-0">
-                                <p class="font-bold text-gray-800 dark:text-gray-200 truncate">${chat.username || 'Facebook User'}</p>
-                                <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'Image/File'}</p>
-                            </div>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-
-        // --- Chat Functions (Existing) ---
-        async function markChatAsRead(chatId) {
-            try {
-                await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            } catch (error) { console.error(error); }
-        }
-
+        // Function to create a chat list item
         function createChatListItem(chat) {
-            const chatId = chat.telegramId;
-            const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || 'Unknown Entity';
-            const count = unreadCounts[chatId] || 0; 
-            const isFB = chat.platform === 'facebook';
+            const isUnread = chat.unreadCount > 0;
+            const item = document.createElement('a');
+            item.href = "#";
+            item.id = `chat-${chat.id}`;
+            item.classList.add(
+                'flex', 'items-center', 'p-4', 'hover:bg-light-bg', 'dark:hover:bg-dark-card', 'transition-colors', 'duration-200',
+                'cursor-pointer', 'chat-item',
+                chat.id === currentChatId ? 'bg-light-bg dark:bg-dark-card' : ''
+            );
+            item.setAttribute('data-chat-id', chat.id);
+            item.setAttribute('data-user-name', chat.userName);
+            item.setAttribute('data-platform', chat.platform || 'Unknown');
 
-            const chatElement = document.createElement('div');
-            chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-800 dark:text-gray-200 shadow-lg hover:shadow-2xl';
-            chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', username.toLowerCase());
+            const avatar = document.createElement('div');
+            avatar.classList.add(
+                'w-12', 'h-12', 'rounded-full', 'flex', 'items-center', 'justify-center', 'font-bold', 'text-white', 'mr-4', 'shadow',
+                chat.platform === 'facebook' ? 'bg-blue-600' : 'bg-cyan-500' // Different color for platforms
+            );
+            avatar.textContent = chat.userName ? chat.userName[0].toUpperCase() : 'U';
+            item.appendChild(avatar);
 
-            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
+            const info = document.createElement('div');
+            info.classList.add('flex-grow', 'overflow-hidden');
             
-            // Icon based on platform
-            const icon = isFB ? '<span class="text-white font-bold">f</span>' : '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>';
-            const bgClass = isFB ? 'bg-blue-700' : 'bg-blue-500/50 dark:bg-indigo-700/50';
+            const header = document.createElement('div');
+            header.classList.add('flex', 'justify-between', 'items-center', 'mb-1');
+            
+            const name = document.createElement('h3');
+            name.classList.add('text-md', 'font-semibold', 'text-gray-900', 'dark:text-white', 'truncate');
+            name.textContent = chat.userName || 'Unknown User';
+            header.appendChild(name);
 
-            const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full ${bgClass} text-blue-800 dark:text-neon-primary border border-blue-800/50 dark:border-neon-primary/50">
-                    ${icon}
-                </div>
-            `;
-
-            chatElement.innerHTML = `
-                ${avatar}
-                <div class="flex-grow min-w-0">
-                    <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-blue-600 dark:text-neon-primary opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
-                </div>
-                ${unreadBadge}
-            `;
-
-            chatElement.addEventListener('click', () => {
-                selectChat(chatId, username);
-            });
-
-            if (currentChatId === chatId) {
-                 chatElement.classList.add('active');
+            if (chat.lastMessageTimestamp) {
+                const time = document.createElement('p');
+                time.classList.add('text-xs', 'text-gray-500', 'dark:text-gray-400', 'flex-shrink-0');
+                const date = new Date(chat.lastMessageTimestamp);
+                time.textContent = date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+                header.appendChild(time);
             }
-            return chatElement;
+
+            const messageText = document.createElement('p');
+            messageText.classList.add('text-sm', 'text-gray-600', 'dark:text-gray-400', 'truncate');
+            messageText.textContent = chat.lastMessageText || 'No messages yet.';
+
+            info.appendChild(header);
+            info.appendChild(messageText);
+            item.appendChild(info);
+
+            if (isUnread) {
+                const unreadBadge = document.createElement('span');
+                unreadBadge.classList.add('ml-3', 'px-2', 'py-0.5', 'text-xs', 'font-bold', 'bg-red-500', 'text-white', 'rounded-full', 'flex-shrink-0');
+                unreadBadge.textContent = chat.unreadCount;
+                item.appendChild(unreadBadge);
+            }
+
+            item.onclick = (e) => {
+                e.preventDefault();
+                openChat(chat.id, chat.userName, chat.platform);
+            };
+
+            return item;
+        }
+
+        // --- Authentication & Setup ---
+
+        function handleAuthSuccess(user) {
+            userId = user.uid;
+            isAuthReady = true;
+            console.log("Authentication successful, User ID:", userId);
+            // Once auth is ready, start listening to chats
+            startChatListListener();
+        }
+
+        async function initAuth() {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Authentication failed:", error);
+                document.getElementById('chatList').innerHTML = `<p class="text-center text-red-500 mt-20">Authentication မအောင်မြင်ပါ။</p>`;
+            }
+        }
+
+        // Use onAuthStateChanged to ensure we are fully authenticated before running listeners
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                handleAuthSuccess(user);
+            } else {
+                console.log("No user signed in. Attempting sign-in...");
+                initAuth(); // Attempt to sign in if no user is found
+            }
+        });
+
+        // --- Chat Listeners ---
+
+        function getChatRef(chatId) {
+            // Public path for chat data
+            return doc(db, `artifacts/${appId}/public/data/${CHATS_COLLECTION_NAME}`, chatId);
+        }
+
+        function getMessagesCollectionRef(chatId) {
+            // Public path for message data
+            return collection(db, `artifacts/${appId}/public/data/${CHATS_COLLECTION_NAME}/${chatId}/${MESSAGES_COLLECTION_NAME}`);
+        }
+
+        function startChatListListener() {
+            if (!isAuthReady) return;
+
+            if (chatListUnsubscribe) chatListUnsubscribe();
+
+            const chatListContainer = document.getElementById('chatList');
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/${CHATS_COLLECTION_NAME}`);
+            
+            // Note: Not using orderBy to avoid requiring composite indexes in security rules
+            const q = query(collectionRef); 
+
+            chatListContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 mt-20">Chat စာရင်းကို စစ်ဆေးနေပါသည်။...</p>`;
+
+            chatListUnsubscribe = onSnapshot(q, (snapshot) => {
+                const chats = [];
+                snapshot.forEach(doc => {
+                    const chatData = doc.data();
+                    // Deserialize lastMessageTimestamp if it was serialized as a string (if needed)
+                    chats.push({
+                        id: doc.id,
+                        ...chatData,
+                        lastMessageTimestamp: chatData.lastMessageTimestamp // Assuming Firestore Timestamp or simple number
+                    });
+                });
+                
+                // Sort the chats by last message timestamp (descending) in memory
+                chats.sort((a, b) => (b.lastMessageTimestamp || 0) - (a.lastMessageTimestamp || 0));
+
+                renderChatList(chats);
+                filterChatList(document.getElementById('chatListSearch').value);
+            }, (error) => {
+                console.error("Error listening to chat list:", error);
+                chatListContainer.innerHTML = `<p class="text-center text-red-500 mt-20">Chat စာရင်းကို ယူဆောင်ရာတွင် အမှားပေါ်ပေါက်ခဲ့သည်။</p>`;
+            });
+        }
+
+        function renderChatList(chats) {
+            const chatListContainer = document.getElementById('chatList');
+            chatListContainer.innerHTML = '';
+            if (chats.length === 0) {
+                chatListContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 mt-20">လက်ခံရရှိထားသော Chat မရှိသေးပါ။</p>`;
+                return;
+            }
+            chats.forEach(chat => {
+                chatListContainer.appendChild(createChatListItem(chat));
+            });
         }
 
         function filterChatList(query) {
-            const chatListElement = document.getElementById('chatList');
-            const lowerCaseQuery = query.toLowerCase().trim();
-            chatListElement.innerHTML = ''; 
-
-            const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || '').toLowerCase();
-                const chatId = String(chat.telegramId);
-                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
+            const items = document.querySelectorAll('.chat-item');
+            const lowerCaseQuery = query.toLowerCase();
+            items.forEach(item => {
+                const userName = item.getAttribute('data-user-name').toLowerCase();
+                const platform = item.getAttribute('data-platform').toLowerCase();
+                if (userName.includes(lowerCaseQuery) || platform.includes(lowerCaseQuery)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
             });
-            
-            if (filteredChats.length > 0) {
-                filteredChats.forEach(chat => {
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
-            } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 dark:text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
-            }
-        }
-
-        function createMessageBubble(msg) {
-            const isUser = msg.sender === 'user';
-            const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
-            const messageElement = document.createElement('div');
-            messageElement.className = `message-bubble flex ${alignment} mb-3`;
-            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let mediaContent = '';
-            
-            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
-            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
-
-            if (isUserMedia) {
-                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
-                mediaContent = `<img src="${imageUrl}" class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" alt="Chat Media"/>`;
-            } else if (isAdminMedia) {
-                 if (msg.mediaPath.startsWith('data:image/')) {
-                     mediaContent = `<img src="${msg.mediaPath}" class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${msg.mediaPath}', '_blank')" alt="Admin Image"/>`;
-                 } else {
-                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
-                    mediaContent = `<div class="flex items-center space-x-2 p-3 bg-blue-100 dark:bg-indigo-900 rounded-lg mb-2 border border-blue-500 dark:border-neon-primary"><span class="text-2xl">${getFileIcon(mimeType)}</span><span class="text-sm font-medium text-gray-900 dark:text-white">${msg.filename || 'Admin File'}</span></div>`;
-                 }
-            }
-
-            messageElement.innerHTML = `
-                <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
-                    ${mediaContent}
-                    <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-600 dark:text-gray-400' : 'text-blue-100 dark:text-indigo-200'} text-right">
-                        ${timeString}
-                    </span>
-                </div>
-            `;
-            return messageElement;
         }
         
-        function filterChatHistory(query) {
-            const lowerCaseQuery = query.toLowerCase().trim();
-            const messages = document.querySelectorAll('#messageHistory .message-bubble');
-            let foundCount = 0;
-            messages.forEach(messageDiv => {
-                const messageContentEl = messageDiv.querySelector('.message-content');
-                if (!messageContentEl) return;
-                const messageText = messageContentEl.getAttribute('data-text');
-                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
-                    messageDiv.classList.remove('hidden');
-                    foundCount++;
-                } else {
-                    messageDiv.classList.add('hidden');
-                }
-            });
-            const noResultMessage = document.getElementById('noHistoryResults');
-            if (noResultMessage) noResultMessage.remove();
-            if (lowerCaseQuery !== '' && foundCount === 0) {
-                 const feedback = document.createElement('div');
-                 feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-red-500 dark:text-neon-secondary font-medium my-4';
-                 feedback.textContent = `ရှာဖွေမှု "${query}" နှင့် ကိုက်ညီသော ဒေတာ packet မတွေ့ပါ။`;
-                 document.getElementById('messageHistory').appendChild(feedback);
-            }
-        }
+        // --- Chat History Management ---
 
-        async function fetchChats() {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-500">Fetching orbital data streams...</div>';
-            unreadCounts = {}; 
-            allChats = []; 
-            updateTotalUnreadBadge();
+        function startChatHistoryListener(chatId) {
+            if (!isAuthReady || !chatId) return;
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
-                if (!response.ok) throw new Error('Authentication failure or offline');
-                const chats = await response.json();
-                allChats = chats; 
-                chatListElement.innerHTML = '';
-                
-                if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
-                    updateTotalUnreadBadge();
-                    return;
-                }
-                
-                chats.forEach(chat => {
-                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
-                updateTotalUnreadBadge();
-            } catch (error) {
-                console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix.</div>`;
-            }
-        }
-
-        async function selectChat(chatId, username) {
-            currentChatId = chatId;
-            const chatListPanel = document.getElementById('chatListPanel');
-            const chatView = document.getElementById('chatView');
-            const chatBackButton = document.getElementById('chatBackButton');
-
-            if (isMobileView()) {
-                 chatListPanel.classList.add('hidden');
-                 chatView.classList.remove('hidden');
-                 chatBackButton.classList.remove('hidden'); 
-                 document.getElementById('mobileHeaderTitle').textContent = username; 
-            }
-
-            document.getElementById('chatHeader').innerHTML = `
-                <div class="flex flex-col">
-                    <span class="text-xl font-semibold text-gray-900 dark:text-gray-300 transition-colors duration-500">${username}</span>
-                    <span class="text-sm font-medium text-blue-600 dark:text-neon-primary opacity-80 transition-colors duration-500">ID: ${chatId} | Online</span>
-                </div>
-            `;
-            document.getElementById('chatInputArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearch').value = ''; 
-            
-            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-            const activeChatElement = document.getElementById(`chat-${chatId}`);
-            if (activeChatElement) {
-                activeChatElement.classList.add('active');
-                if (unreadCounts[chatId] > 0) {
-                    unreadCounts[chatId] = 0;
-                    const badge = activeChatElement.querySelector('.badge-style');
-                    if (badge) badge.remove();
-                    updateTotalUnreadBadge(); 
-                    markChatAsRead(chatId);
-                }
-            }
-            clearFileSelection(); 
+            if (chatHistoryUnsubscribe) chatHistoryUnsubscribe();
 
             const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
+            const messagesRef = getMessagesCollectionRef(chatId);
+            
+            // Query to fetch messages, limited for performance, ordered by timestamp
+            const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(50));
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
-                if (!response.ok) throw new Error('Failed to load history');
-                const history = await response.json();
-                historyContainer.innerHTML = '';
-                history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
+            historyContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 mt-20">Loading messages...</p>`;
+
+            chatHistoryUnsubscribe = onSnapshot(q, (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => {
+                    messages.push({
+                        id: doc.id,
+                        ...doc.data(),
+                        timestamp: doc.data().timestamp // Assuming Firestore Timestamp or simple number
+                    });
                 });
-                historyContainer.scrollTop = 0; 
-            } catch (error) {
-                console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+                
+                // Reverse the array to display chronologically (oldest at top)
+                messages.reverse();
+                renderChatHistory(messages);
+
+                // Scroll to the bottom only on the initial load or a new message from the user
+                if (currentChatId === chatId) {
+                    historyContainer.scrollTop = historyContainer.scrollHeight;
+                }
+            }, (error) => {
+                console.error("Error listening to chat history:", error);
+                historyContainer.innerHTML = `<p class="text-center text-red-500 mt-20">Message များကို ယူဆောင်ရာတွင် အမှားပေါ်ပေါက်ခဲ့သည်။</p>`;
+            });
+        }
+
+        function renderChatHistory(messages) {
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = '';
+            if (messages.length === 0) {
+                historyContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 mt-20">ဤ Chat တွင် စာများ မရှိသေးပါ။</p>`;
+                return;
+            }
+            messages.forEach(message => {
+                historyContainer.appendChild(createMessageBubble(message));
+            });
+            // Ensure the scroll bar is at the bottom after rendering new messages
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        function filterChatHistory(query) {
+            const historyContainer = document.getElementById('messageHistory');
+            const bubbles = historyContainer.querySelectorAll('.flex'); // Select all message bubbles
+            const lowerCaseQuery = query.toLowerCase();
+            let found = false;
+
+            bubbles.forEach(bubble => {
+                const textContent = bubble.querySelector('p:not(.text-xs)').textContent.toLowerCase();
+                if (textContent.includes(lowerCaseQuery) || lowerCaseQuery === '') {
+                    bubble.style.display = 'flex';
+                    found = true;
+                } else {
+                    bubble.style.display = 'none';
+                }
+            });
+            
+            // Show a "No Results" message if nothing is found and the query is not empty
+            let noResultsMessage = historyContainer.querySelector('.no-results-message');
+            if (!noResultsMessage) {
+                noResultsMessage = document.createElement('p');
+                noResultsMessage.classList.add('text-center', 'text-gray-500', 'dark:text-gray-400', 'mt-20', 'no-results-message', 'hidden');
+                noResultsMessage.textContent = 'ရှာဖွေမှုရလဒ် မရှိပါ။';
+                historyContainer.appendChild(noResultsMessage);
+            }
+            
+            if (!found && lowerCaseQuery !== '') {
+                noResultsMessage.classList.remove('hidden');
+            } else {
+                noResultsMessage.classList.add('hidden');
             }
         }
         
-        function clearFileSelection() {
-            selectedFile = null;
-            mediaPath = null;
-            mediaType = null;
-            filename = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
-        }
+        // --- Chat Actions ---
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (file.size > 5 * 1024 * 1024) {
-                 console.log("File size exceeds 5MB transmission limit.");
-                 event.target.value = ''; 
-                 return;
+        function openChat(chatId, userName, platform) {
+            if (currentChatId) {
+                const prevItem = document.getElementById(`chat-${currentChatId}`);
+                if (prevItem) {
+                    prevItem.classList.remove('bg-light-bg', 'dark:bg-dark-card');
+                }
             }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                mediaPath = e.target.result; 
-                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
-                filename = file.name;
-                document.getElementById('fileName').textContent = filename;
-                document.getElementById('fileSize').textContent = formatBytes(file.size);
-                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
-                document.getElementById('filePreview').classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
 
-        function sendReply() {
-            if (!currentChatId || !socket) return;
-            const replyInput = document.getElementById('replyText');
-            const text = replyInput.value.trim();
+            currentChatId = chatId;
 
-            if (!text && !mediaPath) return;
+            // Highlight new chat item
+            const newItem = document.getElementById(`chat-${currentChatId}`);
+            if (newItem) {
+                newItem.classList.add('bg-light-bg', 'dark:bg-dark-card');
+            }
 
-            const sendButton = document.getElementById('sendButton');
+            // Update chat header
+            document.getElementById('chatUserName').textContent = userName;
+            document.getElementById('chatPlatform').textContent = platform.charAt(0).toUpperCase() + platform.slice(1);
+            document.getElementById('chatAvatar').textContent = userName ? userName[0].toUpperCase() : 'U';
+            document.getElementById('chatAvatar').classList.remove('bg-blue-600', 'bg-cyan-500');
+            document.getElementById('chatAvatar').classList.add(platform === 'facebook' ? 'bg-blue-600' : 'bg-cyan-500');
+            
+            // Show chat section
+            document.getElementById('chatPlaceholder').classList.add('hidden');
+            document.getElementById('chatSection').classList.remove('hidden');
+
+            // Reset reply input and enable send button
+            const replyInput = document.getElementById('replyInput');
+            const sendButton = document.getElementById('sendReplyButton');
+            replyInput.value = '';
             sendButton.disabled = true;
-            sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
 
-            const data = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: mediaPath, 
-                mediaType: mediaType, 
-                filename: filename 
-            };
+            // Start message listener
+            startChatHistoryListener(chatId);
             
-            // Check if it's FB or Telegram based on ID length or check memory array
-            // Simple heuristic: Telegram IDs are usually numbers, FB IDs are often very long numbers. 
-            // Better approach: server handles it or store platform in chat object locally.
-            // For now, assume generic admin_reply handles it or we send specialized event.
-            // Let's use generic and let server decide, or add a 'platform' to data if we knew it.
-            
-            socket.emit('admin_reply', data, (response) => {
-                sendButton.disabled = false;
-                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+            // Mark as read and update the server (which will update the unread count in Firestore)
+            markChatAsRead(chatId);
+            // Re-render chat list to update the unread badge immediately (if needed, though onSnapshot handles it)
+        }
+
+        // Auto-adjust reply input height
+        document.getElementById('replyInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            document.getElementById('sendReplyButton').disabled = this.value.trim() === '';
+        });
+        
+        // Handle send reply
+        document.getElementById('sendReplyButton').addEventListener('click', async () => {
+            const input = document.getElementById('replyInput');
+            const text = input.value.trim();
+
+            if (text && currentChatId) {
+                const sendButton = document.getElementById('sendReplyButton');
+                sendButton.disabled = true;
                 
-                if (response.success) {
-                    const tempMsg = {
-                        chatId: currentChatId,
-                        sender: 'admin',
+                // Optimistically add message to history
+                const message = {
+                    sender: 'admin',
+                    text: text,
+                    timestamp: Date.now()
+                };
+                document.getElementById('messageHistory').appendChild(createMessageBubble(message));
+                document.getElementById('messageHistory').scrollTop = document.getElementById('messageHistory').scrollHeight;
+
+                input.value = '';
+                input.style.height = 'auto'; // Reset height
+
+                try {
+                    // 1. Save the message to Firestore
+                    const messagesRef = getMessagesCollectionRef(currentChatId);
+                    await addDoc(messagesRef, {
                         text: text,
-                        mediaPath: mediaPath, 
-                        filename: filename,
-                        timestamp: new Date().toISOString()
-                    };
+                        sender: 'admin',
+                        timestamp: Date.now()
+                    });
+
+                    // 2. Update the chat document (last message info)
+                    const chatRef = getChatRef(currentChatId);
+                    await updateDoc(chatRef, {
+                        lastMessageText: text,
+                        lastMessageTimestamp: Date.now(),
+                        // Don't change unread count, as admin sent it
+                    });
+
+                    // 3. Send the message to the external service via server.js (using a custom fetch call to mimic a socket/server action)
+                    const serverUrl = '/api/reply'; // Assuming server.js exposes a reply API
+                    const response = await fetchWithRetry(serverUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // Basic Auth header for server.js
+                            'Authorization': 'Basic ' + btoa('admin:password')
+                        },
+                        body: JSON.stringify({ chatId: currentChatId, text: text })
+                    });
+                    
+                    if (!response.ok) {
+                         throw new Error(`Server failed to send message: ${response.statusText}`);
+                    }
+                    console.log("Message successfully sent to external platform.");
+
+
+                } catch (error) {
+                    console.error("Error sending message or updating database:", error);
+                    // Add an error indicator to the message bubble if needed
                     const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
-                    replyInput.value = '';
-                    clearFileSelection();
-                } else {
-                    console.error("Failed to transmit data packet:", response.error);
+                    const errorMessage = document.createElement('div');
+                    errorMessage.classList.add('text-center', 'text-sm', 'text-red-500');
+                    errorMessage.textContent = `Error: စာပို့ရာတွင် အမှားပေါ်ပေါက်ခဲ့သည်။`;
+                    historyContainer.appendChild(errorMessage);
+                } finally {
+                    sendButton.disabled = false;
                 }
-            });
+            }
+        });
+        
+        // --- Utility to Mark Chat as Read ---
+        async function markChatAsRead(chatId) {
+            if (!isAuthReady || !chatId) return;
+            try {
+                const chatRef = getChatRef(chatId);
+                const chatDoc = await getDoc(chatRef);
+                if (chatDoc.exists() && chatDoc.data().unreadCount > 0) {
+                    await updateDoc(chatRef, { unreadCount: 0 });
+                    console.log(`Chat ${chatId} marked as read.`);
+                    // Manually update the badge in the UI if onSnapshot is too slow
+                    const item = document.getElementById(`chat-${chatId}`);
+                    if (item) {
+                        const badge = item.querySelector('.bg-red-500');
+                        if (badge) badge.remove();
+                    }
+                }
+            } catch (error) {
+                console.error("Error marking chat as read:", error);
+            }
         }
+        
+        // --- UI Logic ---
+        function showSection(sectionId) {
+            document.querySelectorAll('#dashboard section, #app main section').forEach(section => {
+                section.classList.add('hidden');
+            });
 
-        function setupSocketListeners() {
-            if (typeof io !== 'function') return;
-            socket = io();
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active', 'bg-opacity-10', 'text-neon-primary', 'border-r-4', 'border-neon-primary');
+            });
             
-            socket.on('new_message', (data) => {
-                const chatId = String(data.chatId);
-                const user = data.user;
-                const message = data.message;
-                const chatList = document.getElementById('chatList');
-                
-                // Remove old entry
-                const existingChatElement = document.getElementById(`chat-${chatId}`);
-                if (existingChatElement) existingChatElement.remove();
-
-                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
-                if (chatIndex !== -1) allChats.splice(chatIndex, 1);
-                
-                user.lastMessageText = message.text;
-                user.lastMessageTime = message.timestamp;
-                // Add platform info from socket data
-                user.platform = data.platform || 'telegram';
-                allChats.unshift(user);
-
-                if (currentChatId !== chatId) {
-                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+            document.querySelector(`.nav-item[data-section="${sectionId}"]`).classList.add('active', 'bg-opacity-10', 'text-neon-primary', 'border-r-4', 'border-neon-primary');
+            
+            if (sectionId === 'dashboard') {
+                document.getElementById('dashboard').classList.remove('hidden');
+                // Ensure chat sections are initially correct
+                if (currentChatId) {
+                    document.getElementById('chatSection').classList.remove('hidden');
+                    document.getElementById('chatPlaceholder').classList.add('hidden');
                 } else {
-                    unreadCounts[chatId] = 0;
+                    document.getElementById('chatSection').classList.add('hidden');
+                    document.getElementById('chatPlaceholder').classList.remove('hidden');
                 }
-                updateTotalUnreadBadge(); 
+                document.getElementById('chatListPanel').classList.remove('hidden');
+            } else {
+                document.getElementById(sectionId).classList.remove('hidden');
+            }
+        }
+        
+        // Dark Mode Logic
+        function loadDarkModePreference() {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedTheme = localStorage.getItem('theme');
 
-                // Only update Main Chat List if we are in 'chat' section OR if it matches filter
-                // If we are in FB section, we might want to refresh that list too
-                if (document.getElementById('section-fb-messenger').classList.contains('hidden') === false && user.platform === 'facebook') {
-                    fetchFBChats(); // Refresh FB specific list
-                }
-
-                if (document.getElementById('chatListSearch').value.trim() === '') {
-                    user.unreadCount = unreadCounts[chatId]; 
-                    const newChatElement = createChatListItem(user);
-                    chatList.prepend(newChatElement);
-
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        markChatAsRead(chatId);
-                    } else {
-                        const ringColor = htmlElement.classList.contains('dark') ? 'ring-[var(--secondary-neon)]/50' : 'ring-blue-500/50';
-                        newChatElement.classList.add('ring-4', ringColor);
-                        setTimeout(() => newChatElement.classList.remove('ring-4', ringColor), 1000);
-                    }
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        markChatAsRead(chatId);
-                    }
-                }
-            });
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('moonIcon').classList.remove('hidden');
+                document.getElementById('sunIcon').classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('sunIcon').classList.remove('hidden');
+                document.getElementById('moonIcon').classList.add('hidden');
+            }
         }
 
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.getElementById('moonIcon').classList.toggle('hidden', !isDark);
+            document.getElementById('sunIcon').classList.toggle('hidden', isDark);
+        }
+
+        document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+        document.getElementById('settingsDarkModeToggle').addEventListener('click', toggleDarkMode);
+
+        // Myanmar Time Update
+        function updateMyanmarTime() {
+            const timeElement = document.getElementById('myanmarTime');
+            if (timeElement) {
+                const now = new Date();
+                const myanmarTime = now.toLocaleTimeString('my-MM', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    hour12: true,
+                    timeZone: 'Asia/Yangon'
+                });
+                timeElement.textContent = myanmarTime;
+            }
+        }
+        
+        // Close Chat Button for Mobile View
+        document.getElementById('closeChatButton').addEventListener('click', () => {
+            document.getElementById('chatSection').classList.add('hidden');
+            document.getElementById('chatPlaceholder').classList.remove('hidden');
+            currentChatId = null; // Deselect chat
+            if (chatHistoryUnsubscribe) {
+                chatHistoryUnsubscribe();
+                chatHistoryUnsubscribe = null;
+            }
+            // Clear current chat highlight
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('bg-light-bg', 'dark:bg-dark-card');
+            });
+        });
+        
+        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             loadDarkModePreference(); 
             updateMyanmarTime(); 
-            setupSocketListeners();
+            setInterval(updateMyanmarTime, 1000); // Update time every second
+            
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
