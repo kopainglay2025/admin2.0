@@ -2,308 +2,352 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Chat Dashboard</title>
-  <!-- CDN libs -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <!-- socket.io client will be served from your server at /socket.io/socket.io.js -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard — Chat</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#60a5fa;--muted:#94a3b8;--white:#e6eef8}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:linear-gradient(180deg,#071029 0%, #071b2b 100%);color:var(--white);height:100vh;display:flex;align-items:stretch}
-    .container{display:grid;grid-template-columns:320px 1fr;gap:18px;padding:18px;width:100%}
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    .left{display:flex;flex-direction:column;height:calc(100vh - 36px);}
-    .search{margin-bottom:8px}
-    .chat-list{overflow:auto;flex:1;padding-right:6px}
-    .chat-item{padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.03)}
-    .chat-item:hover{background:rgba(255,255,255,0.02)}
-    .chat-item.active{background:linear-gradient(90deg, rgba(96,165,250,0.12), rgba(59,130,246,0.06));border-color:rgba(96,165,250,0.14)}
-    .chat-meta{flex:1}
-    .chat-name{font-weight:600}
-    .chat-last{font-size:13px;color:var(--muted)}
-
-    .right{display:flex;flex-direction:column;height:calc(100vh - 36px)}
-    .header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.03)}
-    .messages{flex:1;overflow:auto;padding:12px}
-    .msg{max-width:70%;padding:10px;border-radius:12px;margin-bottom:10px;background:rgba(255,255,255,0.02)}
-    .msg.admin{margin-left:auto;background:linear-gradient(90deg, rgba(96,165,250,0.14), rgba(59,130,246,0.06));}
-    .msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .composer{display:flex;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.03)}
-    textarea{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white);min-height:56px;resize:vertical}
-    button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#002833;font-weight:600;cursor:pointer}
-    .small{font-size:13px;color:var(--muted)}
-    .badge{background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:999px;font-size:12px}
-    .topbar{display:flex;gap:8px;align-items:center}
-    .platform{font-size:12px;padding:6px;border-radius:6px}
+    /* small local tweaks */
+    .scroll-y { overflow-y: auto; }
+    .msg-admin { background: rgba(99,102,241,0.15); }
+    .msg-user { background: rgba(16,185,129,0.08); }
+    .msg-meta { font-size: 11px; color: #6b7280; }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="panel left">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div>
-          <div style="font-size:18px;font-weight:700">Admin Chats</div>
-          <div class="small">Connected to server at <span id="server-url"></span></div>
+<body class="bg-gray-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto p-4">
+    <header class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-semibold">Admin Dashboard — Chats</h1>
+      <div class="flex items-center gap-2">
+        <button id="btn-logout" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Logout</button>
+      </div>
+    </header>
+
+    <!-- Auth box (shown if not logged in) -->
+    <div id="auth" class="max-w-md mx-auto bg-white p-6 rounded shadow">
+      <h2 class="text-lg font-medium mb-3">Admin sign in</h2>
+      <p class="text-sm text-gray-600 mb-4">Enter your admin username & password (used for Basic Auth when calling the Firestore APIs).</p>
+      <div class="space-y-3">
+        <input id="admin-username" placeholder="Username" class="w-full p-2 border rounded" />
+        <input id="admin-password" placeholder="Password" type="password" class="w-full p-2 border rounded" />
+        <div class="flex justify-end">
+          <button id="btn-auth" class="px-4 py-2 bg-indigo-600 text-white rounded">Sign in</button>
         </div>
-        <div style="text-align:right">
-          <div id="auth-status" class="badge">Not authenticated</div>
-        </div>
       </div>
-
-      <div class="search">
-        <input id="filter-input" placeholder="Filter by name or platform" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)" />
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <select id="platform-filter" style="padding:8px;border-radius:8px;background:transparent;color:var(--white);border:1px solid rgba(255,255,255,0.04)">
-          <option value="">All platforms</option>
-          <option value="telegram">Telegram</option>
-          <option value="facebook">Facebook</option>
-        </select>
-        <button id="refresh-btn">Refresh</button>
-      </div>
-
-      <div class="chat-list" id="chat-list"></div>
     </div>
 
-    <div class="panel right">
-      <div class="header">
-        <div>
-          <div id="selected-name" style="font-size:16px;font-weight:700">Select a chat</div>
-          <div class="small" id="selected-info">No chat selected</div>
+    <!-- Main layout -->
+    <div id="app" class="hidden mt-6 grid grid-cols-3 gap-4">
+      <!-- Left: Chat list -->
+      <aside class="col-span-1 bg-white rounded shadow p-3 h-[70vh] flex flex-col">
+        <div class="flex items-center gap-2 mb-3">
+          <input id="search" placeholder="Search username or id" class="flex-1 p-2 border rounded" />
+          <select id="platform-filter" class="p-2 border rounded text-sm">
+            <option value="">All</option>
+            <option value="telegram">Telegram</option>
+            <option value="facebook">Facebook</option>
+          </select>
+          <button id="btn-refresh" class="px-3 py-1 bg-gray-200 rounded">⟳</button>
         </div>
-        <div class="topbar">
-          <div class="small">Server time: <span id="server-time">--</span></div>
-          <div style="width:12px"></div>
-          <div id="connection-status" class="badge">Disconnected</div>
-        </div>
-      </div>
+        <div id="chats" class="flex-1 overflow-y-auto divide-y"></div>
+      </aside>
 
-      <div class="messages" id="messages"></div>
-
-      <div class="composer">
-        <textarea id="reply-text" placeholder="Type your reply here..."></textarea>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button id="send-btn">Send</button>
-          <button id="clear-btn" style="background:rgba(255,255,255,0.04);color:var(--white);font-weight:600">Clear</button>
+      <!-- Center: Chat history -->
+      <main class="col-span-2 bg-white rounded shadow p-3 flex flex-col h-[70vh]">
+        <div id="chat-header" class="border-b pb-2 mb-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 id="chat-title" class="text-lg font-medium">Select a chat</h2>
+              <div id="chat-sub" class="text-sm text-gray-500">Platform — — Last message</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-history-more" class="px-2 py-1 text-sm border rounded">Load more</button>
+              <button id="btn-open-users" class="px-2 py-1 text-sm border rounded">Users</button>
+            </div>
+          </div>
         </div>
+
+        <div id="history" class="flex-1 overflow-y-auto p-2 space-y-3 scroll-y"></div>
+
+        <div class="mt-3 pt-3 border-t">
+          <div class="flex gap-2 items-center">
+            <textarea id="reply-text" rows="2" placeholder="Type your reply..." class="flex-1 p-2 border rounded resize-none"></textarea>
+            <button id="btn-send" class="px-4 py-2 bg-indigo-600 text-white rounded">Send</button>
+          </div>
+          <div class="text-xs text-gray-500 mt-2">Replies will be sent through the correct platform (Telegram / Facebook) and saved to Firestore.</div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Users modal (simple) -->
+    <div id="users-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+      <div class="w-3/4 bg-white rounded shadow p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium">System Users</h3>
+          <button id="close-users" class="text-gray-600">✕</button>
+        </div>
+        <div class="mb-3 flex gap-2">
+          <input id="new-user-name" placeholder="Name" class="p-2 border rounded flex-1" />
+          <input id="new-user-role" placeholder="Role (Viewer/Admin)" class="p-2 border rounded w-40" />
+          <button id="add-user" class="px-3 py-1 bg-green-500 text-white rounded">Add</button>
+        </div>
+        <div id="users-list" class="max-h-64 overflow-y-auto divide-y"></div>
       </div>
     </div>
   </div>
 
+  <!-- Socket.io client (served by your server) -->
+  <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Basic configuration
-    const SERVER_ORIGIN = location.origin; // adjust if using a different origin
-    document.getElementById('server-url').textContent = SERVER_ORIGIN;
+    // --- Small helper utilities ---
+    function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+    function fmtTime(iso) { try { return new Date(iso).toLocaleString(); } catch(e){return iso;} }
 
-    // --- Simple Basic Auth prompt (will be reused for fetch/axios) ---
-    let AUTH = null; // { username, password, header }
-    function askForCredentials() {
-      const u = prompt('Admin username', 'admin');
-      if (u === null) return false;
-      const p = prompt('Admin password', 'password');
-      if (p === null) return false;
-      AUTH = { username: u, password: p, header: 'Basic ' + btoa(u + ':' + p) };
-      document.getElementById('auth-status').textContent = `Auth: ${u}`;
-      return true;
+    const state = {
+      auth: null, // basic auth header
+      chats: [],
+      selectedChatId: null,
+      historyLimit: 50
+    };
+
+    // --- Auth handling ---
+    const authBox = document.getElementById('auth');
+    const appBox = document.getElementById('app');
+    const btnAuth = document.getElementById('btn-auth');
+    const btnLogout = document.getElementById('btn-logout');
+
+    function setAuthHeader(user, pass) {
+      const token = btoa(`${user}:${pass}`);
+      state.auth = 'Basic ' + token;
+      sessionStorage.setItem('admin_auth', token);
+      authBox.classList.add('hidden');
+      appBox.classList.remove('hidden');
+      loadChats();
+      connectSocket();
     }
 
-    // Try to get credentials on load
-    if (!askForCredentials()) {
-      alert('You must provide admin credentials to use the dashboard.');
+    function clearAuth() {
+      sessionStorage.removeItem('admin_auth');
+      state.auth = null;
+      authBox.classList.remove('hidden');
+      appBox.classList.add('hidden');
+      if (window.socket) {
+        window.socket.disconnect();
+        window.socket = null;
+      }
     }
 
-    // Axios defaults
-    axios.defaults.baseURL = SERVER_ORIGIN;
-    axios.interceptors.request.use(cfg => {
-      if (AUTH) cfg.headers['Authorization'] = AUTH.header;
-      return cfg;
+    btnAuth.addEventListener('click', () => {
+      const u = document.getElementById('admin-username').value.trim();
+      const p = document.getElementById('admin-password').value;
+      if (!u || !p) return alert('Please provide credentials');
+      setAuthHeader(u,p);
     });
 
-    // Socket.io connection
-    const socket = io();
-
-    const chatListEl = document.getElementById('chat-list');
-    const messagesEl = document.getElementById('messages');
-    const selectedNameEl = document.getElementById('selected-name');
-    const selectedInfoEl = document.getElementById('selected-info');
-    const serverTimeEl = document.getElementById('server-time');
-    const connectionStatusEl = document.getElementById('connection-status');
-
-    let CHATS = [];
-    let SELECTED_CHAT = null;
-
-    // Update connection status
-    socket.on('connect', () => {
-      connectionStatusEl.textContent = 'Connected';
-      connectionStatusEl.style.background = 'rgba(255,255,255,0.04)';
-    });
-    socket.on('disconnect', () => {
-      connectionStatusEl.textContent = 'Disconnected';
+    btnLogout.addEventListener('click', () => {
+      clearAuth();
     });
 
-    // Incoming real-time messages
-    socket.on('new_message', (data) => {
-      // If the chat exists in our list, update lastMessage; otherwise push
-      const idx = CHATS.findIndex(c => String(c.telegramId) === String(data.chatId));
-      const chatItem = {
-        telegramId: String(data.chatId),
-        username: data.user.username || (`User ${String(data.chatId).slice(0,6)}`),
-        lastMessageText: data.message.text || 'Media',
-        lastMessageTime: data.message.timestamp || new Date().toISOString(),
-        platform: data.platform || 'telegram'
-      };
-
-      if (idx >= 0) {
-        CHATS[idx] = { ...CHATS[idx], ...chatItem };
-      } else {
-        CHATS.unshift(chatItem);
-      }
-      renderChatList();
-
-      // If currently selected chat, push the message to message view
-      if (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(data.chatId)) {
-        appendMessageToView(data.message, 'user');
-      }
-    });
-
-    socket.on('message_sent', (data) => {
-      // When server confirms message saved
-      if (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(data.chatId)) {
-        appendMessageToView(data.message, 'admin');
-      }
-      // Update chat list last message
-      const idx = CHATS.findIndex(c => String(c.telegramId) === String(data.chatId));
-      if (idx >= 0) {
-        CHATS[idx].lastMessageText = data.message.text || 'Media';
-        CHATS[idx].lastMessageTime = data.message.timestamp || new Date().toISOString();
-        renderChatList();
-      }
-    });
-
-    // Helper: render chat list
-    function renderChatList() {
-      const filter = document.getElementById('filter-input').value.toLowerCase();
-      const platformFilter = document.getElementById('platform-filter').value;
-      chatListEl.innerHTML = '';
-      CHATS.forEach(c => {
-        if (platformFilter && c.platform !== platformFilter) return;
-        if (filter && !(c.username || '').toLowerCase().includes(filter) && !(c.lastMessageText||'').toLowerCase().includes(filter)) return;
-        const el = document.createElement('div');
-        el.className = 'chat-item' + (SELECTED_CHAT && String(SELECTED_CHAT.telegramId) === String(c.telegramId) ? ' active' : '');
-        el.innerHTML = `
-          <div style="flex:1">
-            <div class="chat-name">${escapeHtml(c.username || c.telegramId)}</div>
-            <div class="chat-last">${escapeHtml(c.lastMessageText || '')}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="small">${new Date(c.lastMessageTime||Date.now()).toLocaleString()}</div>
-            <div class="small">${escapeHtml(c.platform)}</div>
-          </div>
-        `;
-        el.onclick = () => selectChat(c);
-        chatListEl.appendChild(el);
-      });
-    }
-
-    // Helpers
-    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m];}); }
-
-    // Load chats from server
-    async function loadChats() {
-      try {
-        const platform = document.getElementById('platform-filter').value;
-        const url = platform ? `/api/chats?platform=${encodeURIComponent(platform)}` : '/api/chats';
-        const res = await axios.get(url);
-        CHATS = (res.data || []).map(c => ({ ...c, telegramId: c.telegramId || c.id }));
-        renderChatList();
-      } catch (err) {
-        console.error('Failed to load chats', err);
-        alert('Failed to load chats: ' + (err.response?.data?.error || err.message));
-      }
-    }
-
-    // Select a chat
-    async function selectChat(chat) {
-      SELECTED_CHAT = chat;
-      selectedNameEl.textContent = chat.username || chat.telegramId;
-      selectedInfoEl.textContent = `${chat.platform || 'telegram'} • ${chat.lastMessageText || ''}`;
-      renderChatList();
-      await loadHistory(String(chat.telegramId));
-    }
-
-    // Load history
-    async function loadHistory(chatId) {
-      messagesEl.innerHTML = '';
-      try {
-        const res = await axios.get(`/api/chats/${encodeURIComponent(chatId)}/history?limit=200`);
-        const msgs = res.data || [];
-        msgs.forEach(m => appendMessageToView(m, m.sender));
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      } catch (err) {
-        console.error('Failed to load history', err);
-        alert('Failed to load history: ' + (err.response?.data?.error || err.message));
-      }
-    }
-
-    // Append single message
-    function appendMessageToView(msg, senderOverride) {
-      const s = senderOverride || msg.sender || 'user';
-      const div = document.createElement('div');
-      div.className = 'msg ' + (s === 'admin' ? 'admin' : 'user');
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = `${s === 'admin' ? 'Admin' : 'User'} • ${new Date(msg.timestamp || Date.now()).toLocaleString()}`;
-      const body = document.createElement('div');
-      body.innerHTML = msg.text ? escapeHtml(msg.text).replace(/\n/g,'<br/>') : (msg.filename ? `<i>${escapeHtml(msg.filename)}</i>` : '<i>Media</i>');
-      div.appendChild(meta);
-      div.appendChild(body);
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    // Send reply using socket.io admin_reply event
-    document.getElementById('send-btn').addEventListener('click', sendReply);
-    document.getElementById('clear-btn').addEventListener('click', () => { document.getElementById('reply-text').value = ''; });
-
-    async function sendReply() {
-      if (!SELECTED_CHAT) return alert('Select a chat first');
-      const text = document.getElementById('reply-text').value.trim();
-      if (!text) return alert('Type a message');
-
-      const payload = { chatId: String(SELECTED_CHAT.telegramId), text };
-      socket.emit('admin_reply', payload, (res) => {
-        if (res && res.success) {
-          // appended on message_sent event
-          document.getElementById('reply-text').value = '';
-        } else {
-          alert('Failed to send: ' + (res?.error || 'unknown'));
-        }
-      });
-    }
-
-    // UI actions
-    document.getElementById('refresh-btn').addEventListener('click', loadChats);
-    document.getElementById('platform-filter').addEventListener('change', loadChats);
-    document.getElementById('filter-input').addEventListener('input', renderChatList);
-
-    // Periodic server time updater (calls an endpoint to get server time if you have one)
-    setInterval(() => {
-      serverTimeEl.textContent = new Date().toLocaleString();
-    }, 1000);
-
-    // Initial load
-    (async () => {
-      await loadChats();
+    // restore if present
+    (function(){
+      const t = sessionStorage.getItem('admin_auth');
+      if (t) { state.auth = 'Basic ' + t; authBox.classList.add('hidden'); appBox.classList.remove('hidden'); connectSocket(); loadChats(); }
     })();
 
-    // Basic keyboard shortcut: Enter to send when textarea focused + Ctrl/Cmd+Enter to newline
-    document.getElementById('reply-text').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendReply();
+    // --- API helpers ---
+    async function apiGet(path) {
+      const res = await fetch(path, { headers: { 'Authorization': state.auth }});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function apiPost(path, body) {
+      const res = await fetch(path, { method: 'POST', headers: { 'Authorization': state.auth, 'Content-Type':'application/json' }, body: JSON.stringify(body)});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function apiDelete(path) {
+      const res = await fetch(path, { method: 'DELETE', headers: { 'Authorization': state.auth }});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // --- Chats listing ---
+    const chatsEl = document.getElementById('chats');
+    const searchInput = document.getElementById('search');
+    const platformFilter = document.getElementById('platform-filter');
+    document.getElementById('btn-refresh').addEventListener('click', loadChats);
+
+    searchInput.addEventListener('input', renderChats);
+    platformFilter.addEventListener('change', renderChats);
+
+    async function loadChats() {
+      try {
+        const pf = platformFilter.value;
+        const url = '/api/chats' + (pf ? `?platform=${pf}` : '');
+        const data = await apiGet(url);
+        state.chats = data;
+        renderChats();
+      } catch (err) {
+        console.error(err); alert('Failed to load chats: '+err.message);
       }
+    }
+
+    function renderChats() {
+      const q = searchInput.value.trim().toLowerCase();
+      chatsEl.innerHTML = '';
+      const filtered = state.chats.filter(c => {
+        if (q) {
+          return (c.username||'').toLowerCase().includes(q) || (c.telegramId||'').toLowerCase().includes(q) || (c.lastMessageText||'').toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) chatsEl.innerHTML = '<div class="p-3 text-sm text-gray-500">No chats found.</div>';
+
+      for (const c of filtered) {
+        const elWrap = el('div','p-3 hover:bg-gray-50 cursor-pointer flex items-start gap-3');
+        elWrap.addEventListener('click', ()=> selectChat(c));
+        const avatar = el('div','w-12 h-12 rounded bg-gray-200 flex items-center justify-center');
+        avatar.textContent = (c.username||'U').slice(0,2).toUpperCase();
+        const meta = el('div','flex-1');
+        const title = el('div','flex items-center justify-between');
+        const name = el('div','font-medium'); name.textContent = c.username || c.telegramId;
+        const when = el('div','text-sm text-gray-500'); when.textContent = c.lastMessageTime || '';
+        const sub = el('div','text-sm text-gray-600 mt-1'); sub.textContent = c.lastMessageText || '';
+        title.appendChild(name); title.appendChild(when);
+        meta.appendChild(title); meta.appendChild(sub);
+        const pf = el('div','text-xs text-gray-400'); pf.textContent = (c.platform||'').toUpperCase();
+        elWrap.appendChild(avatar); elWrap.appendChild(meta); elWrap.appendChild(pf);
+        chatsEl.appendChild(elWrap);
+      }
+    }
+
+    // --- Chat selection & history ---
+    const chatTitle = document.getElementById('chat-title');
+    const chatSub = document.getElementById('chat-sub');
+    const historyEl = document.getElementById('history');
+    const btnSend = document.getElementById('btn-send');
+    const replyText = document.getElementById('reply-text');
+    const btnHistoryMore = document.getElementById('btn-history-more');
+
+    async function selectChat(chat) {
+      state.selectedChatId = chat.telegramId || chat.id;
+      chatTitle.textContent = chat.username || chat.telegramId || chat.id;
+      chatSub.textContent = `${(chat.platform||'').toUpperCase()} — ${chat.lastMessageText || ''}`;
+      await loadHistory(state.selectedChatId, state.historyLimit);
+    }
+
+    async function loadHistory(chatId, limit=50) {
+      try {
+        historyEl.innerHTML = '<div class="text-sm text-gray-500 p-2">Loading...</div>';
+        const data = await apiGet(`/api/chats/${encodeURIComponent(chatId)}/history?limit=${limit}`);
+        renderHistory(data);
+      } catch (err) { console.error(err); historyEl.innerHTML = '<div class="text-sm text-red-500 p-2">Failed to load history</div>'; }
+    }
+
+    function renderHistory(items) {
+      historyEl.innerHTML = '';
+      if (!items || items.length === 0) { historyEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No messages</div>'; return; }
+      for (const m of items) {
+        const wrap = el('div','p-2 rounded');
+        wrap.classList.add(m.sender === 'admin' ? 'msg-admin' : 'msg-user');
+        const top = el('div','flex items-center justify-between');
+        const who = el('div','font-medium text-sm'); who.textContent = m.sender === 'admin' ? 'Admin' : (m.username || 'User');
+        const t = el('div','msg-meta'); t.textContent = m.timestamp ? fmtTime(m.timestamp) : '';
+        top.appendChild(who); top.appendChild(t);
+        const body = el('div','mt-1 text-sm whitespace-pre-wrap'); body.textContent = m.text || (m.filename ? m.filename : 'Media');
+        wrap.appendChild(top); wrap.appendChild(body);
+        historyEl.appendChild(wrap);
+      }
+      // scroll to bottom
+      historyEl.scrollTop = historyEl.scrollHeight;
+    }
+
+    btnHistoryMore.addEventListener('click', ()=>{
+      state.historyLimit += 50; loadHistory(state.selectedChatId, state.historyLimit);
+    });
+
+    // --- Socket.io ---
+    function connectSocket() {
+      if (window.socket) return;
+      const socket = io();
+      window.socket = socket;
+
+      socket.on('connect', ()=> console.log('socket connected'));
+      socket.on('disconnect', ()=> console.log('socket disconnected'));
+
+      socket.on('new_message', (data)=> {
+        // automatically add chat if new
+        const id = String(data.chatId);
+        const exists = state.chats.some(c => String(c.telegramId) === id || String(c.id)===id);
+        if (!exists) {
+          state.chats.unshift({ telegramId: id, username: data.user.username, lastMessageText: data.message.text, lastMessageTime: data.message.timestamp, platform: data.platform });
+          renderChats();
+        } else {
+          // update existing chat preview
+          for (const c of state.chats) {
+            if (String(c.telegramId) === id || String(c.id)===id) { c.lastMessageText = data.message.text; c.lastMessageTime = data.message.timestamp; }
+          }
+          renderChats();
+        }
+
+        // if currently viewing this chat, reload history
+        if (state.selectedChatId && String(state.selectedChatId) === id) loadHistory(id, state.historyLimit);
+      });
+
+      socket.on('message_sent', (d)=>{
+        if (state.selectedChatId && String(state.selectedChatId) === String(d.chatId)) loadHistory(d.chatId, state.historyLimit);
+      });
+    }
+
+    // --- Send reply (via socket.io admin_reply) ---
+    btnSend.addEventListener('click', async ()=>{
+      const text = replyText.value.trim();
+      if (!text) return;
+      if (!state.selectedChatId) return alert('Select a chat first');
+      try {
+        window.socket.emit('admin_reply', { chatId: state.selectedChatId, text }, (res)=>{
+          if (res && res.success) {
+            replyText.value = '';
+            loadHistory(state.selectedChatId, state.historyLimit);
+          } else {
+            alert('Send failed: ' + (res.error || JSON.stringify(res)));
+          }
+        });
+      } catch (err) { console.error(err); alert('Send error: '+err.message); }
+    });
+
+    // --- Users modal management ---
+    const usersModal = document.getElementById('users-modal');
+    document.getElementById('btn-open-users').addEventListener('click', async ()=>{
+      usersModal.classList.remove('hidden'); usersModal.classList.add('flex'); await loadUsers();
+    });
+    document.getElementById('close-users').addEventListener('click', ()=>{ usersModal.classList.add('hidden'); usersModal.classList.remove('flex'); });
+
+    async function loadUsers(){
+      try {
+        const users = await apiGet('/api/users');
+        const list = document.getElementById('users-list'); list.innerHTML = '';
+        for (const u of users) {
+          const row = el('div','p-2 flex items-center justify-between');
+          row.innerHTML = `<div><div class='font-medium'>${u.name}</div><div class='text-xs text-gray-500'>${u.role} • ${u.status||''}</div></div>`;
+          const btns = el('div','flex gap-2');
+          const del = el('button','px-2 py-1 text-sm border rounded'); del.textContent = 'Delete';
+          del.addEventListener('click', async ()=>{ if(confirm('Delete user?')){ await apiDelete('/api/users/'+u.id); await loadUsers(); }});
+          btns.appendChild(del);
+          row.appendChild(btns); list.appendChild(row);
+        }
+      } catch (err) { console.error(err); alert('Failed to load users: '+err.message); }
+    }
+
+    document.getElementById('add-user').addEventListener('click', async ()=>{
+      const name = document.getElementById('new-user-name').value.trim();
+      const role = document.getElementById('new-user-role').value.trim() || 'Viewer';
+      if (!name) return alert('Name required');
+      try { await apiPost('/api/users', { name, role }); document.getElementById('new-user-name').value=''; await loadUsers(); }
+      catch(err){ console.error(err); alert('Add user failed: '+err.message); }
     });
   </script>
 </body>
