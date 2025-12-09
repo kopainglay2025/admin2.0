@@ -51,8 +51,8 @@ try {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY not set in environment');
     }
-    // This JSON.parse will now correctly parse the private_key because the newlines
-    // were doubly-escaped (\\n) in the environment file.
+    // This JSON.parse will now correctly parse the private_key because the newlines
+    // were doubly-escaped (\\n) in the environment file.
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 } catch (err) {
     console.error("ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY.", err.message);
@@ -372,5 +372,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-
