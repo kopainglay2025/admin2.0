@@ -167,7 +167,13 @@
         .dark .chat-messages::-webkit-scrollbar-track {
              background-color: theme('colors.dark-card');
         }
-        
+        /* Parent Container (e.g., #chat-main) ရဲ့ CSS */
+        #chat-main-container {
+            display: flex;
+            flex-direction: column; 
+            height: 100vh; /* မျက်နှာပြင် အမြင့်တစ်ခုလုံးကို ယူဖို့ (သို့) */
+            /* အကယ်၍ Parent တွင် h-full class ရှိပြီးသားဆိုလျှင် height: 100% သုံးပါ */
+        }
         /* Unread Badge */
         .badge-style {
             background-color: #EF4444; 
