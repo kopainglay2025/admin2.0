@@ -1,788 +1,706 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>အထွေထွေ ချတ်စီမံခန့်ခွဲမှု</title>
+    <title>Omni-Channel Admin Dashboard</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Load Socket.io Client -->
     <script src="/socket.io/socket.io.js"></script>
-    <!-- Load Moment.js for time formatting -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <!-- Load Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* စိတ်ကြိုက် scrollbar */
-        .chat-scroll::-webkit-scrollbar { width: 6px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background-color: #60a5fa; border-radius: 4px; }
-        .chat-scroll::-webkit-scrollbar-track { background-color: #f1f5f9; }
-
-        /* Menu item active state */
-        .menu-active {
-            background-color: #3b82f6;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
-            transform: scale(1.02);
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #111827; /* Dark background */
+            color: #f3f4f6; /* Light text */
         }
-        
-        /* Transition for smooth UI effects */
-        .transition-ease {
-            transition: all 0.2s ease-in-out;
+        /* Custom scrollbar for chat history */
+        .chat-history::-webkit-scrollbar {
+            width: 8px;
         }
-
-        /* Message bubble styling for better chat UX */
-        .user-bubble { border-radius: 12px 12px 12px 0; }
-        .admin-bubble { border-radius: 12px 12px 0 12px; }
+        .chat-history::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            border-radius: 4px;
+        }
+        .chat-history::-webkit-scrollbar-track {
+            background-color: #1f2937;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased h-screen flex">
+<body>
 
-    <!-- Basic Auth Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
-            <h2 class="text-2xl font-extrabold mb-5 text-gray-800 border-b pb-2">Admin လော့ဂ်အင်</h2>
-            <div class="mb-4">
-                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">အသုံးပြုသူအမည် (Username)</label>
-                <input type="text" id="username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-ease">
-            </div>
-            <div class="mb-6">
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">လျှို့ဝှက်နံပါတ် (Password)</label>
-                <input type="password" id="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-ease">
-            </div>
-            <button onclick="authenticate()" class="w-full bg-blue-600 text-white p-3 rounded-xl font-semibold hover:bg-blue-700 shadow-lg hover:shadow-xl transition-ease">ဝင်ရန်</button>
-            <p id="auth-error" class="text-red-500 text-sm mt-4 text-center hidden font-medium"></p>
+    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-gray-700">
+            <h2 class="text-3xl font-bold mb-6 text-white text-center">Admin Login</h2>
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                    <input type="text" id="username" value="admin" class="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                    <input type="password" id="password" value="password" class="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                    Login
+                </button>
+            </form>
+            <p id="auth-error" class="text-red-400 mt-4 text-center text-sm hidden">Authentication failed.</p>
         </div>
     </div>
 
-    <!-- Main Application Container (Hidden until authenticated) -->
-    <div id="app-container" class="flex flex-1 hidden">
-
-        <!-- Left Sidebar: Menu Bar -->
-        <div id="menu-bar" class="w-56 bg-gray-800 text-white flex flex-col shadow-2xl z-20">
-            <div class="p-4 border-b border-gray-700 flex items-center space-x-2">
-                <i class="fas fa-headset text-xl text-blue-400"></i>
-                <h1 class="text-lg font-bold">Admin Console</h1>
+    <!-- Main Dashboard Structure -->
+    <div id="dashboard-container" class="hidden h-screen flex">
+        
+        <!-- Sidebar Navigation -->
+        <div class="w-64 bg-gray-900 border-r border-gray-700 flex flex-col p-4 shadow-xl">
+            <div class="text-3xl font-extrabold text-blue-400 mb-10 tracking-wider">
+                OMNI-DASH
             </div>
-
-            <nav class="flex-1 p-3 space-y-2">
-                <a onclick="renderView('dashboard')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease menu-active" data-view="dashboard">
-                    <i class="fas fa-tachometer-alt w-5"></i>
-                    <span>Dashboard</span>
+            <nav class="flex-grow space-y-2">
+                <a href="#" onclick="setView('dashboard')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="dashboard">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"></path></svg>
+                    Dashboard
                 </a>
-                <div class="pt-2">
-                    <p class="text-xs text-gray-400 uppercase font-semibold mb-1 px-3">Chats</p>
-                </div>
-                <a onclick="renderView('tg_chats')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease" data-view="tg_chats">
-                    <i class="fab fa-telegram-plane w-5 text-cyan-400"></i>
-                    <span>TG Chats</span>
+                <a href="#" onclick="setView('tg-chats')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="tg-chats">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    TG Chats
                 </a>
-                <a onclick="renderView('fb_chats')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease" data-view="fb_chats">
-                    <i class="fab fa-facebook-messenger w-5 text-blue-400"></i>
-                    <span>FB Chats</span>
+                <a href="#" onclick="setView('fb-chats')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="fb-chats">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.692A9.705 9.705 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    FB Chats
                 </a>
-
-                <div class="pt-2">
-                    <p class="text-xs text-gray-400 uppercase font-semibold mb-1 px-3">Administration</p>
-                </div>
-                <a onclick="renderView('users')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease" data-view="users">
-                    <i class="fas fa-user-shield w-5 text-yellow-400"></i>
-                    <span>User List</span>
+                <a href="#" onclick="setView('user-list')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="user-list">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.143M22 21h-2"></path></svg>
+                    TG User List
                 </a>
-                <a onclick="renderView('broadcast')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease" data-view="broadcast">
-                    <i class="fas fa-bullhorn w-5 text-orange-400"></i>
-                    <span>TG Broadcast</span>
+                <a href="#" onclick="setView('broadcast')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="broadcast">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-2.618 1.48L7 20.208a2.215 2.215 0 01-.823-2.072l.06-.693C6.395 15.688 8 13.567 8 11s-1.605-4.688-2.763-6.443a2.215 2.215 0 01.823-2.072l1.642.518A1.76 1.76 0 0111 5.882zM15 3h6M15 7h6M15 11h6"></path></svg>
+                    TG Broadcast
                 </a>
-                <a onclick="renderView('settings')" class="menu-item flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-700 transition-ease" data-view="settings">
-                    <i class="fas fa-cogs w-5 text-gray-400"></i>
-                    <span>Settings</span>
+                <a href="#" onclick="setView('settings')" class="nav-item flex items-center p-3 rounded-xl transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white" data-view="settings">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.942 3.333.882 2.41 2.41a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.942 1.543-.882 3.333-2.41 2.41a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.942-3.333-.882-2.41-2.41a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.942-1.543.882-3.333 2.41-2.41a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Settings
                 </a>
             </nav>
-        </div>
-
-        <!-- Right Panel: Dynamic Content Area -->
-        <div id="main-content-wrapper" class="flex-1 flex flex-col overflow-hidden">
-            
-            <!-- Dynamic Content View Container -->
-            <div id="content-container" class="flex-1 flex overflow-hidden">
-
-                <!-- 1. Dashboard View -->
-                <div id="view-dashboard" class="view-panel flex-1 p-8 overflow-y-auto bg-white transition-opacity duration-300">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Admin Dashboard</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-blue-500 text-white p-6 rounded-xl shadow-lg transform hover:scale-[1.03] transition-ease">
-                            <i class="fab fa-telegram-plane text-3xl mb-3"></i>
-                            <p class="text-xl font-semibold">Telegram စကားဝိုင်း</p>
-                            <p class="text-3xl font-extrabold mt-1" id="dash-tg-count">0</p>
-                        </div>
-                        <div class="bg-blue-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-[1.03] transition-ease">
-                            <i class="fab fa-facebook-messenger text-3xl mb-3"></i>
-                            <p class="text-xl font-semibold">Facebook စကားဝိုင်း</p>
-                            <p class="text-3xl font-extrabold mt-1" id="dash-fb-count">0</p>
-                        </div>
-                        <div class="bg-green-500 text-white p-6 rounded-xl shadow-lg transform hover:scale-[1.03] transition-ease">
-                            <i class="fas fa-users text-3xl mb-3"></i>
-                            <p class="text-xl font-semibold">Total System Users</p>
-                            <p class="text-3xl font-extrabold mt-1" id="dash-user-count">0</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 p-6 bg-gray-50 border rounded-xl shadow-inner">
-                        <h3 class="text-xl font-semibold mb-3 text-gray-700">အသုံးပြုပုံလမ်းညွှန်</h3>
-                        <p class="text-gray-600">ဘယ်ဘက်ရှိ Menu မှတစ်ဆင့် စကားပြောခန်းများကို ရွေးချယ်ပြီး အသုံးပြုသူများထံသို့ ချက်ချင်းပြန်ကြားနိုင်ပါသည်။ စနစ်သုံးစွဲသူများ စာရင်းကိုလည်း စီမံခန့်ခွဲနိုင်ပါသည်။</p>
-                    </div>
-                </div>
-
-                <!-- 2. Chat View (TG & FB Chats share this layout) -->
-                <div id="view-chats" class="view-panel flex-1 hidden transition-opacity duration-300 flex">
-                    
-                    <!-- Left Column: Chat List -->
-                    <div id="chat-sidebar" class="w-full sm:w-1/3 flex flex-col bg-white border-r border-gray-200 shadow-md">
-                        <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
-                            <h2 class="text-xl font-extrabold text-gray-900" id="chat-view-title">Chats</h2>
-                            <button onclick="fetchChats(currentPlatformFilter)" class="p-2 text-gray-600 hover:text-blue-600 transition-ease rounded-full" title="စကားဝိုင်းများ ပြန်လည်စစ်ဆေးရန်">
-                                <i class="fas fa-sync-alt" id="chat-list-sync-icon"></i>
-                            </button>
-                        </div>
-                        <div id="chat-list" class="flex-1 overflow-y-auto chat-scroll">
-                            <div class="p-4 text-center text-gray-500 italic">စကားဝိုင်းများကို စောင့်ဆိုင်းနေပါသည်...</div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Chat History & Reply -->
-                    <div class="w-full sm:w-2/3 flex flex-col border-l border-gray-200">
-                        <!-- Chat Header -->
-                        <div id="chat-header" class="p-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-between sticky top-0 z-10">
-                            <h2 class="text-lg font-semibold text-gray-800">
-                                <i id="header-platform-icon" class="hidden mr-2"></i>
-                                <span id="header-username">စကားဝိုင်းတစ်ခု ရွေးချယ်ပါ</span>
-                            </h2>
-                            <div id="header-chat-id" class="text-sm text-gray-500 hidden md:block"></div>
-                        </div>
-
-                        <!-- Message History -->
-                        <div id="message-history" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50 chat-scroll flex flex-col-reverse">
-                            <div id="initial-message" class="text-center text-gray-500 italic mt-auto">ဘယ်ဘက် panel မှ စကားဝိုင်းကို ရွေးချယ်ပါ။</div>
-                        </div>
-
-                        <!-- Reply Box -->
-                        <div id="reply-box" class="p-4 border-t border-gray-200 bg-white hidden">
-                            <div class="flex space-x-3">
-                                <textarea id="reply-text" rows="2" class="flex-1 p-3 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 resize-none transition-ease shadow-inner" placeholder="ပြန်ကြားချက် ရိုက်ထည့်ပါ... (Enter နှိပ်၍ ပို့နိုင်သည်)"></textarea>
-                                <button onclick="handleReply()" class="w-24 bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:bg-blue-700 transition-ease flex items-center justify-center disabled:opacity-50" id="send-btn">
-                                    <i class="fas fa-paper-plane mr-2"></i> ပို့
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. User Management View -->
-                <div id="view-users" class="view-panel flex-1 hidden p-8 overflow-y-auto bg-white transition-opacity duration-300">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">စနစ်သုံးစွဲသူများ စီမံခန့်ခွဲမှု</h2>
-                    
-                    <!-- New User Form -->
-                    <div class="mb-8 p-6 border border-blue-200 bg-blue-50 rounded-xl shadow-lg">
-                        <h3 class="text-xl font-semibold text-blue-800 mb-4 flex items-center"><i class="fas fa-user-plus mr-3"></i> အသုံးပြုသူအသစ် ထည့်သွင်းရန်</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <input type="text" id="new-user-name" placeholder="အမည်" class="p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                            <select id="new-user-role" class="p-3 border rounded-lg">
-                                <option value="Viewer">Viewer</option>
-                                <option value="Agent">Agent</option>
-                                <option value="Admin">Admin</option>
-                            </select>
-                            <select id="new-user-status" class="p-3 border rounded-lg">
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                             <button onclick="createUser()" class="bg-green-500 text-white p-3 rounded-xl font-semibold hover:bg-green-600 transition-ease shadow-md">
-                                <i class="fas fa-plus mr-2"></i> ထည့်သွင်း
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- User Table -->
-                    <div class="overflow-x-auto shadow-xl rounded-xl border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">အမည်</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">အခန်းကဏ္ဍ</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">အခြေအနေ</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ဖန်တီးသည့်အချိန်</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">လုပ်ဆောင်ချက်</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-list-body" class="bg-white divide-y divide-gray-200">
-                                <!-- User rows injected here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- 4. Broadcast View (Placeholder) -->
-                <div id="view-broadcast" class="view-panel flex-1 hidden p-8 overflow-y-auto bg-white transition-opacity duration-300">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Telegram Broadcast</h2>
-                    <div class="p-6 bg-yellow-50 border border-yellow-200 rounded-xl shadow-inner">
-                        <p class="text-yellow-800 font-semibold mb-3">အင်္ဂါရပ် အကောင်အထည်ဖော်မှု လိုအပ်သည်။</p>
-                        <p class="text-yellow-700">ဤနေရာတွင် Telegram အသုံးပြုသူများအားလုံးထံသို့ တစ်ပြိုင်တည်း မက်ဆေ့ခ်ျပို့နိုင်သည့် လုပ်ဆောင်ချက်ကို ထည့်သွင်းရန် လိုအပ်ပါသည်။</p>
-                    </div>
-                </div>
-
-                <!-- 5. Settings View (Placeholder) -->
-                <div id="view-settings" class="view-panel flex-1 hidden p-8 overflow-y-auto bg-white transition-opacity duration-300">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Settings</h2>
-                    <div class="p-6 bg-red-50 border border-red-200 rounded-xl shadow-inner">
-                        <p class="text-red-800 font-semibold mb-3">ဆက်တင်များ</p>
-                        <p class="text-red-700">ဤနေရာတွင် API Tokens များ၊ အခြေခံ authentication ပြောင်းလဲမှုများ စသည်တို့ကို စီမံခန့်ခွဲရန် လိုအပ်ပါသည်။</p>
-                    </div>
-                </div>
-
+            <div class="mt-8 pt-4 border-t border-gray-700 text-sm text-gray-500">
+                <p>Admin: <span id="current-username" class="text-blue-400"></span></p>
+                <p>Status: <span class="text-green-400">Online</span></p>
             </div>
         </div>
-    </div>
 
-    <!-- Message Box (Error/Success Notifications) -->
-    <div id="message-box-container" class="fixed bottom-4 right-4 z-50 pointer-events-none space-y-2">
-        <!-- Messages appear here -->
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-auto p-6">
+            <header class="mb-6 pb-2 border-b border-gray-700 flex justify-between items-center">
+                <h1 id="current-title" class="text-3xl font-bold text-white">Dashboard</h1>
+                <div id="status-message" class="text-sm px-4 py-2 rounded-full bg-gray-700 text-gray-300 transition duration-300">
+                    <span id="socket-status">Connecting...</span>
+                </div>
+            </header>
+            
+            <!-- Dynamic View Container -->
+            <div id="content-view" class="h-[calc(100vh-120px)] overflow-hidden">
+                <!-- Content will be rendered here -->
+            </div>
+        </main>
     </div>
 
     <script>
-        // Global State and Configuration
-        const socket = io();
-        let currentChatId = null;
-        let chats = {}; // Store chat objects for quick lookup
-        let authHeader = null;
-        let currentPlatformFilter = null; // 'telegram' or 'facebook' for chat view
+        // --- Global State ---
+        let currentView = 'dashboard';
+        let selectedChat = null;
+        let basicAuthHeader = null;
+        let socket;
+        let currentPlatform = 'telegram'; // Used for chats view
 
-        // --- Utility Functions (မရှိမဖြစ် လိုအပ်သော လုပ်ဆောင်ချက်များ) ---
+        // --- Utility Functions ---
 
-        /**
-         * Basic Auth Header ကို သတ်မှတ်သည်။
-         */
-        function setAuthHeader(username, password) {
-            authHeader = 'Basic ' + btoa(username + ':' + password);
+        /** Fetches data with Basic Auth and handles errors */
+        async function fetchData(url, method = 'GET', body = null) {
+            if (!basicAuthHeader) {
+                document.getElementById('auth-error').textContent = "Authentication required.";
+                document.getElementById('auth-error').classList.remove('hidden');
+                return null;
+            }
+
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Authorization': basicAuthHeader,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            } catch (error) {
+                console.error("API Fetch Error:", error);
+                showNotification(`Error: ${error.message}`, 'error');
+                return null;
+            }
         }
 
-        /**
-         * စနစ် Message Box (Alert/Confirm အစားသုံးရန်)
-         */
-        function createMessage(type, content) {
-            const container = document.getElementById('message-box-container');
-            const box = document.createElement('div');
-            box.className = `p-4 rounded-xl shadow-2xl text-white font-medium mb-3 transition-all duration-300 transform translate-y-0 opacity-100 max-w-sm ml-auto ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 
-                type === 'info' ? 'bg-blue-500' : 
-                'bg-gray-500'
-            }`;
-            box.innerHTML = content;
-            container.appendChild(box);
+        /** Simple notification system */
+        function showNotification(message, type = 'info') {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = message;
             
-            // Fade out and remove after 4 seconds
+            statusDiv.classList.remove('bg-gray-700', 'bg-green-700', 'bg-red-700');
+            statusDiv.classList.add('text-white');
+
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-700');
+            } else if (type === 'error') {
+                statusDiv.classList.add('bg-red-700');
+            } else {
+                statusDiv.classList.add('bg-gray-700');
+            }
+
             setTimeout(() => {
-                box.classList.remove('opacity-100', 'translate-y-0');
-                box.classList.add('opacity-0', 'translate-y-4');
-                setTimeout(() => box.remove(), 300);
-            }, 4000);
+                statusDiv.classList.remove('bg-green-700', 'bg-red-700');
+                statusDiv.classList.add('bg-gray-700');
+                document.getElementById('socket-status').textContent = socket.connected ? 'Connected' : 'Disconnected';
+            }, 5000);
         }
 
-        /**
-         * Confirmation dialog (window.confirm အစားသုံးရန်)
-         */
-        function customConfirm(message) {
-            return window.confirm(message); 
+        /** Formats timestamps nicely */
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' ' +
+                   date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
-        // --- View & Menu Management (View များ စီမံခန့်ခွဲခြင်း) ---
 
-        /**
-         * Main Content View ကို ပြောင်းလဲသည်။
-         */
-        function renderView(viewName) {
-            document.querySelectorAll('.view-panel').forEach(panel => {
-                panel.classList.add('hidden');
-            });
-            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        // --- Auth & Init ---
 
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.classList.remove('menu-active');
-            });
-            // Ensure the selected menu item is active, regardless of platform
-            const menuItem = document.querySelector(`.menu-item[data-view="${viewName}"]`);
-            if (menuItem) {
-                menuItem.classList.add('menu-active');
-            } else {
-                // Default to dashboard active if viewName is 'chats' view shared
-                document.querySelector('.menu-item[data-view="dashboard"]').classList.add('menu-active');
-            }
-
-
-            // Handle Chat View specifics
-            if (viewName === 'tg_chats' || viewName === 'fb_chats') {
-                document.getElementById('view-chats').classList.remove('hidden');
-                currentPlatformFilter = viewName === 'tg_chats' ? 'telegram' : 'facebook';
-                document.getElementById('chat-view-title').textContent = viewName === 'tg_chats' ? 'Telegram စကားဝိုင်းများ' : 'Facebook စကားဝိုင်းများ';
-                // Reset chat header when switching platform
-                currentChatId = null;
-                document.getElementById('reply-box').classList.add('hidden');
-                document.getElementById('header-username').textContent = 'စကားဝိုင်းတစ်ခု ရွေးချယ်ပါ';
-                document.getElementById('message-history').innerHTML = '<div class="text-center text-gray-500 italic mt-auto">ဘယ်ဘက် panel မှ စကားဝိုင်းကို ရွေးချယ်ပါ။</div>';
-                
-                fetchChats(currentPlatformFilter);
-            } else {
-                currentChatId = null;
-                document.getElementById('reply-box').classList.add('hidden');
-            }
-
-            // Handle User View specifics
-            if (viewName === 'users') {
-                fetchUsers();
-            }
-        }
-
-        // --- Authentication (အသုံးပြုသူ စိစစ်ရေး) ---
-
-        function authenticate() {
+        function handleAuth(event) {
+            event.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const errorElement = document.getElementById('auth-error');
 
-            setAuthHeader(username, password);
-
-            // Test authentication by fetching chats
-            fetchChats(null) // Fetch all chats initially for testing auth
-                .then(() => {
+            // Generate Basic Auth header (Base64 encoding)
+            const encoded = btoa(`${username}:${password}`);
+            basicAuthHeader = `Basic ${encoded}`;
+            
+            // Check connection by fetching chats
+            fetchData('/api/chats').then(data => {
+                if (data) {
                     document.getElementById('auth-modal').classList.add('hidden');
-                    document.getElementById('app-container').classList.remove('hidden');
-                    createMessage('success', 'လော့ဂ်အင် အောင်မြင်ပါသည်။');
-                    renderView('dashboard'); // Start on dashboard
-                    fetchDashboardCounts();
-                })
-                .catch(error => {
-                    setAuthHeader(null, null); // Clear header on failure
-                    errorElement.textContent = 'လော့ဂ်အင် မအောင်မြင်ပါ။ အသုံးပြုသူအမည်နှင့် လျှို့ဝှက်နံပါတ်ကို စစ်ဆေးပါ။';
-                    errorElement.classList.remove('hidden');
-                    console.error('Authentication error:', error);
-                });
+                    document.getElementById('dashboard-container').classList.remove('hidden');
+                    document.getElementById('current-username').textContent = username;
+                    initializeSocket();
+                    setView(currentView);
+                } else {
+                    document.getElementById('auth-error').classList.remove('hidden');
+                }
+            });
         }
 
-        // --- API & Rendering (API နှင့် ဖော်ပြခြင်း) ---
+        function initializeSocket() {
+            socket = io();
 
-        /**
-         * Basic Auth Header ဖြင့် API ခေါ်ဆိုမှု
-         */
-        async function apiFetch(url, options = {}) {
-            if (!authHeader) throw new Error("Not authenticated.");
+            socket.on('connect', () => {
+                document.getElementById('socket-status').textContent = 'Connected';
+                document.getElementById('socket-status').classList.remove('text-red-400');
+                document.getElementById('socket-status').classList.add('text-green-400');
+            });
 
-            const headers = {
-                'Authorization': authHeader,
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
+            socket.on('disconnect', () => {
+                document.getElementById('socket-status').textContent = 'Disconnected';
+                document.getElementById('socket-status').classList.remove('text-green-400');
+                document.getElementById('socket-status').classList.add('text-red-400');
+            });
 
-            // Implement basic retry mechanism with exponential backoff
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const response = await fetch(url, { ...options, headers });
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    if (response.status === 401) {
-                        createMessage('error', 'Authentication ပျက်သွားပါသည်။ ကျေးဇူးပြု၍ ပြန်ဝင်ပါ။');
-                        document.getElementById('auth-modal').classList.remove('hidden');
-                        document.getElementById('app-container').classList.add('hidden');
-                        throw new Error("Unauthorized");
-                    }
-                    if (response.status === 404) {
-                        // For 404s (e.g., chat not found), throw specific error
-                        throw new Error(`Resource not found: ${url}`);
-                    }
-                    
-                    // Throw error to retry on other status codes (5xx, 4xx other than 401/404)
-                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
-                } catch (error) {
-                    console.warn(`Attempt ${i + 1} failed for ${url}: ${error.message}`);
-                    if (error.message === "Unauthorized" || error.message.includes("Resource not found")) {
-                        throw error; // Don't retry auth or 404 errors
-                    }
-                    if (i < 2) {
-                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff
-                    } else {
-                        throw error; // Throw after all retries
+            // Handle new user messages arriving in real-time
+            socket.on('new_message', (data) => {
+                showNotification(`New message from ${data.user.username} (${data.platform})`, 'info');
+                // Re-render chat list if in a chat view
+                if (currentView === 'tg-chats' || currentView === 'fb-chats') {
+                    renderChats(data.platform);
+                    if (selectedChat && selectedChat.telegramId === data.chatId) {
+                        appendMessageToHistory(data.message);
                     }
                 }
+            });
+
+            // Handle admin messages sent by this dashboard in real-time
+            socket.on('message_sent', (data) => {
+                if (selectedChat && selectedChat.telegramId === data.chatId) {
+                    appendMessageToHistory(data.message);
+                }
+            });
+        }
+
+        // --- View Navigation ---
+
+        function setView(viewName) {
+            currentView = viewName;
+            selectedChat = null; // Reset chat selection on view change
+
+            // Update navigation highlight
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-blue-600', 'text-white');
+                item.classList.add('text-gray-300', 'hover:bg-gray-700');
+            });
+            const activeLink = document.querySelector(`.nav-item[data-view="${viewName}"]`);
+            if (activeLink) {
+                activeLink.classList.add('bg-blue-600', 'text-white');
+                activeLink.classList.remove('text-gray-300', 'hover:bg-gray-700');
+            }
+            
+            const titleMap = {
+                'dashboard': 'Dashboard Overview',
+                'tg-chats': 'Telegram Chats',
+                'fb-chats': 'Facebook Chats',
+                'user-list': 'System User List',
+                'broadcast': 'Telegram Broadcast Tool',
+                'settings': 'Settings & Configuration'
+            };
+            document.getElementById('current-title').textContent = titleMap[viewName] || 'Dashboard';
+            
+            const contentView = document.getElementById('content-view');
+            contentView.innerHTML = '<div class="text-center text-gray-500 pt-20">Loading...</div>';
+
+            switch (viewName) {
+                case 'tg-chats':
+                    currentPlatform = 'telegram';
+                    renderChats('telegram');
+                    break;
+                case 'fb-chats':
+                    currentPlatform = 'facebook';
+                    renderChats('facebook');
+                    break;
+                case 'user-list':
+                    renderUserList();
+                    break;
+                case 'broadcast':
+                    renderBroadcast();
+                    break;
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'settings':
+                    renderSettings();
+                    break;
+                default:
+                    renderDashboard();
             }
         }
 
-        /**
-         * Chat List ကို ရယူပြီး ဖော်ပြသည်။
-         */
-        async function fetchChats(platform) {
-            const syncIcon = document.getElementById('chat-list-sync-icon');
-            if (syncIcon) syncIcon.classList.add('fa-spin');
-            
-            try {
-                // If platform is null (used for initial auth check), get all chats
-                const filter = platform ? platform : ''; 
-                const url = filter ? `/api/chats?platform=${filter}` : '/api/chats';
-                const chatList = await apiFetch(url);
-                
-                chats = {};
-                chatList.forEach(chat => {
-                    // Use telegramId (which holds either TG ID or FB PSID) as the key
-                    chats[chat.telegramId] = chat;
-                });
+        // --- View Renderers ---
 
-                renderChatList(chatList);
-                return chatList; // Return for dashboard count update
-            } catch (error) {
-                console.error("Error fetching chats:", error);
-                document.getElementById('chat-list').innerHTML = `<div class="p-4 text-center text-red-500 italic">စကားဝိုင်းများ ရယူရန် မအောင်မြင်ပါ။</div>`;
-                throw error; // Re-throw to fail authentication if needed
-            } finally {
-                if (syncIcon) syncIcon.classList.remove('fa-spin');
-            }
+        function renderDashboard() {
+            document.getElementById('content-view').innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-xl shadow-lg h-full overflow-y-auto">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-400">Welcome to the Omni-Channel Dashboard</h2>
+                    <p class="text-gray-300 mb-6">Use the sidebar to navigate between chat platforms, manage system users, and send out broadcasts.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gray-700 p-6 rounded-xl shadow-md border border-gray-600">
+                            <h3 class="text-xl font-medium text-white mb-2">Telegram Status</h3>
+                            <p class="text-lg text-green-400">Active</p>
+                            <p class="text-sm text-gray-400 mt-2">Check 'TG Chats' for incoming messages.</p>
+                        </div>
+                        <div class="bg-gray-700 p-6 rounded-xl shadow-md border border-gray-600">
+                            <h3 class="text-xl font-medium text-white mb-2">Facebook Status</h3>
+                            <p class="text-lg text-green-400">Active</p>
+                            <p class="text-sm text-gray-400 mt-2">Check 'FB Chats' for incoming messages.</p>
+                        </div>
+                        <div class="bg-gray-700 p-6 rounded-xl shadow-md border border-gray-600">
+                            <h3 class="text-xl font-medium text-white mb-2">Firestore Sync</h3>
+                            <p class="text-lg text-green-400">Real-time</p>
+                            <p class="text-sm text-gray-400 mt-2">All data is backed up instantly.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
-        /**
-         * Dashboard အတွက် စကားဝိုင်းအရေအတွက်များကို ရယူသည်။
-         */
-        async function fetchDashboardCounts() {
-            try {
-                // Fetch all chats using the API endpoint without a filter
-                const allChats = await apiFetch('/api/chats');
-                const tgCount = allChats.filter(c => c.platform === 'telegram').length;
-                const fbCount = allChats.filter(c => c.platform === 'facebook').length;
-                
-                const users = await apiFetch('/api/users');
-                const userCount = users.length;
-
-                document.getElementById('dash-tg-count').textContent = tgCount;
-                document.getElementById('dash-fb-count').textContent = fbCount;
-                document.getElementById('dash-user-count').textContent = userCount;
-            } catch (error) {
-                console.error("Error fetching dashboard counts:", error);
-            }
+        function renderSettings() {
+            document.getElementById('content-view').innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-xl shadow-lg h-full overflow-y-auto">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-400">System Settings</h2>
+                    <p class="text-gray-300 mb-6">Configuration details. Since this is a self-contained front-end, actual environment variable configuration is done on the server.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h3 class="font-medium text-white">Admin Credentials</h3>
+                            <p class="text-sm text-gray-400">Current Username: <span class="text-blue-300" id="setting-username"></span></p>
+                            <p class="text-sm text-gray-400">Password is masked and should be changed in the server environment (.env).</p>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h3 class="font-medium text-white">API Endpoints</h3>
+                            <p class="text-sm text-gray-400">Backend is running on <span class="text-blue-300">port ${window.location.port || '80'}</span>.</p>
+                            <p class="text-sm text-gray-400">Webhooks are active for Telegram and Facebook Messenger.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('setting-username').textContent = document.getElementById('username').value;
         }
 
-
-        function renderChatList(chatList) {
-            const listElement = document.getElementById('chat-list');
-            listElement.innerHTML = '';
-
-            if (chatList.length === 0) {
-                listElement.innerHTML = '<div class="p-4 text-center text-gray-500 italic">လက်ရှိ စကားဝိုင်း မရှိပါ။</div>';
-                return;
-            }
-
-            chatList.forEach(chat => {
-                // Ensure platform exists and is used
-                const isFB = chat.platform === 'facebook'; 
-                const platformClass = isFB ? 'bg-blue-500' : 'bg-cyan-500';
-                const iconClass = isFB ? 'fab fa-facebook-messenger text-blue-600' : 'fab fa-telegram-plane text-cyan-500';
-                
-                const item = document.createElement('div');
-                item.className = `p-3 flex items-center space-x-3 cursor-pointer border-b hover:bg-gray-100 transition-ease chat-item ${currentChatId === chat.telegramId ? 'bg-blue-100 border-l-4 border-blue-500 shadow-inner' : ''}`;
-                item.setAttribute('data-chat-id', chat.telegramId); // Use data attribute for robust selection
-                item.onclick = () => selectChat(chat.telegramId);
-
-                const lastMessage = chat.lastMessageText || 'မီဒီယာ မက်ဆေ့ခ်ျ';
-
-                item.innerHTML = `
-                    <div class="flex-shrink-0 text-xl w-6 text-center">
-                        <i class="${iconClass}"></i>
+        async function renderChats(platform) {
+            const container = document.getElementById('content-view');
+            container.innerHTML = `
+                <div class="h-full flex bg-gray-900 rounded-xl shadow-2xl">
+                    <!-- Chat List Sidebar -->
+                    <div id="chat-list" class="w-80 border-r border-gray-700 overflow-y-auto p-2">
+                        <div class="text-lg font-bold p-2 text-white border-b border-gray-700 mb-2">${platform === 'telegram' ? 'Telegram' : 'Facebook'} Conversations</div>
+                        <div id="chat-list-items" class="space-y-1">
+                            <!-- Chat items will load here -->
+                            <div class="text-center text-gray-500 py-10">Loading chats...</div>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 truncate">${chat.username || chat.telegramId}</div>
-                        <div class="text-xs text-gray-500 truncate">${lastMessage}</div>
+                    
+                    <!-- Chat Conversation Area -->
+                    <div id="chat-detail" class="flex-1 flex flex-col">
+                        <div class="flex-1 flex items-center justify-center text-gray-500">
+                            Select a chat to view the conversation.
+                        </div>
                     </div>
-                    <div class="text-right flex flex-col items-end">
-                        <div class="text-xs text-gray-400">${chat.lastMessageTime ? moment(chat.lastMessageTime).fromNow() : 'N/A'}</div>
-                        <span class="text-xs font-medium px-2 py-0.5 mt-1 rounded-full text-white ${platformClass}">${isFB ? 'FB' : 'TG'}</span>
-                    </div>
-                `;
-                listElement.appendChild(item);
-            });
-        }
-
-        async function selectChat(chatId) {
-            if (currentChatId === chatId) return; // Prevent double click
-            
-            // 1. Deselect previous chat visually & Select current
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('bg-blue-100', 'border-l-4', 'border-blue-500', 'shadow-inner');
-            });
-
-            const selectedItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
-            if (selectedItem) {
-                selectedItem.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500', 'shadow-inner');
-            }
-
-            currentChatId = chatId;
-            const chat = chats[chatId];
-            
-            if (!chat) {
-                console.error(`Chat with ID ${chatId} not found in local cache.`);
-                createMessage('error', 'ရွေးချယ်ထားသော စကားဝိုင်းကို ရှာမတွေ့ပါ။');
-                return;
-            }
-
-            // 2. Update Header
-            const isFB = chat.platform === 'facebook';
-            const iconClass = isFB ? 'fab fa-facebook-messenger text-blue-600' : 'fab fa-telegram-plane text-cyan-500';
-            document.getElementById('header-platform-icon').className = iconClass + ' mr-2';
-            document.getElementById('header-username').textContent = chat.username || chat.telegramId;
-            document.getElementById('header-chat-id').textContent = `ID: ${chatId}`;
-            document.getElementById('header-platform-icon').classList.remove('hidden');
-            
-            // 3. Show reply box
-            document.getElementById('reply-box').classList.remove('hidden');
-            
-            // 4. Load history
-            await loadHistory(chatId);
-        }
-
-        async function loadHistory(chatId) {
-            const historyElement = document.getElementById('message-history');
-            
-            // Show Loading State
-            historyElement.innerHTML = `
-                <div class="w-full text-center py-8 mt-auto">
-                    <i class="fas fa-circle-notch fa-spin text-blue-500 text-4xl"></i>
-                    <p class="mt-3 text-gray-600">မှတ်တမ်းများ တင်နေသည်...</p>
                 </div>
             `;
             
-            try {
-                // Ensure chat ID is the one currently selected before fetching
-                if (chatId !== currentChatId) return;
+            const chats = await fetchData(`/api/chats?platform=${platform}`);
+            const chatListItems = document.getElementById('chat-list-items');
+            chatListItems.innerHTML = '';
 
-                const history = await apiFetch(`/api/chats/${chatId}/history`);
-                renderHistory(history);
-            } catch (error) {
-                console.error("Error loading history:", error);
-                // Only show error if it's the current chat
-                if (chatId === currentChatId) {
-                     historyElement.innerHTML = `<div class="p-4 text-center text-red-500 italic mt-auto">စကားဝိုင်းမှတ်တမ်း တင်ရာတွင် အမှားပေါ်ခဲ့သည်။</div>`;
-                }
-            }
-        }
-
-        function renderHistory(messages) {
-            const historyElement = document.getElementById('message-history');
-            historyElement.innerHTML = '';
-            
-            if (messages.length === 0) {
-                 historyElement.innerHTML = `<div class="p-4 text-center text-gray-500 italic mt-auto">ဤစကားဝိုင်းတွင် မက်ဆေ့ခ်ျမှတ်တမ်း မရှိပါ။</div>`;
-                 return;
+            if (!chats || chats.length === 0) {
+                chatListItems.innerHTML = `<div class="text-center text-gray-500 py-10">No active ${platform} chats found.</div>`;
+                return;
             }
 
-            // Render in reverse order to utilize flex-col-reverse
-            messages.forEach(message => {
-                const isUser = message.sender === 'user';
-                const messageDiv = document.createElement('div');
+            chats.forEach(chat => {
+                const chatEl = document.createElement('div');
+                chatEl.className = 'chat-item p-3 cursor-pointer rounded-lg transition-colors duration-150 hover:bg-gray-700 border border-transparent';
+                chatEl.setAttribute('data-id', chat.telegramId);
+                chatEl.setAttribute('data-platform', platform);
+                chatEl.onclick = () => selectChat(chat);
                 
-                const timeStr = moment(message.timestamp).format('HH:mm');
-
-                messageDiv.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
-                
-                let content = '';
-
-                if (message.mediaPath) {
-                    content = `<p class="italic text-gray-600 mb-1">မီဒီယာ: ${message.filename || 'File'} (${message.mediaPath.substring(0, 10)}...)</p>`;
-                }
-
-                if (message.text) {
-                    // Replace newlines with <br> for proper rendering in HTML
-                    const formattedText = message.text.replace(/\n/g, '<br>'); 
-                    content += `<p>${formattedText}</p>`;
-                }
-                
-                messageDiv.innerHTML = `
-                    <div class="max-w-[80%] md:max-w-[60%] lg:max-w-[50%] p-3 shadow-md transition-ease transform hover:scale-[1.01] ${isUser ? 'bg-white text-gray-800 user-bubble' : 'bg-blue-200 text-gray-800 admin-bubble'}">
-                        ${content}
-                        <div class="text-right text-xs mt-1 ${isUser ? 'text-gray-400' : 'text-blue-500'}">${timeStr}</div>
+                chatEl.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="font-semibold text-white truncate">${chat.username || chat.telegramId}</div>
+                        <span class="text-xs text-gray-400">${chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleDateString() : 'N/A'}</span>
                     </div>
+                    <p class="text-sm text-gray-400 truncate">${chat.lastMessageText || 'Media message'}</p>
+                    <span class="text-xs mt-1 inline-block px-2 py-0.5 rounded-full ${platform === 'telegram' ? 'bg-blue-800' : 'bg-indigo-800'} text-white">${platform.toUpperCase()}</span>
                 `;
-                
-                historyElement.insertBefore(messageDiv, historyElement.firstChild); // Insert at the top (since parent is flex-col-reverse)
+                chatListItems.appendChild(chatEl);
             });
-            
-            // Scroll to bottom (since we are using flex-col-reverse, this simulates scroll to bottom)
-            historyElement.scrollTop = historyElement.scrollHeight;
         }
 
-        // --- Reply Handling (ပြန်ကြားခြင်း) ---
+        async function selectChat(chat) {
+            selectedChat = chat;
 
-        async function handleReply() {
-            const replyTextElement = document.getElementById('reply-text');
-            const sendBtn = document.getElementById('send-btn');
-            const text = replyTextElement.value.trim();
+            // Highlight selected chat in list
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('bg-gray-700', 'border-blue-500'));
+            document.querySelector(`.chat-item[data-id="${chat.telegramId}"]`).classList.add('bg-gray-700', 'border-blue-500');
 
-            if (!text || !currentChatId) return;
+            const chatDetail = document.getElementById('chat-detail');
+            chatDetail.innerHTML = `
+                <div class="p-4 border-b border-gray-700 flex items-center bg-gray-800 rounded-t-xl shadow-md">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-3">${chat.username ? chat.username[0] : 'U'}</div>
+                    <div>
+                        <div class="font-semibold text-white">${chat.username || 'User ' + chat.telegramId}</div>
+                        <div class="text-sm text-gray-400">${chat.platform.toUpperCase()} ID: ${chat.telegramId}</div>
+                    </div>
+                </div>
+                <div id="chat-history" class="chat-history flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will load here -->
+                    <div class="text-center text-gray-500 py-10">Loading messages...</div>
+                </div>
+                <div class="p-4 border-t border-gray-700 bg-gray-800 rounded-b-xl">
+                    <form id="reply-form" onsubmit="sendReply(event)">
+                        <input type="hidden" id="reply-chat-id" value="${chat.telegramId}">
+                        <div class="flex space-x-3">
+                            <input type="text" id="reply-text" placeholder="Type a reply..." required
+                                class="flex-1 px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition duration-200">
+                                Send
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
 
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ပို့နေသည်...';
+            const history = await fetchData(`/api/chats/${chat.telegramId}/history`);
+            const historyContainer = document.getElementById('chat-history');
+            historyContainer.innerHTML = '';
 
-            socket.emit('admin_reply', { chatId: currentChatId, text }, (response) => {
+            if (history) {
+                history.forEach(msg => appendMessageToHistory(msg, false));
+                // Scroll to bottom
+                historyContainer.scrollTop = historyContainer.scrollHeight;
+            } else {
+                historyContainer.innerHTML = '<div class="text-center text-red-400 py-10">Failed to load history.</div>';
+            }
+        }
+
+        function appendMessageToHistory(msg, shouldScroll = true) {
+            const historyContainer = document.getElementById('chat-history');
+            if (!historyContainer) return; // Not in chat view
+
+            const messageEl = document.createElement('div');
+            const isUser = msg.sender === 'user';
+            
+            messageEl.className = `flex ${isUser ? 'justify-start' : 'justify-end'} `;
+            
+            let content;
+            if (msg.mediaPath) {
+                // Cannot display media as it's a file_id, so show a placeholder/link
+                content = `<a href="#" class="text-blue-400 hover:underline">${msg.filename || 'Media file'} (Click to download via bot API - not implemented)</a>`;
+            } else {
+                content = msg.text;
+            }
+
+            messageEl.innerHTML = `
+                <div class="max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-xl shadow-lg ${isUser ? 'bg-gray-700 rounded-tl-none' : 'bg-blue-600 text-white rounded-tr-none'}">
+                    <p class="text-sm break-words">${content}</p>
+                    <span class="text-xs mt-1 block text-right ${isUser ? 'text-gray-400' : 'text-blue-200'}">${formatTimestamp(msg.timestamp)}</span>
+                </div>
+            `;
+            
+            historyContainer.appendChild(messageEl);
+
+            if (shouldScroll) {
+                historyContainer.scrollTop = historyContainer.scrollHeight;
+            }
+        }
+
+        function sendReply(event) {
+            event.preventDefault();
+            const chatId = document.getElementById('reply-chat-id').value;
+            const textInput = document.getElementById('reply-text');
+            const text = textInput.value.trim();
+
+            if (!text) return;
+
+            // Emit reply via Socket.io
+            socket.emit('admin_reply', { chatId, text }, (response) => {
                 if (response.success) {
-                    replyTextElement.value = '';
-                    createMessage('success', 'ပြန်ကြားချက် အောင်မြင်စွာ ပို့ပြီးပါပြီ။');
-                    // Message_sent socket event will handle history reload
+                    showNotification('Reply sent!', 'success');
+                    textInput.value = '';
                 } else {
-                    createMessage('error', `ပြန်ကြားချက် ပို့ရန် မအောင်မြင်ပါ: ${response.error}`);
-                    console.error("Reply failed:", response.error);
+                    showNotification(`Failed to send reply: ${response.error}`, 'error');
                 }
-                
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> ပို့';
             });
         }
-        
-        // Allow sending reply with Enter key
-        document.getElementById('reply-text').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleReply();
-            }
-        });
 
+        async function renderUserList() {
+            const container = document.getElementById('content-view');
+            container.innerHTML = `
+                <div class="h-full flex flex-col bg-gray-800 rounded-xl shadow-2xl p-6">
+                    <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">System Users</h2>
+                    
+                    <!-- Add User Form -->
+                    <form id="add-user-form" class="mb-6 p-4 bg-gray-700 rounded-lg shadow-inner flex flex-wrap gap-4 items-end" onsubmit="addUser(event)">
+                        <div class="flex-1 min-w-[150px]">
+                            <label for="new-user-name" class="block text-sm font-medium text-gray-400 mb-1">Name (Required)</label>
+                            <input type="text" id="new-user-name" placeholder="John Doe" required class="w-full px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-lg">
+                        </div>
+                        <div class="flex-1 min-w-[100px]">
+                            <label for="new-user-role" class="block text-sm font-medium text-gray-400 mb-1">Role</label>
+                            <select id="new-user-role" class="w-full px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-lg">
+                                <option>Admin</option>
+                                <option selected>Viewer</option>
+                                <option>Support</option>
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[100px]">
+                            <label for="new-user-status" class="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                            <select id="new-user-status" class="w-full px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-lg">
+                                <option selected>Active</option>
+                                <option>Inactive</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition duration-200">
+                            Add User
+                        </button>
+                    </form>
 
-        // --- Socket.io Handlers (Socket.io မှ ကိုင်တွယ်ခြင်း) ---
-
-        socket.on('connect', () => {
-            console.log('Socket.io server သို့ ချိတ်ဆက်ပြီးပါပြီ။');
-        });
-
-        // Handles user messages coming in (Updates list and currently viewed history)
-        socket.on('new_message', (data) => {
-            const { chatId, user, platform } = data;
-            
-            // 1. Update chat in local state and dashboard counts
-            chats[chatId] = user;
-            fetchChats(currentPlatformFilter);
-            fetchDashboardCounts();
-
-            // 2. If it's the currently viewed chat AND on the correct platform view, update history
-            if (chatId === currentChatId) {
-                loadHistory(chatId); 
-            }
-            createMessage('info', `မက်ဆေ့ခ်ျအသစ်: ${user.username} (${platform})!`);
-        });
-
-        // Handles admin messages sent out (Updates list and currently viewed history)
-        socket.on('message_sent', (data) => {
-            const { chatId, message } = data;
-            
-            // 1. Update chat list (to update last message text/time)
-            if (chats[chatId]) {
-                chats[chatId].lastMessageText = message.text;
-                // Since this might be from another admin, force reload of the list
-                fetchChats(currentPlatformFilter); 
-            }
-
-            // 2. If it's the currently viewed chat, update history
-            if (chatId === currentChatId) {
-                loadHistory(chatId); 
-            }
-        });
-
-
-        // --- User Management Logic (သုံးစွဲသူ စီမံခန့်ခွဲမှု) ---
-
-        async function fetchUsers() {
-            try {
-                const users = await apiFetch('/api/users');
-                renderUserList(users);
-                document.getElementById('dash-user-count').textContent = users.length; // Update dashboard count
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                createMessage('error', 'စနစ်သုံးစွဲသူများ စာရင်းကို ရယူ၍ မရပါ။');
-            }
+                    <!-- User Table -->
+                    <div class="flex-1 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Created At</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body" class="bg-gray-800 divide-y divide-gray-700">
+                                <!-- User rows will be inserted here -->
+                            </tbody>
+                        </table>
+                        <p id="user-list-status" class="text-center text-gray-500 py-10">Loading users...</p>
+                    </div>
+                </div>
+            `;
+            loadUserTable();
         }
 
-        function renderUserList(users) {
-            const listBody = document.getElementById('user-list-body');
-            listBody.innerHTML = '';
+        async function loadUserTable() {
+            const users = await fetchData('/api/users');
+            const tableBody = document.getElementById('user-table-body');
+            const status = document.getElementById('user-list-status');
+            tableBody.innerHTML = '';
+            status.classList.add('hidden');
 
-            if (users.length === 0) {
-                listBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500 italic">စနစ်သုံးစွဲသူ မရှိပါ။</td></tr>`;
+            if (!users || users.length === 0) {
+                status.textContent = 'No system users found.';
+                status.classList.remove('hidden');
                 return;
             }
 
             users.forEach(user => {
                 const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 transition-ease';
-                
-                const statusColor = user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                const createdTime = user.createdAt ? moment(user.createdAt._seconds * 1000).format('YYYY-MM-DD HH:mm') : 'N/A';
+                row.className = 'hover:bg-gray-700 transition-colors duration-150';
 
+                const statusClass = user.status === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
+                
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">${user.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.role}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor} shadow-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
                             ${user.status}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${createdTime}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 transition-ease p-1 rounded-full hover:bg-red-100" title="ဖျက်ပစ်ရန်">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 transition-colors duration-150">Delete</button>
                     </td>
                 `;
-                listBody.appendChild(row);
+                tableBody.appendChild(row);
             });
         }
 
-        async function createUser() {
-            const name = document.getElementById('new-user-name').value.trim();
+        async function addUser(event) {
+            event.preventDefault();
+            const name = document.getElementById('new-user-name').value;
             const role = document.getElementById('new-user-role').value;
             const status = document.getElementById('new-user-status').value;
 
-            if (!name) {
-                createMessage('error', 'အသုံးပြုသူအမည် ထည့်ရန် လိုအပ်ပါသည်။');
-                return;
-            }
-
-            try {
-                await apiFetch('/api/users', {
-                    method: 'POST',
-                    body: JSON.stringify({ name, role, status })
-                });
-                document.getElementById('new-user-name').value = '';
-                createMessage('success', 'အသုံးပြုသူ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။');
-                fetchUsers();
-            } catch (error) {
-                console.error("Error creating user:", error);
-                createMessage('error', 'အသုံးပြုသူ ထည့်သွင်းရန် မအောင်မြင်ပါ။');
+            const newUser = await fetchData('/api/users', 'POST', { name, role, status });
+            if (newUser) {
+                showNotification('User added successfully!', 'success');
+                loadUserTable();
+                // Clear form
+                document.getElementById('add-user-form').reset();
             }
         }
 
-        async function deleteUser(id) {
-            if (!customConfirm(`အသုံးပြုသူ ID: ${id} ကို ဖျက်ပစ်ရန် သေချာပါသလား။`)) {
-                 return;
-            }
-
-            try {
-                await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
-                createMessage('success', 'အသုံးပြုသူ ဖျက်ပစ်ပြီးပါပြီ။');
-                fetchUsers();
-            } catch (error) {
-                console.error("Error deleting user:", error);
-                createMessage('error', 'အသုံးပြုသူ ဖျက်ရာတွင် အမှားပေါ်ခဲ့သည်။');
+        async function deleteUser(userId) {
+            if (window.confirm('Are you sure you want to delete this user?')) {
+                const result = await fetchData(`/api/users/${userId}`, 'DELETE');
+                if (result && result.success) {
+                    showNotification('User deleted successfully.', 'success');
+                    loadUserTable();
+                } else if (result) {
+                    showNotification('Failed to delete user.', 'error');
+                }
             }
         }
-        
+
+        function renderBroadcast() {
+            document.getElementById('content-view').innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-xl shadow-2xl h-full flex flex-col">
+                    <h2 class="text-2xl font-semibold mb-6 text-blue-400 border-b border-gray-700 pb-2">Telegram Mass Broadcast</h2>
+                    <p class="text-gray-400 mb-6">Send a one-time message to ALL active Telegram users in the database.</p>
+                    
+                    <form id="broadcast-form" onsubmit="sendBroadcast(event)" class="flex flex-col space-y-4 flex-grow">
+                        <div>
+                            <label for="broadcast-text" class="block text-sm font-medium text-gray-400 mb-1">Message Content</label>
+                            <textarea id="broadcast-text" rows="8" required placeholder="Enter the message you want to broadcast (e.g., Important system update: We will be offline for maintenance at 10 PM UTC)." 
+                                class="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"></textarea>
+                        </div>
+                        
+                        <div id="broadcast-results" class="p-4 bg-gray-700 rounded-lg text-sm text-gray-300 hidden flex-grow overflow-y-auto">
+                            <h4 class="font-semibold text-white mb-2">Broadcast Status:</h4>
+                            <p id="broadcast-summary"></p>
+                            <ul id="broadcast-failures" class="mt-2 list-disc list-inside text-red-400"></ul>
+                        </div>
+
+                        <button type="submit" id="broadcast-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Send Broadcast to All TG Users
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+
+        async function sendBroadcast(event) {
+            event.preventDefault();
+            const text = document.getElementById('broadcast-text').value.trim();
+            const button = document.getElementById('broadcast-button');
+            const resultsDiv = document.getElementById('broadcast-results');
+            const summary = document.getElementById('broadcast-summary');
+            const failuresList = document.getElementById('broadcast-failures');
+
+            if (!text) return;
+
+            button.disabled = true;
+            button.textContent = 'Sending... Please Wait (This may take a moment)';
+            resultsDiv.classList.add('hidden');
+            summary.textContent = '';
+            failuresList.innerHTML = '';
+            
+            const result = await fetchData('/api/broadcast/telegram', 'POST', { text });
+
+            button.disabled = false;
+            button.textContent = 'Send Broadcast to All TG Users';
+
+            if (result && result.success) {
+                showNotification(`Broadcast sent to ${result.successes} users!`, 'success');
+                
+                summary.innerHTML = `Attempted to send to <strong>${result.totalChatsAttempted} chats</strong>. Successfully sent to <strong>${result.successes} chats</strong>.`;
+                
+                if (result.failures.length > 0) {
+                    summary.innerHTML += `<br><span class="text-red-400 font-semibold">${result.failures.length} failed broadcasts.</span>`;
+                    result.failures.forEach(f => {
+                        const li = document.createElement('li');
+                        li.textContent = `Chat ID ${f.chatId}: ${f.error}`;
+                        failuresList.appendChild(li);
+                    });
+                } else {
+                    summary.innerHTML += `<br>All messages delivered successfully.`;
+                }
+
+            } else if (result) {
+                showNotification(`Broadcast failed: ${result.error}`, 'error');
+                summary.textContent = `Broadcast operation failed: ${result.error}`;
+            } else {
+                 summary.textContent = 'Broadcast operation failed due to an unknown network or server error.';
+            }
+
+            resultsDiv.classList.remove('hidden');
+        }
+
+
         // --- Initialization ---
-        window.onload = () => {
-            // Show auth modal on load
-            document.getElementById('auth-modal').classList.remove('hidden');
+        // Start on load (waits for the user to input credentials)
+        window.onload = function() {
+            // Check if credentials are already set (e.g., from a prior session, which is not supported here but good practice)
+            // For this environment, we just show the auth modal.
+            document.getElementById('current-username').textContent = document.getElementById('username').value;
         };
 
-        
+        // Initialize the first view after successful authentication
+        // (This happens inside handleAuth)
+
     </script>
 </body>
 </html>
