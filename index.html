@@ -142,14 +142,15 @@
         }
 
         /* Message History container */
+        /* Custom CSS ၏ .chat-messages အပိုင်း */
         .chat-messages {
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; 
+            flex-direction: column-reverse; /* စာအောက်ကနေ စပြဖို့ */
             padding: 1rem;
-            **flex-grow: 1;**
-            **min-height: 0;**
-
+            flex-grow: 1;
+            min-height: 0; /* ✨ ဒါကို သေချာ ထားပေးပါ။ ✨ */
+            /* height: 0; ကိုတော့ ဖြုတ်ထားပါ။ (စောစောက အကြံပေးထားသည့်အတိုင်း) */
         }
         /* Custom Scrollbar (kept for desktop view) */
         .chat-messages::-webkit-scrollbar { width: 8px; }
