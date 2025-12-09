@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AdminPlan</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // Configure Tailwind to use 'class' for dark mode and define custom color palette
@@ -261,78 +259,62 @@
 
     </style>
 </head>
-<!-- Main container uses light-bg by default, dark-bg in dark mode -->
 <body class="bg-light-bg dark:bg-dark-bg h-screen overflow-hidden flex text-gray-900 dark:text-gray-200">
 
-    <!-- Mobile Sidebar Backdrop (Only visible when sidebar is open on small screens) -->
     <div id="mobile-backdrop" class="fixed inset-0 bg-black z-30 md:hidden" onclick="toggleSidebar()"></div>
 
-    <!-- 1. Full Sidebar (Responsive: fixed & hidden on mobile, static on desktop) -->
     <div id="sidebar" class="w-64 sidebar bg-light-card dark:bg-darker-sidebar border-r border-light-border dark:border-gray-700/30 shadow-2xl flex flex-col flex-shrink-0 z-40
-                fixed h-full top-0 left-0 transform -translate-x-full md:relative md:transform-none md:flex transition-transform duration-500">
+                 fixed h-full top-0 left-0 transform -translate-x-full md:relative md:transform-none md:flex transition-transform duration-500">
         
-        <!-- Logo/Title: Neon Emphasis -->
         <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
             <svg class="w-8 h-8 mr-3 text-blue-600 dark:text-neon-secondary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
             <span class="tracking-widest">Admin Plan</span>
         </div>
 
-        <!-- Navigation Menu -->
         <nav id="mainNav" class="p-4 space-y-2 flex-grow overflow-y-auto">
             
-            <!-- 1. Dashboard -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 active-nav" data-section="dashboard">
                 <svg class="w-6 h-6 mr-3 text-blue-600 dark:text-neon-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span>Dashboard</span>
             </a>
 
-             <!-- 2. FB Page Messenger (New) -->
              <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="fb-messenger">
-                <!-- Messenger Icon -->
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
                 </svg>
                 <span>FB Page Messenger</span>
             </a>
             
-            <!-- 3. Chats -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 justify-between" data-section="chat">
                 <div class="flex items-center">
                     <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                     <span>Chats</span>
                 </div>
-                <!-- Total Unread Count Badge -->
                 <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
             </a>
 
-            <!-- 4. User List (New) -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="user-list">
-                <!-- User Group Icon -->
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
                 <span>User List</span>
             </a>
             
-            <!-- 5. Broadcast -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="broadcast">
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
                 <span>Broadcast</span>
             </a>
             
-            <!-- 6. Settings -->
             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="settings">
                 <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
             </a>
         </nav>
         
-        <!-- Dark Mode Toggle Button -->
         <div class="p-6 border-t border-light-border dark:border-gray-700/30 transition-colors duration-500">
              <button id="darkModeToggle" onclick="toggleDarkMode()" 
                     class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800/50 dark:hover:bg-gray-700 transition duration-300 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-300 dark:border-gray-700/50">
                 <svg id="themeIcon" class="w-6 h-6 text-yellow-600 dark:text-neon-secondary transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24">
-                    <!-- Icon updated by JS -->
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
                 <span id="themeText" class="font-medium text-sm hidden sm:inline transition-colors duration-300">Switch Theme</span>
@@ -340,39 +322,30 @@
         </div>
     </div>
 
-    <!-- 2. Chat List Panel (Responsive: full width on mobile, w-80 on desktop/tablet) -->
     <div id="chatListPanel" class="w-full md:w-80 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-gray-700/30 flex-col flex-shrink-0 z-30 transition-colors duration-500 shadow-xl hidden">
-        <!-- Chat List Header -->
         <div class="p-6 text-xl font-extrabold border-b border-light-border dark:border-gray-700/30 h-20 flex items-center transition-colors duration-500">
             Conversations Log
         </div>
 
-        <!-- Chat List Search Input -->
         <div class="p-4 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
             <input type="text" id="chatListSearch" placeholder="Chat/User ID ကိုရှာရန်..."
-                   onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
+                    onkeyup="filterChatList(this.value)"
+                    class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
         </div>
 
-        <!-- Chat List Container -->
-        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
+        <div id="chatList" class="flex-grow overflow-y-auto **min-h-0** p-4 space-y-3">
             <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
         </div>
     </div>
 
-    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
     <div class="flex-grow flex flex-col transition-colors duration-500 relative">
         
-        <!-- === NEW: Shared Top Nav Bar (Desktop/Tablet) === -->
         <nav id="desktopTopNav" class="hidden md:flex p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 items-center justify-end sticky top-0 z-20 shadow-md">
             <div id="myanmarTimeDisplay" class="text-base font-semibold text-gray-700 dark:text-neon-primary flex items-center space-x-2 transition-colors duration-500">
-                <!-- Content filled by JS (Myanmar Time) -->
-            </div>
+                </div>
         </nav>
         
-        <!-- Mobile Header (Visible only on small screens) - Modified to include time -->
         <header id="mobileHeader" class="md:hidden p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-20 shadow-lg">
-            <!-- Menu Toggle Button -->
             <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200">
                 <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
             </button>
@@ -382,15 +355,12 @@
                 <span id="mobileHeaderTime" class="text-xs text-red-500 dark:text-neon-primary font-mono mt-0.5">--:--:--</span>
             </div>
             
-            <!-- Back Button for Chat View (hidden by default) -->
-             <button id="chatBackButton" onclick="backToChatList()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200 hidden">
+            <button id="chatBackButton" onclick="backToChatList()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200 hidden">
                 <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <div class="w-10 h-10 md:hidden"></div> <!-- Placeholder for alignment -->
-        </header>
+            <div class="w-10 h-10 md:hidden"></div> </header>
 
         
-        <!-- === SECTION 1: Dashboard === -->
         <div id="section-dashboard" class="main-section flex-grow p-4 md:p-8 overflow-y-auto">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 🚀 Dashboard 
@@ -398,19 +368,15 @@
             <p class="text-gray-500 dark:text-gray-400 mb-6 md:mb-10 border-b border-light-border dark:border-gray-700/50 pb-4 transition-colors duration-500">
                 အချိန်နှင့်တပြေးညီ အချက်အလက်နှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။
             </p>
-            <!-- Adjusted grid for better mobile flow (1 col, 3 cols on md) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <!-- Card 1 -->
                 <div class="stat-card p-6 md:p-8 bg-blue-500 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-white cursor-pointer">
                     <div class="text-4xl md:text-6xl font-black">၁,၂၄၅</div>
                     <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">မှတ်ပုံတင်ထားသော အသုံးပြုသူ စုစုပေါင်း</div>
                 </div>
-                <!-- Card 2 -->
                 <div class="stat-card p-6 md:p-8 bg-green-500 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-white cursor-pointer">
                     <div class="text-4xl md:text-6xl font-black">၂၅</div>
                     <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">လက်ရှိအသုံးပြုနေသော စက်ရှင်များ</div>
                 </div>
-                <!-- Card 3 -->
                 <div class="stat-card p-6 md:p-8 bg-purple-500 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-white cursor-pointer">
                     <div class="text-4xl md:text-6xl font-black">၁၅၆</div>
                     <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">ဖြေရှင်းရန် ကျန်ရှိသော လက်မှတ်များ</div>
@@ -426,22 +392,18 @@
             </div>
         </div>
 
-        <!-- === SECTION 2: FB Page Messenger (NEW REAL IMPLEMENTATION) === -->
         <div id="section-fb-messenger" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
             <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
                 💬 FB Page Messenger
             </h1>
             <div class="flex h-[calc(100vh-250px)] bg-light-card dark:bg-dark-card rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 overflow-hidden">
-                <!-- FB List -->
                 <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto" id="fbChatList">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
                         Facebook Inbox
                     </div>
-                    <!-- Dynamic FB Chat Items go here -->
                     <div class="text-center p-4 text-gray-500 text-sm">Loading FB chats...</div>
                 </div>
 
-                <!-- FB Placeholder / View -->
                 <div class="w-2/3 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
                     <div class="text-center">
                         <svg class="mx-auto h-16 w-16 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
@@ -454,59 +416,62 @@
                 </div>
             </div>
         </div>
-<div id="section-chat" class="main-section flex-grow flex-col hidden **h-full**">
-    <div id="chatView" class="flex-grow flex-col hidden md:flex **h-full**"> 
-        
-        <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
-            <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
-        </header>
-         
-        <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
-            <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
-                onkeyup="filterChatHistory(this.value)"
-                class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-        </div>
 
-        <div id="messageHistory" class="flex-grow **min-h-0** chat-messages transition-colors duration-500">
-            <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
-        </div>
+        <div id="section-chat" class="main-section flex-grow flex-col hidden **h-full**">
+            <div id="chatView" class="flex-grow flex-col hidden md:flex **h-full**"> 
+                
+                <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
+                    <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
+                </header>
+                
+                <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
+                    <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
+                        onkeyup="filterChatHistory(this.value)"
+                        class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
+                </div>
 
-        <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50 **flex-shrink-0**">
-            <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
-                        <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
-                        <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
+                <div id="messageHistory" class="flex-grow **min-h-0** chat-messages transition-colors duration-500">
+                    <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
+                </div>
+
+                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50 **flex-shrink-0**">
+                    <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
+                                <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
+                                <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
+                            </div>
+                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+
+                    <div class="flex space-x-2">
+                        <input type="file" id="fileInput" class="hidden" 
+                            onchange="handleFileSelect(event)" 
+                            accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                                
+                        <button onclick="document.getElementById('fileInput').click()" 
+                                class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        </button>
+                            
+                        <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
+                                class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
+                                onkeypress="if(event.key === 'Enter') sendReply()">
+                                
+                        <button id="sendButton" onclick="sendReply()"
+                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-
-            <div class="flex space-x-2">
-                <input type="file" id="fileInput" class="hidden" 
-                    onchange="handleFileSelect(event)" 
-                    accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                        
-                <button onclick="document.getElementById('fileInput').click()" 
-                        class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                </button>
-                    
-                <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
-                        class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
-                        onkeypress="if(event.key === 'Enter') sendReply()">
-                        
-                <button id="sendButton" onclick="sendReply()"
-                        class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </button>
-            </div>
         </div>
-    </div>
-</div>
+        
+
 
         <!-- === SECTION 4: User List (NEW REAL IMPLEMENTATION) === -->
         <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
