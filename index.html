@@ -454,11 +454,10 @@
                 </div>
             </div>
         </div>
-
-        <!-- === SECTION 3: Chats (Existing Chat Logic) === -->
 <div id="section-chat" class="main-section flex-grow flex-col hidden **h-full**">
-    <div id="chatView" class="flex-grow flex-col hidden md:flex flex **h-full**"> 
-        <header id="chatHeader" class="... h-20 shadow-md md:block hidden">
+    <div id="chatView" class="flex-grow flex-col hidden md:flex **h-full**"> 
+        
+        <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
             <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
         </header>
          
@@ -470,55 +469,44 @@
 
         <div id="messageHistory" class="flex-grow **min-h-0** chat-messages transition-colors duration-500">
             <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
-            </div>
+        </div>
 
         <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50 **flex-shrink-0**">
-            </div>
-    </div>
-</div>
-
-                <!-- Message Input -->
-                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50 **flex-shrink-0**">
-                    <!-- File/Image Preview Area -->
-                    <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
-                                <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
-                                <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
-                            </div>
-                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
+            <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
+                        <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
+                        <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
                     </div>
-
-                    <div class="flex space-x-2">
-                        <!-- Hidden File Input -->
-                        <input type="file" id="fileInput" class="hidden" 
-                               onchange="handleFileSelect(event)" 
-                               accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                               
-                        <!-- Attach Button -->
-                        <button onclick="document.getElementById('fileInput').click()" 
-                                class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        </button>
-                        
-                        <!-- Input field with neon focus style -->
-                        <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
-                               class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
-                               onkeypress="if(event.key === 'Enter') sendReply()">
-                               
-                        <!-- Send button with vibrant glow -->
-                        <button id="sendButton" onclick="sendReply()"
-                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
-                    </div>
+                    <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </div>
             </div>
+
+            <div class="flex space-x-2">
+                <input type="file" id="fileInput" class="hidden" 
+                    onchange="handleFileSelect(event)" 
+                    accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
+                        
+                <button onclick="document.getElementById('fileInput').click()" 
+                        class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                </button>
+                    
+                <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
+                        class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
+                        onkeypress="if(event.key === 'Enter') sendReply()">
+                        
+                <button id="sendButton" onclick="sendReply()"
+                        class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
         </div>
+    </div>
+</div>
 
         <!-- === SECTION 4: User List (NEW REAL IMPLEMENTATION) === -->
         <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
