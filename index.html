@@ -11,9 +11,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <!-- Lucide Icons -->
     <script type="module">
-        import { createIcons, MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio, LayoutDashboard, Settings, SendToBack } from 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/esm/lucide.js';
-        // SendToBack is used for the Broadcast icon
-        createIcons({ icons: { MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio, LayoutDashboard, Settings, SendToBack } });
+        import { createIcons, MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio, LayoutDashboard, Settings, SendToBack, XCircle } from 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/esm/lucide.js';
+        createIcons({ icons: { MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio, LayoutDashboard, Settings, SendToBack, XCircle } });
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
@@ -30,9 +29,47 @@
         .user-message { background-color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
         .admin-message { background-color: #3b82f6; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .active-menu { background-color: #4338ca !important; color: white !important; }
+        /* Modal Backdrop */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="antialiased">
+
+    <!-- Authentication Modal (Custom Prompt replacement) -->
+    <div id="auth-modal" class="modal-backdrop">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Login Required</h2>
+            <p class="text-gray-600 mb-6">Please enter the administrator credentials to access the dashboard.</p>
+            <form id="auth-form" class="space-y-4">
+                <div>
+                    <label for="modal-username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="modal-username" name="username" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="modal-password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="modal-password" name="password" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150">
+                    Access Dashboard
+                </button>
+                <p id="modal-error-message" class="text-sm text-red-600 mt-2 hidden flex items-center">
+                    <i data-lucide="x-circle" class="w-4 h-4 mr-1"></i>
+                    <span>Authentication failed.</span>
+                </p>
+            </form>
+        </div>
+    </div>
 
     <!-- Main Application Container -->
     <div id="app" class="flex h-screen overflow-hidden hidden">
@@ -254,10 +291,25 @@
         }
 
         /**
+         * Custom Alert replacement for iframe compatibility.
+         * Shows a message and hides the app container (simulating failure).
+         */
+        function customAlert(message) {
+            document.getElementById('modal-error-message').querySelector('span').textContent = message;
+            document.getElementById('modal-error-message').classList.remove('hidden');
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+        }
+
+        /**
          * Fetches data with basic auth headers and error handling.
          */
         async function fetchData(url, options = {}) {
-            if (!AUTH_HEADER) throw new Error("Authentication failed or headers missing.");
+            if (!AUTH_HEADER) {
+                // Should not happen if init() ran, but safe check
+                customAlert("Authentication headers missing. Please log in.");
+                throw new Error("Authentication failed or headers missing.");
+            }
 
             const defaultOptions = {
                 headers: {
@@ -269,8 +321,7 @@
             const response = await fetch(url, { ...defaultOptions, ...options });
 
             if (response.status === 401) {
-                document.getElementById('app').classList.add('hidden');
-                alert('Authentication failed. Please refresh and re-authenticate.');
+                customAlert('Authentication failed. Please refresh and re-authenticate.');
                 return;
             }
             if (!response.ok) {
@@ -553,7 +604,12 @@
                 // Add delete listener
                 const deleteButton = row.querySelector(`[data-user-id="${user.id}"]`);
                 if (deleteButton) {
-                    deleteButton.addEventListener('click', () => deleteUser(user.id, user.name));
+                    deleteButton.addEventListener('click', () => {
+                        // Custom confirmation logic
+                        if (confirm(`Are you sure you want to delete user: ${user.name}?`)) {
+                            deleteUser(user.id, user.name);
+                        }
+                    });
                 }
             });
             
@@ -570,18 +626,15 @@
          * Handles the deletion of a system user.
          */
         async function deleteUser(userId, userName) {
-            // Replaced window.confirm with a custom solution for iframe compatibility
-            const shouldDelete = confirm(`Are you sure you want to delete user: ${userName}?`);
-            if (!shouldDelete) {
-                return;
-            }
             try {
                 await fetchData(`${API_BASE}/api/users/${userId}`, { method: 'DELETE' });
-                alert(`User ${userName} deleted successfully.`);
+                // Custom Alert/Toast replacement
+                console.log(`User ${userName} deleted successfully.`);
                 fetchAndRenderUserList();
             } catch (error) {
                 console.error("Failed to delete user:", error);
-                alert(`Failed to delete user: ${error.message}`);
+                // Custom Alert/Toast replacement
+                customAlert(`Failed to delete user: ${error.message}`);
             }
         }
         
@@ -640,8 +693,7 @@
                     input.value = ''; // Clear input only on success
                 } else {
                     console.error("Reply failed:", response.error);
-                    // Replaced window.alert
-                    alert(`Failed to send reply: ${response.error}`);
+                    customAlert(`Failed to send reply: ${response.error}`);
                 }
             });
         });
@@ -690,6 +742,34 @@
                 input.disabled = false;
                 message.classList.add('hidden');
             }, 3000);
+        });
+        
+        // Custom Auth Form Submission
+        document.getElementById('auth-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('modal-username').value;
+            const password = document.getElementById('modal-password').value;
+            const errorMsg = document.getElementById('modal-error-message');
+            
+            errorMsg.classList.add('hidden');
+
+            if (!username || !password) {
+                errorMsg.querySelector('span').textContent = "Username and Password are required.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // Attempt to set auth header and proceed (The actual validation happens on the first API call)
+            setBasicAuth(username, password);
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('auth-info').textContent = `User: ${username}`;
+
+            // Load initial data
+            fetchDashboardStats();
+            
+            // Check authentication with a dummy request immediately after login attempt
+            checkAuthAndInit();
         });
 
 
@@ -771,6 +851,27 @@
             }
         });
 
+        /**
+         * Checks if the Basic Auth is valid by making a simple request.
+         */
+        async function checkAuthAndInit() {
+            try {
+                await fetchData(`${API_BASE}/api/chats`, { method: 'GET' });
+                // If successful, the app is visible and data is loaded.
+            } catch (error) {
+                if (error.message.includes('401')) {
+                    // This error is already handled by customAlert inside fetchData
+                    // Re-show modal for user to retry
+                    document.getElementById('modal-error-message').querySelector('span').textContent = "Authentication failed. Please check your credentials.";
+                    document.getElementById('modal-error-message').classList.remove('hidden');
+                    document.getElementById('auth-modal').classList.remove('hidden');
+                    document.getElementById('app').classList.add('hidden');
+                } else {
+                    console.error("Initialization failed:", error);
+                    customAlert(`Failed to connect to server: ${error.message}`);
+                }
+            }
+        }
 
         // --- Initialization ---
 
@@ -778,25 +879,16 @@
          * Main initialization function
          */
         function init() {
-            // 1. Basic Auth Prompt
-            // Note: In an iframe environment, alert/prompt are discouraged, but kept here
-            // to enforce the required Basic Auth check from the Node.js server.
-            const username = prompt("Enter Admin Username:");
-            const password = prompt("Enter Admin Password:");
-
-            if (!username || !password) {
-                alert("Credentials are required to access the dashboard.");
-                return;
+            // Show the custom authentication modal instead of using prompt()
+            document.getElementById('auth-modal').classList.remove('hidden');
+            
+            // Initial render of Lucide icons for the modal
+            if(typeof createIcons !== 'undefined') {
+                 createIcons({ 
+                    icons: { XCircle }, 
+                    container: document.getElementById('auth-modal')
+                });
             }
-
-            setBasicAuth(username, password);
-            document.getElementById('auth-info').textContent = `User: ${username}`;
-            document.getElementById('app').classList.remove('hidden');
-
-            // 2. Load Initial Dashboard Data
-            fetchDashboardStats();
-            // Start on Dashboard view (default in HTML, enforced here)
-            // switchView('dashboard'); // Already active by default
         }
 
         window.onload = init;
