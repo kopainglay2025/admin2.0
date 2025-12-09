@@ -41,7 +41,7 @@ const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'verify_token';
 // Firestore collection names
 const CHAT_COLLECTION = 'telegram_chats';
 const MESSAGE_SUB_COLLECTION = 'messages';
-const USERS_COLLECTION = 'system_users'; // New collection for User List
+const USERS_COLLECTION = 'telegram_chats'; // New collection for User List
 
 // -------------------------
 // 3. Initialize Firebase Admin
