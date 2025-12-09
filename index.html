@@ -1,243 +1,647 @@
-<!doctype html>
-<html lang="my">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Dashboard — Chats</title>
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root{--accent:#6366f1}
-    .scroll-y{overflow-y:auto}
-    .msg-admin{background:rgba(99,102,241,0.12)}
-    .msg-user{background:rgba(16,185,129,0.06)}
-    .msg-meta{font-size:11px;color:#6b7280}
-    .kbd{background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:12px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Platform Chat Admin Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Load Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Lucide Icons -->
+    <script type="module">
+        import { createIcons, MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio } from 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/esm/lucide.js';
+        createIcons({ icons: { MessageSquare, Users, Send, Trash2, Facebook, MessageSquareText, Radio } });
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
+        .platform-tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+        .telegram { background-color: #0088cc1a; color: #0088cc; }
+        .facebook { background-color: #1877f21a; color: #1877f2; }
+        .message-container { max-height: calc(100vh - 200px); overflow-y: auto; scroll-behavior: smooth; }
+        .message-bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; }
+        .user-message { background-color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .admin-message { background-color: #3b82f6; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    </style>
 </head>
-<body class="min-h-screen font-sans bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
-  <div class="max-w-7xl mx-auto p-4">
-    <header class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-4">
-        <h1 class="text-2xl font-semibold">Admin Dashboard</h1>
-        <div class="text-sm text-gray-500 hidden sm:block">ျမန္မာစာ (Burmese) / English</div>
-      </div>
-      <div class="flex items-center gap-3">
-        <label class="flex items-center gap-2 text-sm cursor-pointer">
-          <input id="theme-toggle" type="checkbox" class="hidden" />
-          <span id="theme-label" class="kbd">Dark</span>
-        </label>
-        <button id="btn-logout" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Logout</button>
-      </div>
-    </header>
+<body class="antialiased">
 
-    <div class="grid grid-cols-12 gap-4">
-      <!-- Sidebar menu -->
-      <aside class="col-span-12 md:col-span-2 bg-white dark:bg-gray-800 rounded shadow p-3 h-[78vh]">
-        <nav class="space-y-2">
-          <div class="font-medium mb-2">Menu</div>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="dashboard">Dashboard</button>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="users">User</button>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="tg">TG Chats</button>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="fb">FB Chats</button>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="broadcast">TG Broadcast</button>
-          <button class="menu-item w-full text-left p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700" data-view="settings">Settings</button>
-        </nav>
-      </aside>
+    <!-- Main Application Container -->
+    <div id="app" class="flex flex-col h-screen overflow-hidden hidden">
+        <header class="bg-white shadow p-4 flex items-center justify-between z-10">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                <i data-lucide="message-square-text" class="w-6 h-6 mr-2 text-indigo-600"></i>
+                Admin Dashboard
+            </h1>
+            <div id="auth-info" class="text-sm text-gray-500"></div>
+        </header>
 
-      <!-- Main area -->
-      <main class="col-span-12 md:col-span-10 bg-white dark:bg-gray-800 rounded shadow p-4">
-        <!-- Top controls -->
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2 w-full">
-            <input id="search" placeholder="Search username / id / message" class="flex-1 p-2 border rounded dark:bg-gray-900 dark:border-gray-700" />
-            <select id="platform-filter" class="p-2 border rounded text-sm dark:bg-gray-900 dark:border-gray-700">
-              <option value="">All</option>
-              <option value="telegram">Telegram</option>
-              <option value="facebook">Facebook</option>
-            </select>
-            <button id="btn-refresh" class="px-3 py-1 bg-gray-200 rounded">⟳</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="text-sm text-gray-500">Page size</div>
-            <select id="page-size" class="p-2 border rounded dark:bg-gray-900 dark:border-gray-700"><option>10</option><option>20</option><option>50</option></select>
-          </div>
+        <!-- Tabs -->
+        <div class="flex bg-gray-100 border-b border-gray-200">
+            <button id="tab-chats" class="tab-button active p-3 font-semibold text-indigo-600 border-b-2 border-indigo-600 transition duration-150 ease-in-out flex items-center">
+                <i data-lucide="message-square" class="w-5 h-5 mr-2"></i> Chats
+            </button>
+            <button id="tab-users" class="tab-button p-3 font-semibold text-gray-600 hover:text-indigo-600 transition duration-150 ease-in-out flex items-center">
+                <i data-lucide="users" class="w-5 h-5 mr-2"></i> System Users
+            </button>
+            <span class="p-3 text-sm text-gray-500 flex items-center ml-auto">
+                <i data-lucide="radio" class="w-4 h-4 mr-1 text-green-500 animate-pulse"></i>
+                <span id="socket-status">Connecting...</span>
+            </span>
         </div>
 
-        <div class="grid grid-cols-3 gap-4">
-          <!-- Chats list + pagination -->
-          <section class="col-span-1 bg-gray-50 dark:bg-gray-700 p-2 rounded h-[60vh] flex flex-col">
-            <div class="flex-1 overflow-y-auto" id="chats"></div>
-            <div class="flex items-center justify-between mt-2">
-              <button id="prev-page" class="px-3 py-1 border rounded">Prev</button>
-              <div class="text-sm text-gray-500" id="page-info">Page 1</div>
-              <button id="next-page" class="px-3 py-1 border rounded">Next</button>
-            </div>
-          </section>
+        <!-- Content Area -->
+        <div id="content" class="flex-grow overflow-hidden">
+            <!-- Chats Tab Content -->
+            <div id="chats-content" class="flex h-full">
+                <!-- Chat List (Left Panel) -->
+                <div class="w-full sm:w-1/3 border-r border-gray-200 bg-white flex flex-col">
+                    <div class="p-3 border-b border-gray-200">
+                        <select id="platform-filter" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            <option value="">All Platforms</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="facebook">Facebook Messenger</option>
+                        </select>
+                    </div>
+                    <div id="chat-list" class="flex-grow overflow-y-auto">
+                        <!-- Chat items will be injected here -->
+                        <div class="p-4 text-center text-gray-500">Loading chats...</div>
+                    </div>
+                </div>
 
-          <!-- Chat & history -->
-          <section class="col-span-2 bg-white dark:bg-gray-800 p-3 rounded shadow h-[60vh] flex flex-col">
-            <div id="chat-header" class="border-b pb-2 mb-2">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h2 id="chat-title" class="text-lg font-medium">Select a chat</h2>
-                  <div id="chat-sub" class="text-sm text-gray-500">Platform — — Last message</div>
+                <!-- Chat Window (Right Panel) -->
+                <div id="chat-window" class="flex-grow bg-gray-50 flex flex-col hidden sm:flex">
+                    <div id="chat-header" class="p-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-center h-[64px]">
+                        <span class="text-lg font-semibold text-gray-700">Select a chat to start responding</span>
+                    </div>
+
+                    <!-- Messages Display -->
+                    <div id="messages-display" class="message-container flex-grow p-4 flex flex-col space-y-2">
+                        <!-- Messages will be injected here -->
+                    </div>
+
+                    <!-- Reply Input -->
+                    <div id="reply-form-container" class="p-4 border-t border-gray-200 bg-white hidden">
+                        <form id="reply-form" class="flex items-center space-x-3">
+                            <input type="text" id="reply-input" class="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" placeholder="Type your reply...">
+                            <button type="submit" class="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition duration-150 ease-in-out shadow-lg flex items-center">
+                                <i data-lucide="send" class="w-5 h-5 text-white"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <button id="btn-history-more" class="px-2 py-1 text-sm border rounded">Load more</button>
-                  <button id="btn-open-users" class="px-2 py-1 text-sm border rounded">Users</button>
-                </div>
-              </div>
             </div>
 
-            <div id="history" class="flex-1 overflow-y-auto p-2 space-y-3 scroll-y"></div>
+            <!-- System Users Tab Content -->
+            <div id="users-content" class="p-6 h-full overflow-y-auto hidden">
+                <div class="max-w-4xl mx-auto">
+                    <!-- User Creation Form -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New System User</h2>
+                        <form id="add-user-form" class="space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
+                            <input type="text" id="new-user-name" required placeholder="User Name" class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3">
+                            <select id="new-user-role" class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3">
+                                <option>Viewer</option>
+                                <option>Agent</option>
+                                <option>Admin</option>
+                            </select>
+                            <select id="new-user-status" class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/4">
+                                <option>Active</option>
+                                <option>Inactive</option>
+                            </select>
+                            <button type="submit" class="bg-green-500 text-white p-3 rounded-lg hover:bg-green-600 transition duration-150 w-full sm:w-auto flex-shrink-0">
+                                Add User
+                            </button>
+                        </form>
+                        <p id="user-form-message" class="mt-3 text-sm hidden"></p>
+                    </div>
 
-            <div class="mt-3 pt-3 border-t">
-              <div class="flex gap-2 items-end">
-                <div class="flex-1">
-                  <textarea id="reply-text" rows="2" placeholder="Type your reply..." class="w-full p-2 border rounded resize-none dark:bg-gray-900 dark:border-gray-700"></textarea>
-                  <div class="mt-2 flex items-center gap-2">
-                    <input id="file-input" type="file" class="hidden" />
-                    <button id="attach-btn" class="px-3 py-1 border rounded text-sm">Attach</button>
-                    <div id="attach-preview" class="flex gap-2 items-center"></div>
-                  </div>
+                    <!-- User List Table -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Current System Users</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-list-body" class="bg-white divide-y divide-gray-200">
+                                    <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading users...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                  <button id="btn-send" class="px-4 py-2 bg-accent text-white rounded" style="background:var(--accent)">Send</button>
-                </div>
-              </div>
-              <div class="text-xs text-gray-500 mt-2">Replies will be sent through the correct platform and saved to Firestore. Attachments supported (images & files).</div>
             </div>
-          </section>
         </div>
-      </main>
     </div>
 
-    <!-- Image preview modal -->
-    <div id="img-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center">
-      <div class="bg-white dark:bg-gray-900 p-3 rounded shadow max-w-3xl w-full">
-        <div class="flex items-center justify-between mb-2"><div id="img-meta"></div><button id="img-close">✕</button></div>
-        <img id="img-preview" class="w-full h-auto rounded" alt="preview" />
-      </div>
-    </div>
+    <!-- Initialization and Logic -->
+    <script>
+        // --- Global State ---
+        let ADMIN_CREDENTIALS = null;
+        let AUTH_HEADER = null;
+        let SELECTED_CHAT = null;
+        let CHAT_LIST = [];
+        let USER_LIST = [];
+        const SOCKET = io(); // Connect to the server's Socket.io endpoint
 
-    <!-- Users modal -->
-    <div id="users-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
-      <div class="w-3/4 bg-white dark:bg-gray-800 rounded shadow p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-medium">System Users</h3>
-          <button id="close-users" class="text-gray-600">✕</button>
-        </div>
-        <div class="mb-3 flex gap-2">
-          <input id="new-user-name" placeholder="Name" class="p-2 border rounded flex-1 dark:bg-gray-900 dark:border-gray-700" />
-          <input id="new-user-role" placeholder="Role (Viewer/Admin)" class="p-2 border rounded w-40 dark:bg-gray-900 dark:border-gray-700" />
-          <button id="add-user" class="px-3 py-1 bg-green-500 text-white rounded">Add</button>
-        </div>
-        <div id="users-list" class="max-h-64 overflow-y-auto divide-y"></div>
-      </div>
-    </div>
-  </div>
+        // --- Configuration ---
+        const API_BASE = window.location.origin; // Assumes API is served from the same origin
 
-  <!-- Socket.io client -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    // Localization strings (simple)
-    const L = {
-      send: 'ပို့မည်', attach: 'File တင်ပြီး', select_chat: 'Chat ရွေးပါ', no_chats: 'No chats found.'
-    };
+        // --- Utility Functions ---
 
-    // Tiny helpers
-    function el(tag, cls){const e = document.createElement(tag); if(cls) e.className=cls; return e;}
-    function fmtTime(iso){ try{return new Date(iso).toLocaleString();}catch(e){return iso;} }
+        /**
+         * Simple function to set the basic auth header globally.
+         * @param {string} username
+         * @param {string} password
+         */
+        function setBasicAuth(username, password) {
+            const token = btoa(`${username}:${password}`);
+            AUTH_HEADER = `Basic ${token}`;
+            ADMIN_CREDENTIALS = { username, password };
+        }
 
-    const state = { auth:null, chats:[], selectedChatId:null, historyLimit:50, page:1, pageSize:10 };
+        /**
+         * Fetches data with basic auth headers and error handling.
+         * @param {string} url
+         * @param {object} options
+         * @returns {Promise<any>}
+         */
+        async function fetchData(url, options = {}) {
+            if (!AUTH_HEADER) throw new Error("Authentication failed or headers missing.");
 
-    // Theme toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeLabel = document.getElementById('theme-label');
-    themeToggle.addEventListener('change', ()=>{
-      if(themeToggle.checked){ document.documentElement.classList.add('dark'); themeLabel.textContent='Dark'; }
-      else { document.documentElement.classList.remove('dark'); themeLabel.textContent='Light'; }
-    });
+            const defaultOptions = {
+                headers: {
+                    'Authorization': AUTH_HEADER,
+                    'Content-Type': 'application/json'
+                }
+            };
 
-    // Auth restore (simple placeholder) - in real use, use Basic Auth form like before
-    (function(){ const t = sessionStorage.getItem('admin_auth'); if(t){ state.auth='Basic '+t; } else { /* leave unauthenticated but front-end will still function for demo */ } })();
+            const response = await fetch(url, { ...defaultOptions, ...options });
 
-    async function apiGet(path){ const res = await fetch(path, { headers: state.auth ? { 'Authorization': state.auth } : {} }); if(!res.ok) throw new Error(await res.text()); return res.json(); }
-    async function apiPost(path, body){ const res = await fetch(path, { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, state.auth ? { 'Authorization': state.auth } : {}), body: JSON.stringify(body)}); if(!res.ok) throw new Error(await res.text()); return res.json(); }
-    async function apiDelete(path){ const res = await fetch(path, { method:'DELETE', headers: state.auth ? { 'Authorization': state.auth } : {} }); if(!res.ok) throw new Error(await res.text()); return res.json(); }
+            if (response.status === 401) {
+                document.getElementById('app').classList.add('hidden');
+                alert('Authentication failed. Please refresh and try again.');
+                return;
+            }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API Error: ${response.status} - ${errorText}`);
+            }
+            if (response.status === 204) return null; // No content
+            return response.json();
+        }
 
-    // Chats pagination
-    const chatsEl = document.getElementById('chats');
-    const searchInput = document.getElementById('search');
-    const platformFilter = document.getElementById('platform-filter');
-    const pageInfo = document.getElementById('page-info');
-    document.getElementById('btn-refresh').addEventListener('click', ()=> loadChats());
-    document.getElementById('prev-page').addEventListener('click', ()=>{ if(state.page>1){ state.page--; renderChats(); } });
-    document.getElementById('next-page').addEventListener('click', ()=>{ state.page++; renderChats(); });
-    document.getElementById('page-size').addEventListener('change', (e)=>{ state.pageSize = parseInt(e.target.value); state.page=1; renderChats(); });
+        /**
+         * Scrolls the messages display to the bottom.
+         */
+        function scrollToBottom() {
+            const display = document.getElementById('messages-display');
+            display.scrollTop = display.scrollHeight;
+        }
+        
+        // --- Core Functions: Chats ---
 
-    searchInput.addEventListener('input', ()=>{ state.page=1; renderChats(); });
-    platformFilter.addEventListener('change', ()=>{ state.page=1; loadChats(); });
+        /**
+         * Fetches and renders the list of chats, optionally filtered by platform.
+         * @param {string} platform - 'telegram', 'facebook', or '' for all.
+         */
+        async function fetchAndRenderChatList() {
+            try {
+                const platform = document.getElementById('platform-filter').value;
+                const url = `${API_BASE}/api/chats${platform ? `?platform=${platform}` : ''}`;
+                const chats = await fetchData(url);
+                CHAT_LIST = chats || [];
+                renderChatList();
+            } catch (error) {
+                console.error("Failed to fetch chat list:", error);
+                document.getElementById('chat-list').innerHTML = `<div class="p-4 text-center text-red-500">Error loading chats: ${error.message}</div>`;
+            }
+        }
 
-    async function loadChats(){ try{ const pf = platformFilter.value; const url = '/api/chats' + (pf ? `?platform=${pf}` : ''); const data = await apiGet(url); state.chats = data; state.page=1; renderChats(); } catch(err){ console.error(err); alert('Failed to load chats: '+err.message); } }
+        /**
+         * Renders the chat list UI.
+         */
+        function renderChatList() {
+            const listElement = document.getElementById('chat-list');
+            listElement.innerHTML = ''; // Clear previous list
 
-    function renderChats(){ const q = searchInput.value.trim().toLowerCase(); let filtered = state.chats.filter(c=>{ if(q){ return (c.username||'').toLowerCase().includes(q) || (c.telegramId||'').toLowerCase().includes(q) || (c.lastMessageText||'').toLowerCase().includes(q); } return true; });
-      const total = filtered.length; const start = (state.page-1)*state.pageSize; const paged = filtered.slice(start, start+state.pageSize);
-      chatsEl.innerHTML=''; if(paged.length===0) chatsEl.innerHTML = `<div class='p-3 text-sm text-gray-500'>${L.no_chats}</div>`;
-      for(const c of paged){ const wrap = el('div','p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-start gap-3'); wrap.addEventListener('click', ()=> selectChat(c)); const avatar = el('div','w-10 h-10 rounded bg-gray-200 dark:bg-gray-600 flex items-center justify-center'); avatar.textContent = (c.username||'U').slice(0,2).toUpperCase(); const meta = el('div','flex-1'); const title = el('div','flex items-center justify-between'); const name = el('div','font-medium'); name.textContent = c.username || c.telegramId; const when = el('div','text-sm text-gray-500'); when.textContent = c.lastMessageTime || ''; const sub = el('div','text-sm text-gray-600 mt-1'); sub.textContent = c.lastMessageText || ''; title.appendChild(name); title.appendChild(when); meta.appendChild(title); meta.appendChild(sub); const pf = el('div','text-xs text-gray-400'); pf.textContent = (c.platform||'').toUpperCase(); wrap.appendChild(avatar); wrap.appendChild(meta); wrap.appendChild(pf); chatsEl.appendChild(wrap); }
-      pageInfo.textContent = `Page ${state.page} • ${start+1}-${Math.min(start+state.pageSize, total)} of ${total}`;
-    }
+            if (CHAT_LIST.length === 0) {
+                listElement.innerHTML = `<div class="p-4 text-center text-gray-500">No active chats found.</div>`;
+                return;
+            }
 
-    // Chat selection & history
-    const chatTitle = document.getElementById('chat-title');
-    const chatSub = document.getElementById('chat-sub');
-    const historyEl = document.getElementById('history');
-    const btnSend = document.getElementById('btn-send');
-    const replyText = document.getElementById('reply-text');
-    const btnHistoryMore = document.getElementById('btn-history-more');
+            CHAT_LIST.forEach(chat => {
+                const isActive = SELECTED_CHAT && SELECTED_CHAT.telegramId === chat.telegramId;
+                const platformClass = chat.platform || 'telegram';
+                const icon = platformClass === 'facebook' ? 'facebook' : 'message-square';
+                const element = document.createElement('div');
+                element.className = `p-3 border-b cursor-pointer transition duration-150 ${isActive ? 'bg-indigo-100 border-indigo-300' : 'hover:bg-gray-50'}`;
+                element.setAttribute('data-chat-id', chat.telegramId);
 
-    async function selectChat(chat){ state.selectedChatId = chat.telegramId || chat.id; chatTitle.textContent = chat.username || chat.telegramId || chat.id; chatSub.textContent = `${(chat.platform||'').toUpperCase()} — ${chat.lastMessageText || ''}`; await loadHistory(state.selectedChatId, state.historyLimit); }
+                const timeStr = chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
 
-    async function loadHistory(chatId, limit=50){ try{ historyEl.innerHTML = '<div class="text-sm text-gray-500 p-2">Loading...</div>'; const data = await apiGet(`/api/chats/${encodeURIComponent(chatId)}/history?limit=${limit}`); renderHistory(data); } catch(err){ console.error(err); historyEl.innerHTML = '<div class="text-sm text-red-500 p-2">Failed to load history</div>'; } }
+                element.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i data-lucide="${icon}" class="w-5 h-5 mr-3 text-gray-500"></i>
+                            <span class="font-semibold text-gray-800">${chat.username || chat.telegramId}</span>
+                        </div>
+                        <span class="platform-tag ${platformClass}">${platformClass.toUpperCase()}</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <p class="text-sm text-gray-600 truncate mr-4">${chat.lastMessageText || 'No text'}</p>
+                        <small class="text-xs text-gray-400 flex-shrink-0">${timeStr}</small>
+                    </div>
+                `;
 
-    function renderHistory(items){ historyEl.innerHTML=''; if(!items||items.length===0){ historyEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No messages</div>'; return; } for(const m of items){ const wrap = el('div','p-2 rounded'); wrap.classList.add(m.sender==='admin' ? 'msg-admin' : 'msg-user'); const top = el('div','flex items-center justify-between'); const who = el('div','font-medium text-sm'); who.textContent = m.sender==='admin' ? 'Admin' : (m.username || 'User'); const t = el('div','msg-meta'); t.textContent = m.timestamp ? fmtTime(m.timestamp) : ''; top.appendChild(who); top.appendChild(t); const body = el('div','mt-1 text-sm whitespace-pre-wrap'); body.textContent = m.text || (m.filename ? m.filename : 'Media'); wrap.appendChild(top); wrap.appendChild(body);
-          // attachment preview
-          if(m.filename || m.mediaPath){ const att = el('div','mt-2'); const link = el('a','text-sm underline cursor-pointer'); link.textContent = m.filename || 'Attachment'; link.href = '#'; link.addEventListener('click',(e)=>{ e.preventDefault(); if(m.mediaPath && (m.filename||'').match(/\.(jpg|jpeg|png|gif)$/i)){ openImage(m.mediaPath, m.filename||'Image'); } else { alert('Attachment: '+(m.filename||m.mediaPath)); } }); att.appendChild(link); wrap.appendChild(att); }
-          historyEl.appendChild(wrap);
-      }
-      historyEl.scrollTop = historyEl.scrollHeight; }
+                // Re-render lucide icons inside the new element
+                // Note: We skip `createIcons` for performance and just rely on the main import block.
+                // For a dynamic list, we might need a manual DOM refresh, but for now, rely on initial load.
 
-    btnHistoryMore.addEventListener('click', ()=>{ state.historyLimit += 50; if(state.selectedChatId) loadHistory(state.selectedChatId, state.historyLimit); });
+                element.addEventListener('click', () => selectChat(chat));
+                listElement.appendChild(element);
+            });
+        }
+        
+        /**
+         * Selects a chat, updates the UI, and fetches history.
+         * @param {object} chat
+         */
+        async function selectChat(chat) {
+            SELECTED_CHAT = chat;
+            
+            // 1. Update UI for selection
+            document.querySelectorAll('#chat-list > div').forEach(el => {
+                el.classList.remove('bg-indigo-100', 'border-indigo-300');
+            });
+            const selectedElement = document.querySelector(`[data-chat-id="${chat.telegramId}"]`);
+            if (selectedElement) {
+                selectedElement.classList.add('bg-indigo-100', 'border-indigo-300');
+            }
 
-    // Socket.io
-    function connectSocket(){ if(window.socket) return; const socket = io(); window.socket = socket; socket.on('connect', ()=>console.log('socket connected')); socket.on('disconnect', ()=>console.log('socket disconnected'));
-      socket.on('new_message',(data)=>{ const id = String(data.chatId); const exists = state.chats.some(c=>String(c.telegramId)===id || String(c.id)===id); if(!exists){ state.chats.unshift({ telegramId: id, username: data.user.username, lastMessageText: data.message.text, lastMessageTime: data.message.timestamp, platform: data.platform }); renderChats(); } else { for(const c of state.chats){ if(String(c.telegramId)===id || String(c.id)===id){ c.lastMessageText = data.message.text; c.lastMessageTime = data.message.timestamp; } } renderChats(); } if(state.selectedChatId && String(state.selectedChatId)===id) loadHistory(id, state.historyLimit); });
-      socket.on('message_sent',(d)=>{ if(state.selectedChatId && String(state.selectedChatId)===String(d.chatId)) loadHistory(d.chatId, state.historyLimit); }); }
+            // 2. Update Chat Window header
+            document.getElementById('chat-window').classList.remove('hidden');
+            document.getElementById('chat-header').innerHTML = `
+                <span class="text-xl font-bold text-gray-800">${chat.username || chat.telegramId}</span>
+                <span class="platform-tag ${chat.platform}">${chat.platform.toUpperCase()}</span>
+            `;
+            document.getElementById('reply-form-container').classList.remove('hidden');
+            
+            // 3. Fetch History
+            await fetchAndRenderChatHistory(chat.telegramId);
+        }
 
-    // Reply with optional attachment (sends via socket.admin_reply with attachment metadata only)
-    const attachBtn = document.getElementById('attach-btn'); const fileInput = document.getElementById('file-input'); const attachPreview = document.getElementById('attach-preview');
-    attachBtn.addEventListener('click', ()=> fileInput.click());
-    fileInput.addEventListener('change', ()=>{ const f = fileInput.files[0]; if(!f) return; attachPreview.innerHTML=''; const div = el('div','text-sm'); div.textContent = f.name; const img = el('img','hidden'); if(f.type.startsWith('image/')){ const reader = new FileReader(); reader.onload = function(e){ const i = el('img'); i.src = e.target.result; i.style.maxWidth='60px'; i.style.borderRadius='6px'; i.className='cursor-pointer'; i.addEventListener('click', ()=> openImage(e.target.result, f.name)); attachPreview.appendChild(i); } reader.readAsDataURL(f); } attachPreview.appendChild(div); });
+        /**
+         * Fetches and renders the chat message history.
+         * @param {string} chatId
+         */
+        async function fetchAndRenderChatHistory(chatId) {
+            const display = document.getElementById('messages-display');
+            display.innerHTML = '<div class="p-4 text-center text-indigo-500">Loading history...</div>';
+            try {
+                const history = await fetchData(`${API_BASE}/api/chats/${chatId}/history`);
+                renderMessages(history);
+            } catch (error) {
+                console.error("Failed to fetch chat history:", error);
+                display.innerHTML = `<div class="p-4 text-center text-red-500">Error loading history: ${error.message}</div>`;
+            }
+        }
 
-    btnSend.addEventListener('click', async ()=>{
-      const text = replyText.value.trim(); if(!text && !fileInput.files.length) return alert('Enter message or attach file'); if(!state.selectedChatId) return alert('Select a chat first'); try{ window.socket.emit('admin_reply', { chatId: state.selectedChatId, text, attachment: fileInput.files[0] ? { name: fileInput.files[0].name, type: fileInput.files[0].type } : null }, (res)=>{ if(res && res.success){ replyText.value=''; fileInput.value=''; attachPreview.innerHTML=''; loadHistory(state.selectedChatId, state.historyLimit); } else { alert('Send failed: '+(res.error||JSON.stringify(res))); } }); } catch(err){ console.error(err); alert('Send error: '+err.message); } });
+        /**
+         * Renders an array of messages into the display.
+         * @param {Array<object>} messages
+         */
+        function renderMessages(messages) {
+            const display = document.getElementById('messages-display');
+            display.innerHTML = '';
+            
+            if (!messages || messages.length === 0) {
+                display.innerHTML = '<div class="p-4 text-center text-gray-500">Start a conversation.</div>';
+                return;
+            }
 
-    // Image preview modal
-    const imgModal = document.getElementById('img-modal'); const imgPreview = document.getElementById('img-preview'); const imgMeta = document.getElementById('img-meta'); document.getElementById('img-close').addEventListener('click', ()=> imgModal.classList.add('hidden'));
-    function openImage(src, name){ imgPreview.src = src; imgMeta.textContent = name; imgModal.classList.remove('hidden'); imgModal.classList.add('flex'); }
+            messages.forEach(msg => {
+                const isUser = msg.sender === 'user';
+                const timeStr = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    // Users modal
-    const usersModal = document.getElementById('users-modal'); document.getElementById('btn-open-users').addEventListener('click', async ()=>{ usersModal.classList.remove('hidden'); usersModal.classList.add('flex'); await loadUsers(); }); document.getElementById('close-users').addEventListener('click', ()=>{ usersModal.classList.add('hidden'); usersModal.classList.remove('flex'); });
-    async function loadUsers(){ try{ const users = await apiGet('/api/users'); const list = document.getElementById('users-list'); list.innerHTML=''; for(const u of users){ const row = el('div','p-2 flex items-center justify-between'); row.innerHTML = `<div><div class='font-medium'>${u.name}</div><div class='text-xs text-gray-500'>${u.role} • ${u.status||''}</div></div>`; const btns = el('div','flex gap-2'); const del = el('button','px-2 py-1 text-sm border rounded'); del.textContent='Delete'; del.addEventListener('click', async ()=>{ if(confirm('Delete user?')){ await apiDelete('/api/users/'+u.id); await loadUsers(); } }); btns.appendChild(del); row.appendChild(btns); list.appendChild(row); } } catch(err){ console.error(err); alert('Failed to load users: '+err.message); } }
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${isUser ? 'justify-start' : 'justify-end'}`;
 
-    document.getElementById('add-user').addEventListener('click', async ()=>{ const name = document.getElementById('new-user-name').value.trim(); const role = document.getElementById('new-user-role').value.trim() || 'Viewer'; if(!name) return alert('Name required'); try{ await apiPost('/api/users', { name, role }); document.getElementById('new-user-name').value=''; await loadUsers(); } catch(err){ console.error(err); alert('Add user failed: '+err.message); } });
+                let content = '';
 
-    // Menu navigation
-    document.querySelectorAll('.menu-item').forEach(btn=> btn.addEventListener('click', (e)=>{ document.querySelectorAll('.menu-item').forEach(x=>x.classList.remove('bg-gray-100')); e.target.classList.add('bg-gray-100'); const view = e.target.dataset.view; if(view==='tg'){ platformFilter.value='telegram'; loadChats(); } else if(view==='fb'){ platformFilter.value='facebook'; loadChats(); } else if(view==='users'){ document.getElementById('btn-open-users').click(); } else { platformFilter.value=''; loadChats(); } }));
+                if (msg.mediaPath) {
+                    // For media, just show the filename and an indicator
+                    content = `
+                        <div class="message-bubble ${isUser ? 'user-message' : 'admin-message'} flex flex-col items-start">
+                            <span class="text-sm font-semibold">${msg.filename || 'Media file'}</span>
+                            <span class="text-xs italic text-gray-500">${msg.text || 'No caption'}</span>
+                            <small class="text-xs mt-1 self-end">${timeStr}</small>
+                        </div>
+                    `;
+                } else if (msg.text) {
+                    content = `
+                        <div class="message-bubble ${isUser ? 'user-message' : 'admin-message'}">
+                            <p class="text-sm break-words">${msg.text}</p>
+                            <small class="text-xs mt-1 block text-right ${isUser ? 'text-gray-500' : 'text-white/70'}">${timeStr}</small>
+                        </div>
+                    `;
+                }
+                
+                messageDiv.innerHTML = content;
+                display.appendChild(messageDiv);
+            });
 
-    // init
-    connectSocket(); loadChats();
-  </script>
+            scrollToBottom();
+        }
+
+        // --- Core Functions: Users ---
+
+        /**
+         * Fetches and renders the list of system users.
+         */
+        async function fetchAndRenderUserList() {
+            try {
+                const users = await fetchData(`${API_BASE}/api/users`);
+                USER_LIST = users || [];
+                renderUserList();
+            } catch (error) {
+                console.error("Failed to fetch user list:", error);
+                document.getElementById('user-list-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading users: ${error.message}</td></tr>`;
+            }
+        }
+        
+        /**
+         * Renders the system user list table.
+         */
+        function renderUserList() {
+            const tbody = document.getElementById('user-list-body');
+            tbody.innerHTML = '';
+
+            if (USER_LIST.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No system users found.</td></tr>`;
+                return;
+            }
+
+            USER_LIST.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const statusClass = user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">${user.id || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${user.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 transition duration-150" data-user-id="${user.id}">
+                            <i data-lucide="trash-2" class="w-5 h-5 inline-block"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                // Add delete listener
+                const deleteButton = row.querySelector(`[data-user-id="${user.id}"]`);
+                if (deleteButton) {
+                    deleteButton.addEventListener('click', () => deleteUser(user.id, user.name));
+                }
+            });
+        }
+        
+        /**
+         * Handles the deletion of a system user.
+         * @param {string} userId
+         * @param {string} userName
+         */
+        async function deleteUser(userId, userName) {
+            if (!confirm(`Are you sure you want to delete user: ${userName}?`)) {
+                return;
+            }
+            try {
+                await fetchData(`${API_BASE}/api/users/${userId}`, { method: 'DELETE' });
+                alert(`User ${userName} deleted successfully.`);
+                fetchAndRenderUserList();
+            } catch (error) {
+                console.error("Failed to delete user:", error);
+                alert(`Failed to delete user: ${error.message}`);
+            }
+        }
+
+        // --- Event Listeners & Handlers ---
+        
+        // Tab Switching
+        document.getElementById('tab-chats').addEventListener('click', () => {
+            document.getElementById('chats-content').classList.remove('hidden');
+            document.getElementById('users-content').classList.add('hidden');
+            document.getElementById('tab-chats').classList.add('active', 'text-indigo-600', 'border-indigo-600');
+            document.getElementById('tab-chats').classList.remove('text-gray-600', 'border-transparent');
+            document.getElementById('tab-users').classList.remove('active', 'text-indigo-600', 'border-indigo-600');
+            document.getElementById('tab-users').classList.add('text-gray-600', 'border-transparent');
+            // Refresh chat list when switching back
+            fetchAndRenderChatList();
+        });
+
+        document.getElementById('tab-users').addEventListener('click', () => {
+            document.getElementById('chats-content').classList.add('hidden');
+            document.getElementById('users-content').classList.remove('hidden');
+            document.getElementById('tab-users').classList.add('active', 'text-indigo-600', 'border-indigo-600');
+            document.getElementById('tab-users').classList.remove('text-gray-600', 'border-transparent');
+            document.getElementById('tab-chats').classList.remove('active', 'text-indigo-600', 'border-indigo-600');
+            document.getElementById('tab-chats').classList.add('text-gray-600', 'border-transparent');
+            // Fetch users when switching to the tab
+            fetchAndRenderUserList();
+        });
+
+        // Platform Filter Change
+        document.getElementById('platform-filter').addEventListener('change', fetchAndRenderChatList);
+
+        // Admin Reply Submission
+        document.getElementById('reply-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!SELECTED_CHAT) return;
+            
+            const input = document.getElementById('reply-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatId = SELECTED_CHAT.telegramId;
+            input.disabled = true;
+            input.placeholder = "Sending...";
+
+            SOCKET.emit('admin_reply', { chatId, text }, (response) => {
+                input.disabled = false;
+                input.placeholder = "Type your reply...";
+                
+                if (response.success) {
+                    input.value = ''; // Clear input only on success
+                } else {
+                    console.error("Reply failed:", response.error);
+                    alert(`Failed to send reply: ${response.error}`);
+                }
+            });
+        });
+        
+        // Add User Submission
+        document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-user-name').value;
+            const role = document.getElementById('new-user-role').value;
+            const status = document.getElementById('new-user-status').value;
+            const formMsg = document.getElementById('user-form-message');
+            
+            formMsg.classList.add('hidden');
+
+            try {
+                await fetchData(`${API_BASE}/api/users`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name, role, status })
+                });
+                
+                formMsg.classList.remove('hidden', 'text-red-500');
+                formMsg.classList.add('text-green-500');
+                formMsg.textContent = `User "${name}" added successfully!`;
+                
+                document.getElementById('add-user-form').reset();
+                fetchAndRenderUserList();
+            } catch (error) {
+                console.error("Failed to add user:", error);
+                formMsg.classList.remove('hidden', 'text-green-500');
+                formMsg.classList.add('text-red-500');
+                formMsg.textContent = `Failed to add user: ${error.message}`;
+            }
+        });
+
+
+        // --- Socket.io Handlers ---
+
+        SOCKET.on('connect', () => {
+            console.log('Socket.io connected.');
+            document.getElementById('socket-status').textContent = 'Connected';
+            document.getElementById('socket-status').classList.remove('text-red-500');
+            document.getElementById('socket-status').classList.add('text-green-500');
+        });
+
+        SOCKET.on('disconnect', () => {
+            console.log('Socket.io disconnected.');
+            document.getElementById('socket-status').textContent = 'Disconnected';
+            document.getElementById('socket-status').classList.remove('text-green-500');
+            document.getElementById('socket-status').classList.add('text-red-500');
+        });
+
+        /**
+         * Handles incoming messages from Telegram/Facebook (user to admin).
+         * @param {object} data - { chatId, message, user, platform }
+         */
+        SOCKET.on('new_message', (data) => {
+            console.log('New incoming message:', data);
+            
+            // 1. Update/Add chat in the CHAT_LIST state
+            const existingIndex = CHAT_LIST.findIndex(c => c.telegramId === data.chatId);
+            const newMessageData = {
+                telegramId: data.chatId,
+                username: data.user.username,
+                lastMessageTime: data.message.timestamp,
+                lastMessageText: data.message.text || data.message.filename,
+                platform: data.platform
+            };
+
+            if (existingIndex !== -1) {
+                // Update existing chat and move to the top (in memory, will be re-rendered)
+                CHAT_LIST[existingIndex] = { ...CHAT_LIST[existingIndex], ...newMessageData };
+            } else {
+                // Add new chat
+                CHAT_LIST.unshift(newMessageData);
+            }
+            
+            // Sort by time (descending) before rendering
+            CHAT_LIST.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
+            // 2. Re-render chat list
+            renderChatList();
+
+            // 3. If the chat is currently open, append the new message
+            if (SELECTED_CHAT && SELECTED_CHAT.telegramId === data.chatId) {
+                // We fake-fetch the history but really we just append the single message
+                renderMessages([...document.getElementById('messages-display').children].map(c => {
+                    // Extract data from current bubbles (simulated)
+                    // In a real app, you would refetch the history to ensure correctness.
+                    // For simplicity, we just render the new one.
+                    return { sender: 'placeholder' }; // Placeholder, history will be refetched for safety.
+                }), [data.message]);
+
+                // To ensure correct history and timestamp for the new message, we'll refetch history
+                // This is safer than just appending in a complex environment.
+                fetchAndRenderChatHistory(data.chatId);
+            }
+        });
+        
+        /**
+         * Handles admin messages successfully sent (admin to user)
+         * @param {object} data - { chatId, message }
+         */
+        SOCKET.on('message_sent', (data) => {
+            console.log('Admin message confirmed:', data);
+            
+            // 1. Update Chat List's last message
+            const chatIndex = CHAT_LIST.findIndex(c => c.telegramId === data.chatId);
+            if (chatIndex !== -1) {
+                CHAT_LIST[chatIndex].lastMessageText = data.message.text;
+                CHAT_LIST[chatIndex].lastMessageTime = data.message.timestamp;
+                CHAT_LIST.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+                renderChatList();
+            }
+
+            // 2. If the chat is open, update the history display
+            if (SELECTED_CHAT && SELECTED_CHAT.telegramId === data.chatId) {
+                // Re-fetch history to include the sent message confirmed by the server
+                fetchAndRenderChatHistory(data.chatId);
+            }
+        });
+
+
+        // --- Initialization ---
+
+        /**
+         * Main initialization function
+         */
+        function init() {
+            // 1. Basic Auth Prompt
+            const username = prompt("Enter Admin Username:");
+            const password = prompt("Enter Admin Password:");
+
+            if (!username || !password) {
+                alert("Credentials are required to access the dashboard.");
+                return;
+            }
+
+            setBasicAuth(username, password);
+            document.getElementById('auth-info').textContent = `Authenticated as: ${username}`;
+            document.getElementById('app').classList.remove('hidden');
+
+            // 2. Load Initial Data (Chat List)
+            fetchAndRenderChatList();
+        }
+
+        window.onload = init;
+    </script>
+
 </body>
 </html>
