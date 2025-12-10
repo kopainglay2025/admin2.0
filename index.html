@@ -3,1313 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdminPlan - Neon Dashboard</title>
+    <title>Chat Admin Dashboard - Real-time Support</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <script>
-        // Configure Tailwind to use 'class' for dark mode and define custom color palette
-        tailwind.config = {
-            darkMode: 'class', // Enables switching by toggling the 'dark' class on <html>
-            theme: {
-                extend: {
-                    colors: {
-                        // Neon accents (consistent in both modes, but may look better on dark)
-                        'neon-primary': '#00e0ff', // Electric Cyan
-                        'neon-secondary': '#ff00ff', // Fuchsia
-                        
-                        // Theme base colors for easy class application
-                        'light-bg': '#F3F4F6', 
-                        'light-card': '#FFFFFF',
-                        'light-border': '#D1D5DB',
-                        'dark-bg': '#0D0C1D', // Very deep indigo/slate
-                        'dark-card': '#1A192B', // Slightly lighter card background
-                        'dark-border': '#374151',
-                        'darker-sidebar': '#121021', // Darker base for the sidebar
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Use Inter font -->
     <style>
-        /* Base styles that apply to both themes */
-        body { 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
             font-family: 'Inter', sans-serif;
-            /* Enhanced transition for theme switch */
-            transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+            background-color: #f7f9fb;
         }
-
-        /* Sidebar Styling for desktop/tablet, and mobile transitions */
-        .sidebar {
-            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Faster transition for mobile slide */
+        /* Custom scrollbar for chat history */
+        #chat-history::-webkit-scrollbar {
+            width: 8px;
         }
-        .dark .sidebar {
-            box-shadow: 6px 0 15px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Backdrop for mobile sidebar */
-        #mobile-backdrop {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s;
-        }
-        .sidebar-open #mobile-backdrop {
-            opacity: 0.7;
-            visibility: visible;
-        }
-        .sidebar-open .sidebar {
-            transform: translateX(0); /* Slides in */
-        }
-
-        /* Nav Item Styling */
-        .nav-item {
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 14px; 
-            color: #4B5563; /* Default gray text */
-        }
-        .dark .nav-item {
-            color: #9CA3AF; /* Default light gray text in dark mode */
-        }
-        
-        .nav-item:hover {
-            color: #111827; 
-            background-color: #F3F4F6; 
-            transform: scale(1.02);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
-        }
-        .dark .nav-item:hover {
-            color: theme('colors.neon-primary'); 
-            background-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.15); 
-        }
-
-        /* Active Nav Item - CRUCIAL EFFECT */
-        .active-nav {
-            font-weight: 700 !important;
-            background-color: theme('colors.white') !important; 
-            color: theme('colors.blue.700') !important;
-            border: 1px solid theme('colors.blue.500');
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); 
-        }
-        .dark .active-nav {
-            font-weight: 700 !important;
-            background-color: theme('colors.dark-card') !important;
-            color: theme('colors.neon-primary') !important;
-            border: 1px solid theme('colors.neon-primary');
-            box-shadow: 0 0 12px rgba(0, 224, 255, 0.8); 
-        }
-        .active-nav svg { color: theme('colors.blue.600') !important; }
-        .dark .active-nav svg { color: theme('colors.neon-primary') !important; }
-
-
-        /* Chat Item Styling */
-        .chat-item {
-            background-color: theme('colors.light-card');
-            border: 1px solid theme('colors.light-border');
-            transition: all 0.3s;
-            border-radius: 12px;
-        }
-        .dark .chat-item {
-            background-color: theme('colors.dark-card');
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .dark .chat-item:hover {
-            background-color: rgba(26, 25, 43, 0.8);
-            border-color: theme('colors.neon-primary');
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 224, 255, 0.1);
-        }
-        
-        /* Active Chat Item - Secondary Neon Accent */
-        .chat-item.active {
-            background-color: #DBEAFE; /* Light Blue Accent */
-            color: theme('colors.gray.900') !important; 
-            border: 2px solid theme('colors.blue.700');
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
-        }
-        .dark .chat-item.active {
-            background-color: #581c87; /* Deep Purple Accent */
-            color: white !important; 
-            border: 2px solid theme('colors.neon-secondary');
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
-        }
-        .chat-item.active p, .chat-item.active span, .chat-item.active .avatar-placeholder {
-            color: inherit !important; 
-            opacity: 1;
-        }
-
-        /* Message History container */
-        .chat-messages {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse; 
-            padding: 1rem;
-            height:0;
-        }
-        
-        /* Custom Scrollbar (kept for desktop view) */
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: #3B82F6; 
+        #chat-history::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
             border-radius: 4px;
-        }
-        .dark .chat-messages::-webkit-scrollbar-thumb { 
-            background-color: theme('colors.neon-primary'); 
-        }
-        .chat-messages::-webkit-scrollbar-track {
-             background-color: #E5E7EB;
-        }
-        .dark .chat-messages::-webkit-scrollbar-track {
-             background-color: theme('colors.dark-card');
-        }
-        
-        /* Unread Badge */
-        .badge-style {
-            background-color: #EF4444; 
-            color: white; 
-            font-weight: 900; 
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-        }
-        .dark .badge-style {
-            background-color: theme('colors.neon-secondary'); 
-            color: theme('colors.dark-bg'); 
-            box-shadow: 0 0 8px theme('colors.neon-secondary');
-        }
-
-        /* Message Bubbles */
-        .admin-bubble {
-            background-color: #3B82F6; 
-            color: white;
-            border-bottom-right-radius: 8px !important;
-        }
-        .dark .admin-bubble {
-            background-color: #312e81; 
-        }
-        .user-bubble {
-            background-color: #E5E7EB; 
-            color: #1F2937; 
-            border-bottom-left-radius: 8px !important;
-        }
-        .dark .user-bubble {
-            background-color: #374151; 
-            color: #F9FAFB; 
-        }
-        
-        /* Card Styles for Dashboard */
-        .stat-card {
-            border: 1px solid #D1D5DB;
-            transition: all 0.5s ease-in-out;
-            border-radius: 16px; 
-            overflow: hidden;
-            position: relative;
-        }
-        .dark .stat-card {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .dark .stat-card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3B82F6, #10B981); 
-        }
-        .dark .stat-card::before {
-            background: linear-gradient(90deg, theme('colors.neon-primary'), theme('colors.neon-secondary'));
-        }
-
-        /* Input/Textarea Focus Glow */
-        input:focus, textarea:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
-            border-color: #3B82F6 !important;
-        }
-        .dark input:focus, .dark textarea:focus {
-            box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.4);
-            border-color: theme('colors.neon-primary') !important;
-        }
-
-        /* Send Button Glow */
-        #sendButton {
-            background-color: #3B82F6;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
-            transition: all 0.2s;
-        }
-        #sendButton:hover {
-             background-color: #2563EB;
-        }
-        .dark #sendButton {
-            background-color: theme('colors.neon-primary');
-            color: theme('colors.dark-bg');
-            box-shadow: 0 0 10px rgba(0, 224, 255, 0.6);
-        }
-        .dark #sendButton:hover {
-             box-shadow: 0 0 15px rgba(0, 224, 255, 0.8), 0 0 5px white;
-             background-color: #00ffff;
         }
     </style>
 </head>
-<!-- Main container uses light-bg by default, dark-bg in dark mode -->
-<body class="bg-light-bg dark:bg-dark-bg h-screen overflow-hidden flex text-gray-900 dark:text-gray-200">
+<body>
 
-    <!-- Mobile Sidebar Backdrop (Only visible when sidebar is open on small screens) -->
-    <div id="mobile-backdrop" class="fixed inset-0 bg-black z-30 md:hidden" onclick="toggleSidebar()"></div>
-
-    <!-- 1. Full Sidebar (Responsive: fixed & hidden on mobile, static on desktop) -->
-    <div id="sidebar" class="w-64 sidebar bg-light-card dark:bg-darker-sidebar border-r border-light-border dark:border-gray-700/30 shadow-2xl flex flex-col flex-shrink-0 z-40
-                fixed h-full top-0 left-0 transform -translate-x-full md:relative md:transform-none md:flex transition-transform duration-500">
-        
-        <!-- Logo/Title: Neon Emphasis -->
-        <div class="p-6 text-2xl font-black flex items-center h-20 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
-            <svg class="w-8 h-8 mr-3 text-blue-600 dark:text-neon-secondary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 8.9v.2c0 .28-.22.5-.5.5h-2.5v2.5c0 .28-.22.5-.5.5h-.2a.5.5 0 01-.5-.5v-2.5H8.3a.5.5 0 01-.5-.5v-.2c0-.28.22-.5.5-.5h2.5V8.3c0-.28.22-.5.5-.5h.2c.28 0 .5.22.5.5v2.5h2.5c.28 0 .5.22.5.5z"></path></svg>
-            <span class="tracking-widest">Admin Plan</span>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Menu -->
+        <div class="w-16 md:w-64 bg-gray-800 text-white flex flex-col p-2 md:p-4 transition-all duration-300">
+            <div class="text-xl font-bold mb-8 hidden md:block">Admin Panel</div>
+            <nav class="flex flex-col space-y-2">
+                <!-- Menu Items -->
+                <a href="#" class="nav-item active" data-view="chats">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span class="hidden md:inline">Chats</span>
+                </a>
+                <a href="#" class="nav-item" data-view="dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+                    <span class="hidden md:inline">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-view="users">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span class="hidden md:inline">Users</span>
+                </a>
+                <a href="#" class="nav-item" data-view="broadcast">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 12H3"></path><path d="M10 19l-7-7 7-7"></path></svg>
+                    <span class="hidden md:inline">Broadcast</span>
+                </a>
+                <a href="#" class="nav-item" data-view="settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09z"></path></svg>
+                    <span class="hidden md:inline">Settings</span>
+                </a>
+            </nav>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav id="mainNav" class="p-4 space-y-2 flex-grow overflow-y-auto">
-            
-            <!-- 1. Dashboard -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 active-nav" data-section="dashboard">
-                <svg class="w-6 h-6 mr-3 text-blue-600 dark:text-neon-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span>Dashboard</span>
-            </a>
-
-             <!-- 2. FB Page Messenger (New) -->
-             <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="fb-messenger">
-                <!-- Messenger Icon -->
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                </svg>
-                <span>FB Page Messenger</span>
-            </a>
-            
-            <!-- 3. Chats -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300 justify-between" data-section="chat">
-                <div class="flex items-center">
-                    <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.804A11.95 11.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    <span>Chats</span>
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header/Platform Filter -->
+            <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
+                <h1 class="text-2xl font-semibold text-gray-800" id="current-view-title">Chats</h1>
+                <div class="flex space-x-2">
+                    <button id="filter-all" class="platform-filter-btn bg-indigo-600 text-white hover:bg-indigo-700">All Chats</button>
+                    <button id="filter-telegram" class="platform-filter-btn bg-blue-500 text-white hover:bg-blue-600">TG Chats</button>
+                    <button id="filter-facebook" class="platform-filter-btn bg-sky-600 text-white hover:bg-sky-700">FB Chats</button>
                 </div>
-                <!-- Total Unread Count Badge -->
-                <span id="totalUnreadBadge" class="badge-style ml-2 text-xs h-5 px-2 flex items-center justify-center rounded-full hidden"></span>
-            </a>
+            </header>
 
-            <!-- 4. User List (New) -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="user-list">
-                <!-- User Group Icon -->
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <span>User List</span>
-            </a>
-            
-            <!-- 5. Broadcast -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="broadcast">
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                <span>Broadcast</span>
-            </a>
-            
-            <!-- 6. Settings -->
-            <a href="#" class="nav-item flex items-center p-3 font-medium transition-all duration-300" data-section="settings">
-                <svg class="w-6 h-6 mr-3 text-gray-500 dark:text-gray-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span>Settings</span>
-            </a>
-        </nav>
-        
-        <!-- Dark Mode Toggle Button -->
-        <div class="p-6 border-t border-light-border dark:border-gray-700/30 transition-colors duration-500">
-             <button id="darkModeToggle" onclick="toggleDarkMode()" 
-                    class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800/50 dark:hover:bg-gray-700 transition duration-300 w-full flex items-center justify-center space-x-2 shadow-inner border border-gray-300 dark:border-gray-700/50">
-                <svg id="themeIcon" class="w-6 h-6 text-yellow-600 dark:text-neon-secondary transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24">
-                    <!-- Icon updated by JS -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <span id="themeText" class="font-medium text-sm hidden sm:inline transition-colors duration-300">Switch Theme</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- 2. Chat List Panel (Responsive: full width on mobile, w-80 on desktop/tablet) -->
-    <div id="chatListPanel" class="w-full md:w-80 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-gray-700/30 flex-col flex-shrink-0 z-30 transition-colors duration-500 shadow-xl hidden">
-        <!-- Chat List Header -->
-        <div class="p-6 text-xl font-extrabold border-b border-light-border dark:border-gray-700/30 h-20 flex items-center transition-colors duration-500">
-            Conversations Log
-        </div>
-
-        <!-- Chat List Search Input -->
-        <div class="p-4 border-b border-light-border dark:border-gray-700/30 transition-colors duration-500">
-            <input type="text" id="chatListSearch" placeholder="Chat/User ID ကိုရှာရန်..."
-                   onkeyup="filterChatList(this.value)"
-                   class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-        </div>
-
-        <!-- Chat List Container -->
-        <div id="chatList" class="flex-grow overflow-y-auto p-4 space-y-3">
-            <div class="text-center p-4 text-gray-500 text-sm">Initializing quantum connection...</div>
-        </div>
-    </div>
-
-    <!-- 3. Main Content Area (flex-grow) - Main Viewport -->
-    <div class="flex-grow flex flex-col transition-colors duration-500 relative">
-        
-        <!-- === NEW: Shared Top Nav Bar (Desktop/Tablet) === -->
-        <nav id="desktopTopNav" class="hidden md:flex p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 items-center justify-end sticky top-0 z-20 shadow-md">
-            <div id="myanmarTimeDisplay" class="text-base font-semibold text-gray-700 dark:text-neon-primary flex items-center space-x-2 transition-colors duration-500">
-                <!-- Content filled by JS (Myanmar Time) -->
-            </div>
-        </nav>
-        
-        <!-- Mobile Header (Visible only on small screens) - Modified to include time -->
-        <header id="mobileHeader" class="md:hidden p-4 h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-20 shadow-lg">
-            <!-- Menu Toggle Button -->
-            <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200">
-                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-            </button>
-            
-            <div class="flex flex-col items-center">
-                <span id="mobileHeaderTitle" class="text-sm font-bold text-gray-800 dark:text-gray-200">Dashboard</span>
-                <span id="mobileHeaderTime" class="text-xs text-red-500 dark:text-neon-primary font-mono mt-0.5">--:--:--</span>
-            </div>
-            
-            <!-- Back Button for Chat View (hidden by default) -->
-             <button id="chatBackButton" onclick="backToChatList()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-200 hidden">
-                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            <div class="w-10 h-10 md:hidden"></div> <!-- Placeholder for alignment -->
-        </header>
-
-        
-        <!-- === SECTION 1: Dashboard === -->
-        <div id="section-dashboard" class="main-section flex-grow p-4 md:p-8 overflow-y-auto">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                🚀 Dashboard 
-            </h1>
-            <p class="text-gray-500 dark:text-gray-400 mb-6 md:mb-10 border-b border-light-border dark:border-gray-700/50 pb-4 transition-colors duration-500">
-                အချိန်နှင့်တပြေးညီ အချက်အလက်နှင့် စနစ်အခြေအနေ အစီရင်ခံစာများ။
-            </p>
-            <!-- Adjusted grid for better mobile flow (1 col, 3 cols on md) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <!-- Card 1 -->
-                <div class="stat-card p-6 md:p-8 bg-blue-500 dark:bg-gradient-to-br dark:from-blue-900 dark:to-indigo-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၁,၂၄၅</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">မှတ်ပုံတင်ထားသော အသုံးပြုသူ စုစုပေါင်း</div>
+            <!-- Chat Application Layout -->
+            <div id="chats-view" class="flex-1 flex overflow-hidden">
+                <!-- Chat List (Left Column) -->
+                <div class="w-full md:w-1/3 border-r bg-white overflow-y-auto">
+                    <ul id="chat-list">
+                        <!-- Chat items will be dynamically inserted here -->
+                        <li class="p-4 text-center text-gray-500">Loading chats...</li>
+                    </ul>
                 </div>
-                <!-- Card 2 -->
-                <div class="stat-card p-6 md:p-8 bg-green-500 dark:bg-gradient-to-br dark:from-green-900 dark:to-teal-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၂၅</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">လက်ရှိအသုံးပြုနေသော စက်ရှင်များ</div>
-                </div>
-                <!-- Card 3 -->
-                <div class="stat-card p-6 md:p-8 bg-purple-500 dark:bg-gradient-to-br dark:from-fuchsia-900 dark:to-red-900 text-white cursor-pointer">
-                    <div class="text-4xl md:text-6xl font-black">၁၅၆</div>
-                    <div class="text-xs md:text-sm mt-3 opacity-90 tracking-wider">ဖြေရှင်းရန် ကျန်ရှိသော လက်မှတ်များ</div>
-                </div>
-            </div>
-            
-            <div class="mt-8 md:mt-12 bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-2xl transition-colors duration-500 border border-light-border dark:border-gray-700/50">
-                <h3 class="text-xl md:text-2xl font-bold mb-4 text-purple-600 dark:text-neon-secondary transition-colors duration-500">စနစ်ဝန်ထုပ်ဝန်ပိုး မြင်ကွင်း</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-500">နောက်ဆုံး ၂၄ နာရီအတွင်း အရင်းအမြစ် အသုံးပြုမှု။</p>
-                <div class="h-48 md:h-64 bg-gray-200 dark:bg-gray-900 rounded-lg mt-4 flex items-center justify-center text-gray-400 dark:text-gray-700 border border-gray-300 dark:border-gray-700/50 transition-colors duration-500">
-                    [Holographic Data Display Placeholder]
-                </div>
-            </div>
-        </div>
 
-        <!-- === SECTION 2: FB Page Messenger (NEW REAL IMPLEMENTATION) === -->
-        <div id="section-fb-messenger" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                💬 FB Page Messenger
-            </h1>
-            <div class="flex h-[calc(100vh-250px)] bg-light-card dark:bg-dark-card rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 overflow-hidden">
-                <!-- FB List -->
-                <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto" id="fbChatList">
-                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
-                        Facebook Inbox
+                <!-- Chat Conversation (Right Column) -->
+                <div class="hidden md:flex flex-col flex-1 bg-gray-50">
+                    <!-- Chat Header -->
+                    <div id="chat-detail-header" class="p-4 border-b bg-white flex items-center shadow-sm">
+                        <span id="chat-detail-name" class="text-lg font-semibold text-gray-800">Select a Chat</span>
+                        <span id="chat-detail-platform" class="ml-3 px-3 py-1 text-xs font-medium rounded-full text-white bg-gray-400"></span>
                     </div>
-                    <!-- Dynamic FB Chat Items go here -->
-                    <div class="text-center p-4 text-gray-500 text-sm">Loading FB chats...</div>
-                </div>
 
-                <!-- FB Placeholder / View -->
-                <div class="w-2/3 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
-                    <div class="text-center">
-                        <svg class="mx-auto h-16 w-16 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-200">Select a Conversation</h3>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">View and reply to Facebook messages here.</p>
-                        <button onclick="fetchFBChats()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Refresh Inbox</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- === SECTION 3: Chats (Existing Chat Logic) === -->
-        <div id="section-chat" class="main-section flex-grow flex-col hidden">
-            <!-- Chat View (History/Input) - Hidden on mobile by default until a chat is selected -->
-            <div id="chatView" class="flex-grow flex-col hidden md:flex flex"> 
-                <!-- Chat Header (Desktop View) -->
-                <header id="chatHeader" class="p-4 border-b border-light-border dark:border-gray-700/30 bg-light-card dark:bg-dark-card flex items-center justify-between z-10 transition-colors duration-500 h-20 shadow-md md:block hidden">
-                    <span class="text-xl font-semibold text-gray-600 dark:text-gray-300 transition-colors duration-500">စကားပြောခန်းတစ်ခုကို ရွေးပါ</span>
-                </header>
-                
-                <!-- Chat History Search Input -->
-                <div id="chatHistorySearchArea" class="p-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-gray-700/30 hidden transition-colors duration-500">
-                    <input type="text" id="chatHistorySearch" placeholder="မှတ်တမ်းထဲမှ စာများကိုရှာရန်..."
-                           onkeyup="filterChatHistory(this.value)"
-                           class="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-blue-500 dark:focus:ring-neon-primary transition duration-300 text-sm">
-                </div>
-
-                <!-- Message History -->
-                <div id="messageHistory" class="flex-grow chat-messages transition-colors duration-500">
-                    <div class="text-center text-gray-600">စကားပြောခန်း မရွေးရသေးပါ။ ဆက်သွယ်မှုကို စတင်ပါ။</div>
-                </div>
-
-                <!-- Message Input -->
-                <div id="chatInputArea" class="p-4 bg-light-card dark:bg-dark-card transition-colors duration-500 shadow-2xl hidden min-h-[100px] border-t border-light-border dark:border-gray-700/50">
-                    
-                    <!-- File/Image Preview Area -->
-                    <div id="filePreview" class="hidden border border-gray-300 dark:border-gray-700/50 bg-gray-100 dark:bg-gray-900/50 rounded-xl p-3 mb-2 transition-colors duration-500">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <span id="fileIcon" class="text-2xl text-blue-600 dark:text-neon-primary transition-colors duration-500"></span>
-                                <span id="fileName" class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-xs transition-colors duration-500"></span>
-                                <span id="fileSize" class="text-xs text-gray-500 transition-colors duration-500"></span>
-                            </div>
-                            <button onclick="clearFileSelection()" class="text-red-500 hover:text-red-400 p-1 rounded-full transition duration-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
+                    <!-- Chat History Area -->
+                    <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse">
+                        <!-- Messages will be dynamically inserted here (in reverse order for bottom-up scrolling) -->
+                        <div id="no-chat-selected" class="text-center text-gray-500 my-auto">
+                            Select a chat from the left to view the conversation and reply.
                         </div>
                     </div>
 
-                    <div class="flex space-x-2">
-                        <!-- Hidden File Input -->
-                        <input type="file" id="fileInput" class="hidden" 
-                               onchange="handleFileSelect(event)" 
-                               accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .zip">
-                               
-                        <!-- Attach Button -->
-                        <button onclick="document.getElementById('fileInput').click()" 
-                                class="text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-neon-secondary p-4 rounded-xl transition duration-300 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        </button>
-                        
-                        <!-- Input field with neon focus style -->
-                        <input type="text" id="replyText" placeholder="ဒေတာပို့ရန် (စာသား၊ မီဒီယာ၊ ဖိုင်)..."
-                               class="flex-grow border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-4 text-base text-gray-800 dark:text-gray-100 transition duration-300"
-                               onkeypress="if(event.key === 'Enter') sendReply()">
-                               
-                        <!-- Send button with vibrant glow -->
-                        <button id="sendButton" onclick="sendReply()"
-                                class="p-4 rounded-xl flex items-center justify-center transform hover:scale-[1.05] transition duration-300 flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
+                    <!-- Message Input Area -->
+                    <div id="chat-input-area" class="p-4 bg-white border-t hidden">
+                        <form id="reply-form" class="flex items-center space-x-3">
+                            <input type="text" id="reply-input" placeholder="Type your reply message..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" required>
+                            <button type="submit" id="send-btn" class="bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <span class="ml-2 hidden sm:inline">Send</span>
+                            </button>
+                        </form>
+                        <div id="send-status" class="text-sm mt-1 text-center hidden"></div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- === SECTION 4: User List (NEW REAL IMPLEMENTATION) === -->
-        <div id="section-user-list" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">
-                👥 User List
-            </h1>
-            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-gray-500 dark:text-gray-400 transition-colors duration-500">
-                        စနစ်အသုံးပြုသူများ စာရင်း။
-                    </p>
-                    <button onclick="promptAddUser()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition shadow-lg hover:scale-105 transform">
-                        + Add New User
-                    </button>
-                </div>
-                
-                <!-- Dynamic User Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                                <th class="py-3 px-4">Name</th>
-                                <th class="py-3 px-4">Role</th>
-                                <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody" class="text-gray-800 dark:text-gray-200">
-                           <tr><td colspan="4" class="text-center py-4 text-gray-500">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Placeholder views for other menu items -->
+            <div id="dashboard-view" class="p-8 hidden">
+                <h2 class="text-3xl font-bold">Dashboard</h2>
+                <p class="text-gray-600 mt-4">Welcome to the Admin Dashboard. Current chat activity will be displayed here.</p>
+            </div>
+            <div id="users-view" class="p-8 hidden">
+                <h2 class="text-3xl font-bold">User Management</h2>
+                <p class="text-gray-600 mt-4">Manage system and platform users here. (Uses the `/api/users` endpoints)</p>
+            </div>
+            <div id="broadcast-view" class="p-8 hidden">
+                <h2 class="text-3xl font-bold">Telegram Broadcast</h2>
+                <p class="text-gray-600 mt-4">Feature to send bulk messages to all Telegram users.</p>
+            </div>
+            <div id="settings-view" class="p-8 hidden">
+                <h2 class="text-3xl font-bold">Settings</h2>
+                <p class="text-gray-600 mt-4">Configure environment variables and system settings.</p>
             </div>
         </div>
-
-        <!-- === SECTION 5: Broadcast === -->
-        <div id="section-broadcast" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">📣 ကမ္ဘာလုံးဆိုင်ရာ ထုတ်လွှင့်မှု (Global Broadcast)</h1>
-            <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                <p class="mb-6 text-gray-500 dark:text-gray-400 transition-colors duration-500">
-                    ပစ်မှတ်ထားသော အသုံးပြုသူ အပိုင်းများသို့ ဦးစားပေး မက်ဆေ့ခ်ျများ ပေးပို့ပါ။
-                </p>
-                <textarea class="w-full p-4 border rounded-xl bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-purple-500 dark:focus:ring-neon-secondary transition duration-300 text-base" rows="8" placeholder="ဤနေရာတွင် ထုတ်လွှင့်မည့် မက်ဆေ့ခ်ျကို ရိုက်ထည့်ပါ..."></textarea>
-                <button class="mt-4 bg-purple-600 dark:bg-neon-secondary text-white dark:text-dark-bg p-4 rounded-xl font-bold hover:bg-purple-700 dark:hover:bg-fuchsia-400 transition duration-300 shadow-xl transform hover:scale-[1.02] dark:shadow-[0_0_10px_rgba(255,0,255,0.6)]">
-                    <span class="flex items-center space-x-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.235.986l-4.14-2.887a1.76 1.76 0 010-2.813l4.14-2.887a1.76 1.76 0 013.235.986zM18.75 16.5V7.5M15 12h3.75M21 12h3.75"></path></svg>
-                        <span>ထုတ်လွှင့်မှုကို စတင်ပါ</span>
-                    </span>
-                </button>
-            </div>
-        </div>
-
-        <!-- === SECTION 6: Settings === -->
-        <div id="section-settings" class="main-section flex-grow p-4 md:p-8 overflow-y-auto hidden">
-            <h1 class="text-3xl md:text-4xl font-extrabold mb-4 md:mb-8 text-blue-600 dark:text-neon-primary tracking-wide transition-colors duration-500">⚙️ စနစ်ဖွဲ့စည်းပုံ (System Configuration)</h1>
-            <div class="space-y-6 md:space-y-8">
-                <!-- Setting Card 1 -->
-                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">API Key စီမံခန့်ခွဲမှု</h3>
-                    <p class="text-sm text-gray-500 mb-4 transition-colors duration-500">လုံခြုံသော ဝင်ရောက်မှု ပရိုတိုကော အထောက်အထားများ။</p>
-                    <input type="text" value="************************" readonly class="w-full p-4 border rounded-xl bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 transition duration-300 text-base">
-                </div>
-                <!-- Setting Card 2 -->
-                <div class="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-xl border border-light-border dark:border-gray-700/50 transition-colors duration-500">
-                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-200 transition-colors duration-500">Bot အခြေအနေ ထိန်းချုပ်မှု</h3>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-600 dark:text-gray-400 text-base md:text-lg transition-colors duration-500">Core Telegram Gateway ကို ဖွင့်/ပိတ်ပါ။</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" value="" class="sr-only peer" checked>
-                            <!-- Toggle switch with vibrant colors and transition -->
-                            <div class="w-14 h-8 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-primary dark:shadow-lg dark:peer-checked:shadow-[0_0_8px_rgba(0,224,255,0.8)] transition-colors duration-300"></div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <!-- 4. Socket.io and JavaScript Logic -->
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Socket.io Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        // --- Client-side State Management ---
-        const apiKey = ""; 
-        const BASE_URL = ''; 
-        let socket;
-        
+        // --- Global State ---
+        let chats = [];
         let currentChatId = null;
-        let unreadCounts = {}; 
-        let allChats = []; 
-        const htmlElement = document.documentElement;
+        let currentPlatform = 'all'; // 'all', 'telegram', or 'facebook'
 
-        // --- File State Variables ---
-        let selectedFile = null;
-        let mediaPath = null;
-        let mediaType = null;
-        let filename = null;
+        // --- DOM Elements ---
+        const chatListEl = document.getElementById('chat-list');
+        const chatHistoryEl = document.getElementById('chat-history');
+        const chatDetailNameEl = document.getElementById('chat-detail-name');
+        const chatDetailPlatformEl = document.getElementById('chat-detail-platform');
+        const chatInputAreaEl = document.getElementById('chat-input-area');
+        const replyInputEl = document.getElementById('reply-input');
+        const sendStatusEl = document.getElementById('send-status');
+        const noChatSelectedEl = document.getElementById('no-chat-selected');
 
-        // --- Responsive State Variable ---
-        let isMobileSidebarOpen = false;
+        // --- Socket.io Setup ---
+        const socket = io();
+
+        // The server is protected by Basic Auth.
+        // We assume the user has already entered credentials or they are cached.
+        // If API calls fail (401), the browser will typically prompt the user again.
+        // For simplicity, we use the cached credentials for fetch.
+        const authHeader = 'Basic ' + btoa('admin:password'); // Replace with logic to get credentials if needed
 
         // --- Utility Functions ---
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        // Helper to format timestamp
+        function formatTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         }
-        
-        function getFileIcon(mimeType) {
-            if (mimeType.startsWith('image/')) return '🖼️';
-            if (mimeType.includes('pdf')) return '📄';
-            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
-            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-            if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-            return '📎';
+
+        // Helper to generate unique identifier for a chat
+        function getChatId(chat) {
+            return chat.telegramId; // Using the document ID (which is the PSID/Telegram ID)
         }
-        
-        function updateMyanmarTime() {
-            const now = new Date();
-            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const mstOffset = 6.5 * 3600 * 1000;
-            const mstTime = new Date(utcTime + mstOffset);
-            
-            const timeString = mstTime.toLocaleTimeString('en-US', { hour12: false });
-            const dateString = mstTime.toLocaleDateString('en-US', {
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit'
+
+        // --- Rendering Functions ---
+
+        function renderChatList(filter = 'all') {
+            chatListEl.innerHTML = '';
+            const filteredChats = chats.filter(chat => {
+                if (filter === 'all') return true;
+                return chat.platform === filter;
             });
 
-            const fullDisplay = `
-                <svg class="w-5 h-5 text-red-500 dark:text-neon-primary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"></path></svg>
-                <span class="hidden sm:inline">MYANMAR TIME (MST): </span>
-                <span class="font-mono">${dateString} ${timeString}</span>
-            `;
-
-            const desktopDisplay = document.getElementById('myanmarTimeDisplay');
-            if (desktopDisplay) desktopDisplay.innerHTML = fullDisplay;
-            
-            const mobileHeaderTime = document.getElementById('mobileHeaderTime');
-            if (mobileHeaderTime) mobileHeaderTime.textContent = `${timeString}`;
-        }
-        setInterval(updateMyanmarTime, 1000); 
-
-        // --- Dark Mode Functions ---
-        function toggleDarkMode() {
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            const isDark = htmlElement.classList.contains('dark');
-            const iconPath = isDark
-                ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" 
-                : "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"; 
-
-            document.getElementById('themeIcon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>`;
-            document.getElementById('themeText').textContent = isDark ? 'Switch to Day Mode' : 'Switch to Night Mode';
-        }
-
-        function loadDarkModePreference() {
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                htmlElement.classList.add('dark');
-            } else if (savedTheme === 'light') {
-                htmlElement.classList.remove('dark');
-            }
-            updateThemeIcon();
-        }
-        
-        function toggleSidebar() {
-            isMobileSidebarOpen = !isMobileSidebarOpen;
-            const sidebar = document.getElementById('sidebar');
-            const body = document.body;
-
-            if (isMobileSidebarOpen) {
-                body.classList.add('sidebar-open');
-            } else {
-                body.classList.remove('sidebar-open');
-            }
-        }
-
-        function isMobileView() {
-            return window.matchMedia('(max-width: 767px)').matches;
-        }
-
-        function backToChatList() {
-             const chatView = document.getElementById('chatView');
-             const chatListPanel = document.getElementById('chatListPanel');
-             chatView.classList.add('hidden');
-             chatListPanel.classList.remove('hidden');
-             document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
-             document.getElementById('chatBackButton').classList.add('hidden');
-             currentChatId = null;
-             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-        }
-
-        function updateTotalUnreadBadge() {
-            const badge = document.getElementById('totalUnreadBadge');
-            let totalCount = 0;
-            for (const chatId in unreadCounts) {
-                totalCount += unreadCounts[chatId];
-            }
-            if (badge) {
-                if (totalCount > 0) {
-                    badge.textContent = totalCount > 99 ? '99+' : totalCount;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.textContent = '';
-                    badge.classList.add('hidden');
-                }
-            }
-        }
-
-        function showSection(sectionId) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
-
-            const targetSection = document.getElementById(`section-${sectionId}`);
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                let title = 'Dashboard';
-                if(sectionId === 'fb-messenger') {
-                    title = 'FB Messenger';
-                    fetchFBChats(); // Fetch FB chats when section loads
-                }
-                else if(sectionId === 'user-list') {
-                    title = 'User List';
-                    fetchUsers(); // Fetch Users when section loads
-                }
-                else title = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
-                
-                document.getElementById('mobileHeaderTitle').textContent = title;
-                
-                if (sectionId === 'chat') {
-                     targetSection.classList.add('flex-col');
-                } else {
-                     targetSection.classList.remove('flex-col');
-                }
+            if (filteredChats.length === 0) {
+                chatListEl.innerHTML = `<li class="p-4 text-center text-gray-500">No ${filter} chats found.</li>`;
+                return;
             }
 
-            const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active-nav');
-            }
-            
-            if (isMobileSidebarOpen) {
-                toggleSidebar();
-            }
-
-            const chatListPanel = document.getElementById('chatListPanel');
-            const chatView = document.getElementById('chatView');
-            const chatBackButton = document.getElementById('chatBackButton');
-
-            if (sectionId === 'chat') {
-                chatListPanel.classList.remove('hidden');
-                if (!isMobileView()) {
-                     chatView.classList.remove('hidden');
-                     chatBackButton.classList.add('hidden');
-                     document.getElementById('mobileHeaderTitle').textContent = 'Chat'; 
-                } else {
-                     chatView.classList.add('hidden');
-                     chatBackButton.classList.add('hidden');
-                     document.getElementById('mobileHeaderTitle').textContent = 'Conversations Log';
-                }
-
-                if (allChats.length === 0) {
-                    fetchChats();
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                }
-            } else {
-                chatListPanel.classList.add('hidden');
-                chatView.classList.add('hidden');
-                chatBackButton.classList.add('hidden');
-                if (sectionId !== 'fb-messenger') {
-                     currentChatId = null;
-                }
-                document.getElementById('chatHistorySearch').value = ''; 
-                clearFileSelection(); 
-            }
-        }
-
-        // --- NEW: User List Logic ---
-        async function fetchUsers() {
-            const tableBody = document.getElementById('userTableBody');
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Loading...</td></tr>';
-            try {
-                const res = await fetch(`${BASE_URL}/api/users?key=${apiKey}`);
-                const users = await res.json();
-                
-                tableBody.innerHTML = '';
-                if(users.length === 0) {
-                     tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found.</td></tr>';
-                     return;
-                }
-
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition';
-                    const initials = user.name.slice(0,2).toUpperCase();
-                    
-                    row.innerHTML = `
-                        <td class="py-3 px-4 flex items-center">
-                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3 text-xs">${initials}</div>
-                            <span>${user.name}</span>
-                        </td>
-                        <td class="py-3 px-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded text-xs">${user.role}</span></td>
-                        <td class="py-3 px-4"><span class="flex items-center text-green-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>${user.status}</span></td>
-                        <td class="py-3 px-4 text-right">
-                            <button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            } catch(e) {
-                console.error(e);
-                tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Error loading users.</td></tr>';
-            }
-        }
-
-        async function promptAddUser() {
-            const name = prompt("Enter User Name:");
-            if(!name) return;
-            const role = prompt("Enter Role (e.g. Admin, Editor):", "Viewer");
-            
-            try {
-                await fetch(`${BASE_URL}/api/users?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name, role, status: 'Active' })
-                });
-                fetchUsers(); // Refresh
-            } catch(e) {
-                alert("Failed to add user");
-            }
-        }
-
-        async function deleteUser(id) {
-            if(!confirm("Are you sure?")) return;
-            try {
-                await fetch(`${BASE_URL}/api/users/${id}?key=${apiKey}`, { method: 'DELETE' });
-                fetchUsers();
-            } catch(e) {
-                alert("Failed to delete user");
-            }
-        }
-
-        // --- NEW: FB Messenger Logic ---
-        async function fetchFBChats() {
-            const list = document.getElementById('fbChatList');
-            // Keep header, clear items
-            list.innerHTML = `
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200">
-                    Facebook Inbox
-                </div>
-                <div class="text-center p-4 text-gray-500 text-sm">Loading...</div>
-            `;
-            
-            try {
-                // Fetch chats with platform=facebook filter
-                const res = await fetch(`${BASE_URL}/api/chats?platform=facebook&key=${apiKey}`);
-                const chats = await res.json();
-                
-                // Remove loading
-                const loading = list.querySelector('.text-center');
-                if(loading) loading.remove();
-
-                if(chats.length === 0) {
-                     const empty = document.createElement('div');
-                     empty.className = "text-center p-4 text-gray-500 text-sm";
-                     empty.innerText = "No Facebook messages found.";
-                     list.appendChild(empty);
-                     return;
-                }
-
-                chats.forEach(chat => {
-                    const item = document.createElement('div');
-                    item.className = "p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition";
-                    item.onclick = () => {
-                        // Switch to main chat view context for this user
-                        // We reuse the main selectChat logic but ensure it opens in the right context
-                        // For simplicity, we redirect to the main 'chat' tab with this ID
-                        showSection('chat');
-                        selectChat(chat.telegramId, chat.username || 'FB User');
-                    };
-                    item.innerHTML = `
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">f</div>
-                            <div class="flex-grow min-w-0">
-                                <p class="font-bold text-gray-800 dark:text-gray-200 truncate">${chat.username || 'Facebook User'}</p>
-                                <p class="text-xs text-gray-500 truncate">${chat.lastMessageText || 'Image/File'}</p>
-                            </div>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-
-        // --- Chat Functions (Existing) ---
-        async function markChatAsRead(chatId) {
-            try {
-                await fetch(`${BASE_URL}/api/chats/${chatId}/mark-read?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            } catch (error) { console.error(error); }
-        }
-
-        function createChatListItem(chat) {
-            const chatId = chat.telegramId;
-            const displayId = String(chatId).length > 10 ? String(chatId).substring(0, 10) + '...' : chatId;
-            const username = chat.username || 'Unknown Entity';
-            const count = unreadCounts[chatId] || 0; 
-            const isFB = chat.platform === 'facebook';
-
-            const chatElement = document.createElement('div');
-            chatElement.id = `chat-${chatId}`;
-            chatElement.className = 'chat-item flex items-start p-4 relative text-gray-800 dark:text-gray-200 shadow-lg hover:shadow-2xl';
-            chatElement.setAttribute('data-chat-id', chatId);
-            chatElement.setAttribute('data-username', username.toLowerCase());
-
-            const unreadBadge = count > 0 ? `<span class="badge-style absolute top-2 right-2 text-xs h-6 w-6 flex items-center justify-center p-1 rounded-full">${count > 99 ? '99+' : count}</span>` : '';
-            
-            // Icon based on platform
-            const icon = isFB ? '<span class="text-white font-bold">f</span>' : '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>';
-            const bgClass = isFB ? 'bg-blue-700' : 'bg-blue-500/50 dark:bg-indigo-700/50';
-
-            const avatar = `
-                <div class="avatar-placeholder flex items-center justify-center mr-3 flex-shrink-0 w-10 h-10 rounded-full ${bgClass} text-blue-800 dark:text-neon-primary border border-blue-800/50 dark:border-neon-primary/50">
-                    ${icon}
-                </div>
-            `;
-
-            chatElement.innerHTML = `
-                ${avatar}
-                <div class="flex-grow min-w-0">
-                    <p class="font-bold truncate text-base">${username}</p>
-                    <p class="text-xs text-blue-600 dark:text-neon-primary opacity-70 mt-0.5">ID: ${displayId}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">${chat.lastMessageText || '[No recent communication]'}</p>
-                </div>
-                ${unreadBadge}
-            `;
-
-            chatElement.addEventListener('click', () => {
-                selectChat(chatId, username);
+            filteredChats.forEach(chat => {
+                const chatId = getChatId(chat);
+                const listItem = document.createElement('li');
+                listItem.className = `p-4 border-b cursor-pointer hover:bg-indigo-50 transition duration-100 ${chatId === currentChatId ? 'bg-indigo-100' : 'bg-white'}`;
+                listItem.setAttribute('data-chat-id', chatId);
+                listItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="font-semibold truncate text-gray-800">${chat.username || chat.telegramId}</div>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full text-white ${chat.platform === 'telegram' ? 'bg-blue-500' : 'bg-sky-600'}">
+                            ${chat.platform === 'telegram' ? 'TG' : 'FB'}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-600 truncate mt-1">${chat.lastMessageText || 'Media message'}</div>
+                    <div class="text-xs text-gray-400 mt-1">${formatTime(chat.lastMessageTime)}</div>
+                `;
+                listItem.addEventListener('click', () => loadChatHistory(chat));
+                chatListEl.appendChild(listItem);
             });
-
-            if (currentChatId === chatId) {
-                 chatElement.classList.add('active');
-            }
-            return chatElement;
         }
 
-        function filterChatList(query) {
-            const chatListElement = document.getElementById('chatList');
-            const lowerCaseQuery = query.toLowerCase().trim();
-            chatListElement.innerHTML = ''; 
-
-            const filteredChats = allChats.filter(chat => {
-                const username = (chat.username || '').toLowerCase();
-                const chatId = String(chat.telegramId);
-                return username.includes(lowerCaseQuery) || chatId.includes(lowerCaseQuery);
-            });
+        function renderMessage(message) {
+            const isUser = message.sender === 'user';
+            const bubbleClass = isUser
+                ? 'bg-white self-start text-gray-800 rounded-br-none shadow-md'
+                : 'bg-indigo-600 self-end text-white rounded-bl-none shadow-md';
             
-            if (filteredChats.length > 0) {
-                filteredChats.forEach(chat => {
-                    chatListElement.appendChild(createChatListItem(chat));
-                });
-            } else {
-                chatListElement.innerHTML = `<div class="text-center p-4 text-gray-600 dark:text-gray-600 text-sm">No entities match search query: "${query}"</div>`;
-            }
-        }
-
-        function createMessageBubble(msg) {
-            const isUser = msg.sender === 'user';
-            const alignment = isUser ? 'justify-start' : 'justify-end';
-            const bubbleClass = isUser ? 'user-bubble' : 'admin-bubble';
-            const messageElement = document.createElement('div');
-            messageElement.className = `message-bubble flex ${alignment} mb-3`;
-            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let mediaContent = '';
+            const messageEl = document.createElement('div');
+            messageEl.className = `max-w-xs md:max-w-md p-3 rounded-xl ${bubbleClass}`;
             
-            const isAdminMedia = !isUser && msg.mediaPath && msg.mediaPath.startsWith('data:');
-            const isUserMedia = isUser && msg.mediaPath && !msg.mediaPath.startsWith('data:');
+            let content = `<p class="whitespace-pre-wrap">${message.text}</p>`;
 
-            if (isUserMedia) {
-                const imageUrl = `${BASE_URL}/api/get-media?file_id=${msg.mediaPath}`;
-                mediaContent = `<img src="${imageUrl}" class="max-w-full h-auto rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${imageUrl}', '_blank')" onerror="this.onerror=null; this.src='https://placehold.co/280x200/222233/8888AA?text=Data+Corrupted'" alt="Chat Media"/>`;
-            } else if (isAdminMedia) {
-                 if (msg.mediaPath.startsWith('data:image/')) {
-                     mediaContent = `<img src="${msg.mediaPath}" class="max-w-full h-auto max-h-48 rounded-xl mb-2 cursor-pointer shadow-xl border border-gray-300 dark:border-gray-700/50" onclick="window.open('${msg.mediaPath}', '_blank')" alt="Admin Image"/>`;
-                 } else {
-                    const mimeType = msg.mediaPath.split(':')[1].split(';')[0];
-                    mediaContent = `<div class="flex items-center space-x-2 p-3 bg-blue-100 dark:bg-indigo-900 rounded-lg mb-2 border border-blue-500 dark:border-neon-primary"><span class="text-2xl">${getFileIcon(mimeType)}</span><span class="text-sm font-medium text-gray-900 dark:text-white">${msg.filename || 'Admin File'}</span></div>`;
-                 }
+            if (message.mediaPath) {
+                // Since mediaPath is a file_id (Telegram) or might be an attachment ID (FB),
+                // we cannot directly display the media in the Admin UI without another backend endpoint
+                // to fetch the file (e.g., using bot.getFileLink and proxying).
+                // For this MVP, we show a link/placeholder.
+                const filename = message.filename ? `(${message.filename})` : '';
+                content += `<p class="text-xs italic mt-1 ${isUser ? 'text-gray-500' : 'text-indigo-200'}">
+                    Media file received ${filename}: ${message.mediaPath}
+                </p>`;
             }
 
-            messageElement.innerHTML = `
-                <div class="message-content max-w-[80%] md:max-w-[60%] p-3 rounded-t-xl rounded-bl-xl rounded-br-xl shadow-xl ${bubbleClass}" data-text="${(msg.text || '').toLowerCase()}">
-                    ${mediaContent}
-                    <p class="${msg.text ? 'block' : 'hidden'} text-base leading-relaxed">${msg.text || ''}</p>
-                    <span class="block text-[10px] opacity-70 mt-1 ${isUser ? 'text-gray-600 dark:text-gray-400' : 'text-blue-100 dark:text-indigo-200'} text-right">
-                        ${timeString}
-                    </span>
-                </div>
-            `;
-            return messageElement;
-        }
-        
-        function filterChatHistory(query) {
-            const lowerCaseQuery = query.toLowerCase().trim();
-            const messages = document.querySelectorAll('#messageHistory .message-bubble');
-            let foundCount = 0;
-            messages.forEach(messageDiv => {
-                const messageContentEl = messageDiv.querySelector('.message-content');
-                if (!messageContentEl) return;
-                const messageText = messageContentEl.getAttribute('data-text');
-                if (lowerCaseQuery === '' || messageText.includes(lowerCaseQuery)) {
-                    messageDiv.classList.remove('hidden');
-                    foundCount++;
-                } else {
-                    messageDiv.classList.add('hidden');
-                }
-            });
-            const noResultMessage = document.getElementById('noHistoryResults');
-            if (noResultMessage) noResultMessage.remove();
-            if (lowerCaseQuery !== '' && foundCount === 0) {
-                 const feedback = document.createElement('div');
-                 feedback.id = 'noHistoryResults';
-                 feedback.className = 'text-center text-red-500 dark:text-neon-secondary font-medium my-4';
-                 feedback.textContent = `ရှာဖွေမှု "${query}" နှင့် ကိုက်ညီသော ဒေတာ packet မတွေ့ပါ။`;
-                 document.getElementById('messageHistory').appendChild(feedback);
-            }
+            messageEl.innerHTML = content + 
+                `<p class="text-right text-xs mt-1 ${isUser ? 'text-gray-400' : 'text-indigo-200'}">${formatTime(message.timestamp)}</p>`;
+            
+            // Note: Since we use flex-col-reverse on the parent, we append to show at the top of the reversed list
+            chatHistoryEl.prepend(messageEl); 
         }
 
-        async function fetchChats() {
-            const chatListElement = document.getElementById('chatList');
-            chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600 transition-colors duration-500">Fetching orbital data streams...</div>';
-            unreadCounts = {}; 
-            allChats = []; 
-            updateTotalUnreadBadge();
+        // --- Data Fetching & Handling ---
 
+        async function fetchChats(filter = 'all') {
             try {
-                const response = await fetch(`${BASE_URL}/api/chats?key=${apiKey}`);
-                if (!response.ok) throw new Error('Authentication failure or offline');
-                const chats = await response.json();
-                allChats = chats; 
-                chatListElement.innerHTML = '';
-                
-                if (chats.length === 0) {
-                    chatListElement.innerHTML = '<div class="text-center p-4 text-gray-600">No active communication threads detected.</div>';
-                    updateTotalUnreadBadge();
-                    return;
-                }
-                
-                chats.forEach(chat => {
-                    unreadCounts[chat.telegramId] = chat.unreadCount || 0; 
-                    chatListElement.appendChild(createChatListItem(chat));
+                // Construct query URL
+                const platformQuery = filter !== 'all' ? `?platform=${filter}` : '';
+                const response = await fetch(`/api/chats${platformQuery}`, {
+                    headers: { 'Authorization': authHeader }
                 });
-                updateTotalUnreadBadge();
+
+                if (response.status === 401) {
+                    throw new Error("Authentication failed. Please check your admin credentials.");
+                }
+
+                chats = await response.json();
+                chats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+                currentPlatform = filter;
+                renderChatList(currentPlatform);
+
             } catch (error) {
-                console.error("Error fetching chat list:", error);
-                chatListElement.innerHTML = `<div class="text-center p-4 text-red-500 text-sm">Error connecting to matrix.</div>`;
+                console.error("Error fetching chats:", error);
+                chatListEl.innerHTML = `<li class="p-4 text-center text-red-500">Error: ${error.message}</li>`;
             }
         }
 
-        async function selectChat(chatId, username) {
-            currentChatId = chatId;
-            const chatListPanel = document.getElementById('chatListPanel');
-            const chatView = document.getElementById('chatView');
-            const chatBackButton = document.getElementById('chatBackButton');
+        async function loadChatHistory(chat) {
+            currentChatId = getChatId(chat);
 
-            if (isMobileView()) {
-                 chatListPanel.classList.add('hidden');
-                 chatView.classList.remove('hidden');
-                 chatBackButton.classList.remove('hidden'); 
-                 document.getElementById('mobileHeaderTitle').textContent = username; 
+            // Update UI
+            chatHistoryEl.innerHTML = '';
+            chatDetailNameEl.textContent = chat.username || chat.telegramId;
+            chatDetailPlatformEl.textContent = chat.platform === 'telegram' ? 'TELEGRAM' : 'FACEBOOK';
+            chatDetailPlatformEl.className = `ml-3 px-3 py-1 text-xs font-medium rounded-full text-white ${chat.platform === 'telegram' ? 'bg-blue-500' : 'bg-sky-600'}`;
+            chatInputAreaEl.classList.remove('hidden');
+            noChatSelectedEl.classList.add('hidden');
+
+            // Set current chat item as active in the list
+            document.querySelectorAll('#chat-list li').forEach(li => {
+                li.classList.remove('bg-indigo-100');
+                li.classList.add('bg-white');
+            });
+            const activeLi = document.querySelector(`[data-chat-id="${currentChatId}"]`);
+            if (activeLi) {
+                activeLi.classList.add('bg-indigo-100');
             }
-
-            document.getElementById('chatHeader').innerHTML = `
-                <div class="flex flex-col">
-                    <span class="text-xl font-semibold text-gray-900 dark:text-gray-300 transition-colors duration-500">${username}</span>
-                    <span class="text-sm font-medium text-blue-600 dark:text-neon-primary opacity-80 transition-colors duration-500">ID: ${chatId} | Online</span>
-                </div>
-            `;
-            document.getElementById('chatInputArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearchArea').classList.remove('hidden');
-            document.getElementById('chatHistorySearch').value = ''; 
             
-            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-            const activeChatElement = document.getElementById(`chat-${chatId}`);
-            if (activeChatElement) {
-                activeChatElement.classList.add('active');
-                if (unreadCounts[chatId] > 0) {
-                    unreadCounts[chatId] = 0;
-                    const badge = activeChatElement.querySelector('.badge-style');
-                    if (badge) badge.remove();
-                    updateTotalUnreadBadge(); 
-                    markChatAsRead(chatId);
-                }
-            }
-            clearFileSelection(); 
-
-            const historyContainer = document.getElementById('messageHistory');
-            historyContainer.innerHTML = '<div class="text-center text-gray-600">Retrieving communication history...</div>';
-
+            // Fetch history
             try {
-                const response = await fetch(`${BASE_URL}/api/chats/${chatId}/history?key=${apiKey}`);
-                if (!response.ok) throw new Error('Failed to load history');
+                const response = await fetch(`/api/chats/${currentChatId}/history`, {
+                    headers: { 'Authorization': authHeader }
+                });
                 const history = await response.json();
-                historyContainer.innerHTML = '';
-                history.forEach(msg => {
-                    historyContainer.prepend(createMessageBubble(msg));
-                });
-                historyContainer.scrollTop = 0; 
+
+                history.forEach(renderMessage);
+
+                // Scroll to bottom (since we are using flex-col-reverse)
+                chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight; 
+
             } catch (error) {
-                console.error(`Error fetching chat history for ${chatId}:`, error);
-                historyContainer.innerHTML = `<div class="text-center p-4 text-red-500">Error retrieving data packets.</div>`;
+                console.error("Error loading chat history:", error);
+                chatHistoryEl.innerHTML = `<div class="text-center text-red-500 mt-4">Error loading history.</div>`;
             }
         }
-        
-        function clearFileSelection() {
-            selectedFile = null;
-            mediaPath = null;
-            mediaType = null;
-            filename = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
-        }
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (file.size > 5 * 1024 * 1024) {
-                 console.log("File size exceeds 5MB transmission limit.");
-                 event.target.value = ''; 
-                 return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                mediaPath = e.target.result; 
-                mediaType = file.type.startsWith('image/') ? 'photo' : 'document';
-                filename = file.name;
-                document.getElementById('fileName').textContent = filename;
-                document.getElementById('fileSize').textContent = formatBytes(file.size);
-                document.getElementById('fileIcon').textContent = getFileIcon(file.type);
-                document.getElementById('filePreview').classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
+        // --- Socket.io Event Handlers ---
 
-        function sendReply() {
-            if (!currentChatId || !socket) return;
-            const replyInput = document.getElementById('replyText');
-            const text = replyInput.value.trim();
-
-            if (!text && !mediaPath) return;
-
-            const sendButton = document.getElementById('sendButton');
-            sendButton.disabled = true;
-            sendButton.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>';
-
-            const data = {
-                chatId: currentChatId,
-                text: text,
-                mediaPath: mediaPath, 
-                mediaType: mediaType, 
-                filename: filename 
-            };
-            
-            // Check if it's FB or Telegram based on ID length or check memory array
-            // Simple heuristic: Telegram IDs are usually numbers, FB IDs are often very long numbers. 
-            // Better approach: server handles it or store platform in chat object locally.
-            // For now, assume generic admin_reply handles it or we send specialized event.
-            // Let's use generic and let server decide, or add a 'platform' to data if we knew it.
-            
-            socket.emit('admin_reply', data, (response) => {
-                sendButton.disabled = false;
-                sendButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
-                
-                if (response.success) {
-                    const tempMsg = {
-                        chatId: currentChatId,
-                        sender: 'admin',
-                        text: text,
-                        mediaPath: mediaPath, 
-                        filename: filename,
-                        timestamp: new Date().toISOString()
-                    };
-                    const historyContainer = document.getElementById('messageHistory');
-                    historyContainer.prepend(createMessageBubble(tempMsg));
-                    historyContainer.scrollTop = 0;
-                    replyInput.value = '';
-                    clearFileSelection();
-                } else {
-                    console.error("Failed to transmit data packet:", response.error);
-                }
-            });
-        }
-
-        function setupSocketListeners() {
-            if (typeof io !== 'function') return;
-            socket = io();
-            
-            socket.on('new_message', (data) => {
-                const chatId = String(data.chatId);
-                const user = data.user;
-                const message = data.message;
-                const chatList = document.getElementById('chatList');
-                
-                // Remove old entry
-                const existingChatElement = document.getElementById(`chat-${chatId}`);
-                if (existingChatElement) existingChatElement.remove();
-
-                const chatIndex = allChats.findIndex(chat => chat.telegramId === chatId);
-                if (chatIndex !== -1) allChats.splice(chatIndex, 1);
-                
-                user.lastMessageText = message.text;
-                user.lastMessageTime = message.timestamp;
-                // Add platform info from socket data
-                user.platform = data.platform || 'telegram';
-                allChats.unshift(user);
-
-                if (currentChatId !== chatId) {
-                    unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                } else {
-                    unreadCounts[chatId] = 0;
-                }
-                updateTotalUnreadBadge(); 
-
-                // Only update Main Chat List if we are in 'chat' section OR if it matches filter
-                // If we are in FB section, we might want to refresh that list too
-                if (document.getElementById('section-fb-messenger').classList.contains('hidden') === false && user.platform === 'facebook') {
-                    fetchFBChats(); // Refresh FB specific list
-                }
-
-                if (document.getElementById('chatListSearch').value.trim() === '') {
-                    user.unreadCount = unreadCounts[chatId]; 
-                    const newChatElement = createChatListItem(user);
-                    chatList.prepend(newChatElement);
-
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        markChatAsRead(chatId);
-                    } else {
-                        const ringColor = htmlElement.classList.contains('dark') ? 'ring-[var(--secondary-neon)]/50' : 'ring-blue-500/50';
-                        newChatElement.classList.add('ring-4', ringColor);
-                        setTimeout(() => newChatElement.classList.remove('ring-4', ringColor), 1000);
-                    }
-                } else {
-                    filterChatList(document.getElementById('chatListSearch').value);
-                    if (currentChatId === chatId) {
-                        const historyContainer = document.getElementById('messageHistory');
-                        historyContainer.prepend(createMessageBubble(message));
-                        historyContainer.scrollTop = 0; 
-                        filterChatHistory(document.getElementById('chatHistorySearch').value); 
-                        markChatAsRead(chatId);
-                    }
-                }
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDarkModePreference(); 
-            updateMyanmarTime(); 
-            setupSocketListeners();
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showSection(item.getAttribute('data-section'));
-                });
-            });
-            showSection('dashboard');
+        socket.on('connect', () => {
+            console.log('Connected to Socket.io server.');
         });
+
+        // Handler for new user message from Telegram or Facebook
+        socket.on('new_message', (data) => {
+            const { chatId, message, user } = data;
+            
+            // 1. Update/Add chat in the local 'chats' array
+            const existingChatIndex = chats.findIndex(c => getChatId(c) === chatId);
+            
+            const chatUpdate = {
+                telegramId: String(chatId),
+                username: user.username,
+                lastMessageTime: message.timestamp,
+                lastMessageText: message.text || 'Media message',
+                platform: data.platform
+            };
+
+            if (existingChatIndex !== -1) {
+                // Update existing chat
+                chats[existingChatIndex] = { ...chats[existingChatIndex], ...chatUpdate };
+            } else {
+                // Add new chat
+                chats.unshift(chatUpdate);
+            }
+
+            // 2. Sort and re-render the chat list (keeping the current filter)
+            chats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+            renderChatList(currentPlatform);
+
+            // 3. If the message is for the currently selected chat, render it instantly
+            if (chatId === currentChatId) {
+                renderMessage(message);
+                chatHistoryEl.scrollTop = 0; // Keep at bottom (top of reversed list)
+            }
+        });
+
+        // Handler for admin message confirmation
+        socket.on('message_sent', (data) => {
+            const { chatId, message } = data;
+            if (chatId === currentChatId) {
+                // Render the message immediately
+                renderMessage(message);
+                chatHistoryEl.scrollTop = 0;
+            }
+        });
+
+
+        // --- UI Event Listeners ---
+
+        document.getElementById('reply-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const text = replyInputEl.value.trim();
+            if (!text || !currentChatId) return;
+
+            sendStatusEl.textContent = 'Sending...';
+            sendStatusEl.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            sendStatusEl.classList.add('text-gray-600');
+            
+            // Send reply via Socket.io
+            socket.emit('admin_reply', { chatId: currentChatId, text }, (response) => {
+                if (response.success) {
+                    replyInputEl.value = ''; // Clear input on success
+                    sendStatusEl.textContent = 'Sent successfully.';
+                    sendStatusEl.classList.remove('text-gray-600', 'text-red-600');
+                    sendStatusEl.classList.add('text-green-600');
+                    // Message will be rendered by the 'message_sent' socket listener
+                } else {
+                    sendStatusEl.textContent = `Error sending: ${response.error}`;
+                    sendStatusEl.classList.remove('text-gray-600', 'text-green-600');
+                    sendStatusEl.classList.add('text-red-600');
+                }
+                setTimeout(() => sendStatusEl.classList.add('hidden'), 3000);
+            });
+        });
+
+        // Platform Filter Handlers
+        document.getElementById('filter-all').addEventListener('click', () => fetchChats('all'));
+        document.getElementById('filter-telegram').addEventListener('click', () => fetchChats('telegram'));
+        document.getElementById('filter-facebook').addEventListener('click', () => fetchChats('facebook'));
+
+        document.querySelectorAll('.platform-filter-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.platform-filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-indigo-600', 'bg-blue-500', 'bg-sky-600');
+                    btn.classList.add('bg-gray-400');
+                });
+                this.classList.remove('bg-gray-400');
+                // Reapply the specific color based on ID
+                if (this.id === 'filter-all') this.classList.add('bg-indigo-600');
+                if (this.id === 'filter-telegram') this.classList.add('bg-blue-500');
+                if (this.id === 'filter-facebook') this.classList.add('bg-sky-600');
+            });
+        });
+        document.getElementById('filter-all').click(); // Default filter
+
+        // Sidebar Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                const view = item.getAttribute('data-view');
+                document.querySelectorAll('div[id$="-view"]').forEach(v => v.classList.add('hidden'));
+
+                const targetView = document.getElementById(view + '-view');
+                if (targetView) {
+                    targetView.classList.remove('hidden');
+                    document.getElementById('current-view-title').textContent = item.querySelector('span') ? item.querySelector('span').textContent : view.charAt(0).toUpperCase() + view.slice(1);
+                    
+                    // Specific logic for chats view
+                    const isChatsView = view === 'chats';
+                    document.getElementById('chats-view').classList.toggle('hidden', !isChatsView);
+                    document.querySelector('header').classList.toggle('hidden', !isChatsView);
+                }
+            });
+        });
+
+        // Style for active navigation item
+        const style = document.createElement('style');
+        style.textContent = `
+            .nav-item {
+                display: flex;
+                align-items: center;
+                padding: 10px;
+                border-radius: 8px;
+                transition: background-color 0.2s;
+            }
+            .nav-item:hover {
+                background-color: #374151;
+            }
+            .nav-item.active {
+                background-color: #4f46e5; /* Indigo-600 */
+            }
+            /* Ensure chats view is visible initially */
+            #chats-view {
+                display: flex;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchChats('all');
+            // Ensure only the chats view is visible initially and all others are hidden
+            document.querySelectorAll('div[id$="-view"]').forEach(v => v.classList.add('hidden'));
+            document.getElementById('chats-view').classList.remove('hidden');
+        });
+
     </script>
 </body>
 </html>
