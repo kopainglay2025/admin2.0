@@ -11,7 +11,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/admin_messenger';
 
 // ----- parse firebase key (fix \\n -> \n) if provided -----
