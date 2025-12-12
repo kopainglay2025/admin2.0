@@ -1,710 +1,406 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-    getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut 
-} from 'firebase/auth';
-import { 
-    getFirestore, doc, addDoc, onSnapshot, collection, query, where, orderBy, updateDoc,
-    serverTimestamp, limit
-} from 'firebase/firestore';
+/*
+AdminMessengerPanel.jsx
+Single-file React component (default export) using Tailwind CSS.
 
-// Tailwind CSS is assumed to be available
-// Lucide icons are used for a modern UI look
-import { 
-    MessageCircle, Send, Users, Settings, LogOut, Zap, X, Menu, Loader2, ArrowLeft 
-} from 'lucide-react';
+Features implemented in this frontend mockup:
+- Left vertical menu (multi-admin login, menu items on left)
+- Channel filter (Telegram, Viber, FB, WhatsApp, All/Chats)
+- Separate lists for each channel (Chats / Telegram user list)
+- Chat list with search, pagination mock, unread badges, pinned
+- Chat window with message history, typing indicator, read receipts
+- Message input with attachments placeholder and send button
+- Broadcast modal for Telegram users (select users, send broadcast)
+- Multi-admin login modal (switchable active admin sessions)
+- WebSocket / real-time hooks simulated (replace with real socket.io)
 
-// Configuration variables provided by the Canvas environment
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+Integration notes (backend):
+- Use a central socket.io (or similar) server to push incoming messages from Telegram bot, Facebook Page webhook, Viber, WhatsApp. The frontend expects events like:
+  - "new_message": { channel, chatId, message, from, timestamp }
+  - "chat_list_update": { channel, chats: [...] }
+  - "typing": { channel, chatId, adminId }
+- For Telegram broadcast & user list: when a user sends /start, your bot must save the user's info to DB (user_id, username, first_name, last_name, language_code, timestamp). Provide an API route to GET /api/telegram/users and POST /api/telegram/broadcast.
+- For auth: this UI uses simple frontend-only multi-admin mock. Replace with your auth endpoints (login / sessions) and JWT/cookie storage.
 
-// --- Utility Functions ---
+ENV hints (backend):
+- Keep TELEGRAM_BOT_TOKEN and Firebase service account on server side only. Never push private_key or tokens client-side.
+- The provided FIREBASE_SERVICE_ACCOUNT_KEY must keep \n sequences escaped in .env and then parsed server-side.
 
-/** Converts Firebase Timestamps to human-readable time string */
-const formatTime = (timestamp) => {
-    if (!timestamp) return '...';
-    // Check if it's a Firestore Timestamp object
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
+Styling: Tailwind CSS. This component assumes tailwind is loaded in the app.
 
-    if (isToday) {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-    // Simple date format for previous days
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
+*/
 
-// --- Firebase Initialization and Services ---
-// Initialize Firebase only once
-let app, db, auth;
-try {
-    if (Object.keys(firebaseConfig).length > 0) {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-    }
-} catch (e) {
-    console.error("Firebase Initialization Error:", e);
+import React, { useEffect, useMemo, useState, useRef } from "react";
+
+export default function AdminMessengerPanel() {
+  // Mock initial data - replace with API calls
+  const initialAdmins = [
+    { id: "admin1", name: "Admin Paing", avatar: "PA" },
+    { id: "admin2", name: "Admin Su", avatar: "AS" },
+  ];
+
+  const [admins, setAdmins] = useState(initialAdmins);
+  const [activeAdminId, setActiveAdminId] = useState(admins[0].id);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const CHANNELS = ["All", "Telegram", "Viber", "Facebook", "WhatsApp"];
+  const [activeChannel, setActiveChannel] = useState("All");
+  const [search, setSearch] = useState("");
+
+  // Chats grouped by channel
+  const [chats, setChats] = useState(() => generateMockChats());
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [typingStatus, setTypingStatus] = useState({});
+
+  // Telegram user list (for broadcasts) - in real app fetch /api/telegram/users
+  const [telegramUsers, setTelegramUsers] = useState(() => generateMockTelegramUsers());
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastSelection, setBroadcastSelection] = useState(new Set());
+
+  const messageInputRef = useRef(null);
+  const [messageText, setMessageText] = useState("");
+
+  // Simulate real-time incoming messages
+  useEffect(() => {
+    const t = setInterval(() => {
+      // randomly push a new message to a chat
+      if (Math.random() < 0.25) {
+        const cIndex = Math.floor(Math.random() * chats.length);
+        const chat = chats[cIndex];
+        const newMsg = {
+          id: Math.random().toString(36).slice(2, 9),
+          from: chat.peerName,
+          text: "Auto reply at " + new Date().toLocaleTimeString(),
+          ts: Date.now(),
+          read: false,
+        };
+        const newChats = [...chats];
+        newChats[cIndex] = { ...chat, messages: [...chat.messages, newMsg], unread: (chat.unread || 0) + 1 };
+        setChats(newChats);
+      }
+    }, 5000);
+    return () => clearInterval(t);
+  }, [chats]);
+
+  // filter chats by channel & search
+  const filteredChats = useMemo(() => {
+    return chats
+      .filter((c) => (activeChannel === "All" ? true : c.channel === activeChannel))
+      .filter((c) => c.peerName.toLowerCase().includes(search.toLowerCase()) || (c.lastMessage || "").toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0));
+  }, [chats, activeChannel, search]);
+
+  useEffect(() => {
+    // when selecting channel, auto-select first chat if none
+    if (!selectedChat && filteredChats.length) setSelectedChat(filteredChats[0]);
+  }, [activeChannel]);
+
+  function openChat(chat) {
+    setSelectedChat(chat);
+    // mark read locally
+    setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, unread: 0 } : c)));
+  }
+
+  function sendMessage() {
+    if (!selectedChat || !messageText.trim()) return;
+    const newMsg = {
+      id: Math.random().toString(36).slice(2, 9),
+      from: admins.find((a) => a.id === activeAdminId).name,
+      text: messageText.trim(),
+      ts: Date.now(),
+      sentByAdmin: true,
+      read: true,
+    };
+    setChats((prev) => prev.map((c) => (c.id === selectedChat.id ? { ...c, messages: [...c.messages, newMsg], lastMessage: newMsg.text, lastTs: newMsg.ts } : c)));
+    setMessageText("");
+    messageInputRef.current?.focus();
+
+    // TODO: emit socket event to backend to actually send via the channel (Telegram / WhatsApp / FB / Viber)
+  }
+
+  function toggleAdminLogin() {
+    setShowLoginModal(true);
+  }
+
+  function handleLogin(username) {
+    // mock add admin
+    const id = "admin_" + Math.random().toString(36).slice(2, 6);
+    const newAdmin = { id, name: username, avatar: username.slice(0, 2).toUpperCase() };
+    setAdmins((prev) => [...prev, newAdmin]);
+    setActiveAdminId(id);
+    setShowLoginModal(false);
+  }
+
+  function toggleBroadcastSelect(userId) {
+    setBroadcastSelection((prev) => {
+      const copy = new Set(prev);
+      if (copy.has(userId)) copy.delete(userId);
+      else copy.add(userId);
+      return copy;
+    });
+  }
+
+  function sendBroadcast() {
+    // In real app POST /api/telegram/broadcast { recipients: [...], message }
+    const recipients = Array.from(broadcastSelection);
+    if (!recipients.length) return alert("Select at least one user");
+    alert(`Broadcast sent to ${recipients.length} users (mock).`);
+    setBroadcastSelection(new Set());
+    setShowBroadcastModal(false);
+  }
+
+  return (
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      {/* Left menu */}
+      <aside className="w-72 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 flex flex-col">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+          <div className="text-lg font-semibold">AdminPanel</div>
+          <div className="flex items-center gap-2">
+            <button className="text-sm px-2 py-1 rounded bg-indigo-600 text-white" onClick={() => setShowBroadcastModal(true)}>
+              Broadcast
+            </button>
+            <button className="text-sm px-2 py-1 rounded border" onClick={() => toggleAdminLogin()}>
+              Multi Admin
+            </button>
+          </div>
+        </div>
+
+        {/* Admin switcher */}
+        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+          <div className="text-xs text-gray-500">Active Admin</div>
+          <div className="mt-2 flex gap-2">
+            {admins.map((a) => (
+              <button key={a.id} onClick={() => setActiveAdminId(a.id)} className={`py-1 px-2 rounded ${a.id === activeAdminId ? "bg-indigo-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}>
+                {a.avatar}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Menu items */}
+        <nav className="p-3 flex-1 overflow-auto">
+          <div className="mb-3 text-xs text-gray-500">Menu</div>
+          <ul className="space-y-2">
+            <li>
+              <button onClick={() => setActiveChannel("All")} className={`w-full text-left py-2 px-3 rounded ${activeChannel === "All" ? "bg-indigo-50 dark:bg-indigo-800" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+                Chats
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setActiveChannel("Telegram")} className={`w-full text-left py-2 px-3 rounded ${activeChannel === "Telegram" ? "bg-indigo-50 dark:bg-indigo-800" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+                Telegram
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setActiveChannel("Viber")} className={`w-full text-left py-2 px-3 rounded ${activeChannel === "Viber" ? "bg-indigo-50 dark:bg-indigo-800" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+                Viber
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setActiveChannel("Facebook")} className={`w-full text-left py-2 px-3 rounded ${activeChannel === "Facebook" ? "bg-indigo-50 dark:bg-indigo-800" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+                Facebook Page
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setActiveChannel("WhatsApp")} className={`w-full text-left py-2 px-3 rounded ${activeChannel === "WhatsApp" ? "bg-indigo-50 dark:bg-indigo-800" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+                WhatsApp
+              </button>
+            </li>
+
+            <li>
+              <div className="mt-4 text-xs text-gray-500">Tools</div>
+              <button onClick={() => alert('Open settings (mock)')} className="w-full text-left py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 mt-2">
+                Settings
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="p-3 border-t text-xs text-gray-500">Logged in as: {admins.find((a) => a.id === activeAdminId)?.name}</div>
+      </aside>
+
+      {/* Middle column - Chat list */}
+      <div className="w-96 border-r border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-gray-950">
+        <div className="p-3 border-b">
+          <div className="flex items-center gap-2">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search chats or messages..." className="flex-1 px-3 py-2 rounded border" />
+            <div className="text-xs text-gray-500">{filteredChats.length} chats</div>
+          </div>
+
+          <div className="mt-3 flex gap-2 text-xs">
+            {CHANNELS.map((ch) => (
+              <button key={ch} onClick={() => setActiveChannel(ch)} className={`px-2 py-1 rounded ${activeChannel === ch ? "bg-indigo-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}>
+                {ch}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          {filteredChats.map((chat) => (
+            <div key={chat.id} onClick={() => openChat(chat)} className={`p-3 border-b cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 flex items-start gap-3 ${selectedChat?.id === chat.id ? "bg-indigo-50 dark:bg-indigo-900" : ""}`}>
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center">{chat.peerName[0]}</div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <div className="font-medium">{chat.peerName}</div>
+                  <div className="text-xs text-gray-500">{timeAgo(chat.lastTs)}</div>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 truncate">{chat.lastMessage}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800">{chat.channel}</div>
+                  {chat.unread ? <div className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{chat.unread}</div> : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right column - Chat view */}
+      <div className="flex-1 flex flex-col">
+        <div className="border-b p-3 flex items-center justify-between bg-white dark:bg-gray-950">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center">{selectedChat?.peerName?.[0]}</div>
+            <div>
+              <div className="font-semibold">{selectedChat?.peerName || "Select a chat"}</div>
+              <div className="text-xs text-gray-500">{selectedChat ? `${selectedChat.channel} • ${selectedChat.id}` : "No chat selected"}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div>{typingStatus[selectedChat?.id] ? "Typing..." : ""}</div>
+            <button onClick={() => alert('Open attachments (mock)')} className="px-3 py-1 rounded border">Attach</button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 bg-gray-50 dark:bg-gray-900">
+          {selectedChat ? (
+            <div className="space-y-3">
+              {selectedChat.messages.map((m) => (
+                <div key={m.id} className={`max-w-xs ${m.sentByAdmin ? "ml-auto text-right" : ""}`}>
+                  <div className={`inline-block px-3 py-2 rounded ${m.sentByAdmin ? "bg-indigo-600 text-white" : "bg-white dark:bg-gray-800"}`}>{m.text}</div>
+                  <div className="text-xs text-gray-400 mt-1">{new Date(m.ts).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 mt-32">Pick a chat from the left to start</div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="p-3 border-t bg-white dark:bg-gray-950">
+          <div className="flex gap-2">
+            <input ref={messageInputRef} value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder={selectedChat ? `Message ${selectedChat.peerName}...` : "Select a chat to message"} className="flex-1 px-3 py-2 rounded border" disabled={!selectedChat} />
+            <button onClick={sendMessage} className="px-4 py-2 rounded bg-indigo-600 text-white" disabled={!selectedChat}>Send</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Login modal (multi-admin) */}
+      {showLoginModal ? (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg w-96">
+            <div className="text-lg font-semibold mb-2">Add / Switch Admin</div>
+            <div className="text-sm text-gray-500 mb-4">Add a new admin (mock). In production, connect to your auth endpoint.</div>
+            <AdminLoginForm onLogin={(u) => handleLogin(u)} onClose={() => setShowLoginModal(false)} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Broadcast modal */}
+      {showBroadcastModal ? (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg w-2/3 max-w-4xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-lg font-semibold">Telegram Broadcast</div>
+                <div className="text-sm text-gray-500">Select Telegram users and send a broadcast message</div>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 border rounded" onClick={() => { setBroadcastSelection(new Set(telegramUsers.map((u) => u.id))); }}>
+                  Select All
+                </button>
+                <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={() => { setShowBroadcastModal(false); setBroadcastSelection(new Set()); }}>
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-1 border-r pr-4">
+                <div className="text-sm text-gray-500 mb-2">Users ({telegramUsers.length})</div>
+                <div className="max-h-96 overflow-auto">
+                  {telegramUsers.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-2 border-b">
+                      <div>
+                        <div className="font-medium">{u.name || u.username}</div>
+                        <div className="text-xs text-gray-500">{u.username ? '@' + u.username : '—'}</div>
+                      </div>
+                      <div>
+                        <input type="checkbox" checked={broadcastSelection.has(u.id)} onChange={() => toggleBroadcastSelect(u.id)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <div className="mb-2 text-sm text-gray-500">Message</div>
+                <textarea className="w-full h-48 p-3 border rounded" placeholder="Type broadcast message here" />
+                <div className="mt-3 flex justify-end gap-2">
+                  <button onClick={() => setBroadcastSelection(new Set())} className="px-3 py-1 border rounded">Clear</button>
+                  <button onClick={sendBroadcast} className="px-3 py-1 bg-indigo-600 text-white rounded">Send Broadcast (mock)</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
+function AdminLoginForm({ onLogin, onClose }) {
+  const [username, setUsername] = useState("");
+  return (
+    <div>
+      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Admin name" className="w-full px-3 py-2 border rounded mb-3" />
+      <div className="flex justify-end gap-2">
+        <button className="px-3 py-1 border rounded" onClick={onClose}>Cancel</button>
+        <button className="px-3 py-1 bg-indigo-600 text-white rounded" onClick={() => onLogin(username || 'NewAdmin')}>Add</button>
+      </div>
+    </div>
+  );
+}
 
-// --- Constants for UI and Data Structure (Burmese/English) ---
+// Helpers & Mock Data
+function timeAgo(ts) {
+  if (!ts) return "";
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+}
 
-const CHANNEL_MAP = {
-    all: { name: "အားလုံးပေါင်း (All)", icon: MessageCircle, color: 'text-indigo-500' },
-    telegram: { name: "တယ်လီဂရမ် (Telegram)", icon: Zap, color: 'text-sky-500' },
-    viber: { name: "ဗိုက်ဘာ (Viber)", icon: MessageCircle, color: 'text-purple-500' },
-    facebook: { name: "ဖေ့စ်ဘုတ် (Facebook)", icon: MessageCircle, color: 'text-blue-600' },
-    whatsapp: { name: "ဝှက်စ်အပ် (WhatsApp)", icon: MessageCircle, color: 'text-green-500' },
-};
+function generateMockChats() {
+  const channels = ["Telegram", "Viber", "Facebook", "WhatsApp"];
+  const now = Date.now();
+  const arr = Array.from({ length: 14 }).map((_, i) => {
+    const ch = channels[i % channels.length];
+    const msgs = [
+      { id: `m1-${i}`, from: `User${i}`, text: `Hello from ${ch} user #${i}`, ts: now - (i + 1) * 60000 },
+      { id: `m2-${i}`, from: `Admin`, text: `Reply to ${i}`, ts: now - (i + 1) * 30000, sentByAdmin: true },
+    ];
+    return { id: `chat-${i}`, peerName: `${ch} User ${i}`, channel: ch, messages: msgs, lastMessage: msgs[msgs.length - 1].text, lastTs: msgs[msgs.length - 1].ts, unread: Math.random() < 0.3 ? Math.ceil(Math.random() * 5) : 0 };
+  });
+  return arr;
+}
 
-const MENU_ITEMS = [
-    { id: 'all', label: 'စကားပြောများ (Chats)', icon: CHANNEL_MAP.all.icon, type: 'chat' },
-    { id: 'telegram', label: 'တယ်လီဂရမ်', icon: CHANNEL_MAP.telegram.icon, type: 'chat' },
-    { id: 'viber', label: 'ဗိုက်ဘာ', icon: CHANNEL_MAP.viber.icon, type: 'chat' },
-    { id: 'facebook', label: 'ဖေ့စ်ဘုတ်', icon: CHANNEL_MAP.facebook.icon, type: 'chat' },
-    { id: 'whatsapp', label: 'ဝှက်စ်အပ်', icon: CHANNEL_MAP.whatsapp.icon, type: 'chat' },
-    { id: 'tg_users', label: 'TG အသုံးပြုသူများ', icon: Users, type: 'tool' },
-    { id: 'broadcast', label: 'သတင်းပို့ရန် (Broadcast)', icon: Zap, type: 'tool' },
-];
-
-const CHATS_COLLECTION_PATH = `artifacts/${appId}/public/data/chats`;
-const MESSAGES_COLLECTION_PATH = (chatId) => `${CHATS_COLLECTION_PATH}/${chatId}/messages`;
-const TG_USERS_COLLECTION_PATH = `artifacts/${appId}/public/data/tg_users`;
-const BROADCAST_QUEUE_COLLECTION_PATH = `artifacts/${appId}/public/data/broadcast_queue`;
-
-
-// --- UI Components ---
-
-/**
- * Sidebar component for navigation and tool selection.
- */
-const Sidebar = ({ selectedMenu, setSelectedMenu, onLogout, userId }) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    return (
-        <>
-            {/* Mobile Menu Button */}
-            <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden p-4 fixed top-0 left-0 z-50 text-white bg-indigo-600 rounded-br-lg shadow-lg"
-            >
-                <Menu size={24} />
-            </button>
-
-            {/* Sidebar (Desktop) */}
-            <div className={`
-                w-16 md:w-64 bg-gray-900 h-full fixed lg:relative z-40 transition-transform duration-300 ease-in-out
-                ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
-                flex flex-col justify-between
-            `}>
-                <div className="p-4 border-b border-gray-700">
-                    <h1 className="text-xl font-bold text-indigo-400 hidden md:block">Unified Inbox</h1>
-                    <h1 className="text-xl font-bold text-indigo-400 md:hidden">UI</h1>
-                </div>
-                
-                <nav className="flex-grow space-y-2 p-3 overflow-y-auto">
-                    {MENU_ITEMS.map(item => {
-                        const isSelected = selectedMenu.id === item.id;
-                        const Icon = item.icon || Settings;
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => { setSelectedMenu(item); setIsMenuOpen(false); }}
-                                className={`
-                                    w-full flex items-center p-3 rounded-lg text-sm transition duration-150
-                                    ${isSelected ? 'bg-indigo-700 text-white shadow-md' : 'text-gray-300 hover:bg-gray-700'}
-                                `}
-                            >
-                                <Icon size={20} className={`mr-0 md:mr-3 ${CHANNEL_MAP[item.id]?.color || 'text-white'}`} />
-                                <span className="hidden md:block whitespace-nowrap">{item.label}</span>
-                            </button>
-                        );
-                    })}
-                </nav>
-                
-                <div className="p-4 border-t border-gray-700">
-                    <div className="hidden md:block text-xs text-gray-400 truncate mb-2">
-                        Admin ID: <span className="font-mono text-indigo-300">{userId?.substring(0, 8)}...</span>
-                    </div>
-                    <button
-                        onClick={onLogout}
-                        className="w-full flex items-center p-3 rounded-lg text-sm text-red-400 hover:bg-red-900 transition duration-150"
-                    >
-                        <LogOut size={20} className="mr-0 md:mr-3" />
-                        <span className="hidden md:block">ထွက်ရန် (Logout)</span>
-                    </button>
-                </div>
-            </div>
-            {/* Overlay for mobile menu */}
-            {isMenuOpen && (
-                <div className="fixed inset-0 bg-black opacity-50 z-30 lg:hidden" onClick={() => setIsMenuOpen(false)}></div>
-            )}
-        </>
-    );
-};
-
-/**
- * Chat List component showing active conversations.
- */
-const ChatList = ({ chats, selectedChat, setSelectedChat, currentChannelId }) => {
-    const chatsToDisplay = currentChannelId === 'all'
-        ? chats
-        : chats.filter(chat => chat.channel === currentChannelId);
-
-    return (
-        <div className="w-full sm:w-80 border-r border-gray-200 bg-white h-full overflow-y-auto flex-shrink-0">
-            <div className="p-4 border-b sticky top-0 bg-white z-10">
-                <h2 className="text-xl font-semibold text-gray-700">
-                    {CHANNEL_MAP[currentChannelId]?.name || "Chats"}
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">{chatsToDisplay.length} active threads</p>
-            </div>
-            
-            {chatsToDisplay.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                    လက်ရှိ Channel မှာ စကားဝိုင်းမရှိသေးပါဘူး။
-                </div>
-            ) : (
-                chatsToDisplay.map(chat => (
-                    <div
-                        key={chat.id}
-                        onClick={() => setSelectedChat(chat)}
-                        className={`
-                            p-4 border-b cursor-pointer transition-colors duration-150
-                            ${selectedChat?.id === chat.id ? 'bg-indigo-100 border-indigo-500 border-l-4' : 'hover:bg-gray-50'}
-                        `}
-                    >
-                        <div className="flex justify-between items-center">
-                            <p className="font-semibold text-gray-800 truncate">
-                                {chat.userName || `User ${chat.chatId?.substring(0, 8)}`}
-                            </p>
-                            <span className="text-xs text-gray-500">
-                                {formatTime(chat.lastMessageTime)}
-                            </span>
-                        </div>
-                        <p className="text-sm text-gray-500 truncate mt-1">
-                            {chat.lastMessage || "No messages yet."}
-                        </p>
-                    </div>
-                ))
-            )}
-        </div>
-    );
-};
-
-/**
- * Main Chat Window for viewing and replying to messages.
- */
-const ChatWindow = ({ db, userId, selectedChat, onBack }) => {
-    const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState('');
-    const [isSending, setIsSending] = useState(false);
-    const messagesEndRef = useRef(null);
-
-    // Real-time message listener
-    useEffect(() => {
-        if (!selectedChat || !db) return;
-
-        const messagesQuery = query(
-            collection(db, MESSAGES_COLLECTION_PATH(selectedChat.id)),
-            orderBy('timestamp', 'asc'),
-            limit(100) // Limit to last 100 messages for performance
-        );
-
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-            const msgs = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                timestamp: doc.data().timestamp?.toMillis() || Date.now(),
-            }));
-            setMessages(msgs);
-        }, (error) => {
-            console.error("Error fetching messages:", error);
-        });
-
-        return () => unsubscribe();
-    }, [db, selectedChat]);
-
-    // Scroll to the latest message
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
-
-    const handleSend = async (e) => {
-        e.preventDefault();
-        if (!input.trim() || !selectedChat || !db) return;
-        
-        setIsSending(true);
-        const messageText = input.trim();
-        setInput('');
-
-        const messageData = {
-            text: messageText,
-            timestamp: serverTimestamp(),
-            channel: selectedChat.channel,
-            senderId: userId,
-            is_admin: true, // Mark as admin message
-            adminName: `Admin-${userId.substring(0, 4)}`, // Mock admin name
-        };
-
-        try {
-            // 1. Add new message to the thread
-            await addDoc(collection(db, MESSAGES_COLLECTION_PATH(selectedChat.id)), messageData);
-            
-            // 2. Update the parent chat thread (for last message display)
-            await updateDoc(doc(db, CHATS_COLLECTION_PATH, selectedChat.id), {
-                lastMessage: messageText,
-                lastMessageTime: serverTimestamp(),
-            });
-
-            // Note: The external backend server MUST listen to this collection for new messages where is_admin: true
-            // and use the selectedChat.channel and selectedChat.chatId to send the reply back to the user on that platform.
-
-        } catch (error) {
-            console.error("Error sending message:", error);
-            // Optionally: setInput(messageText); to restore input
-        } finally {
-            setIsSending(false);
-        }
-    };
-
-    if (!selectedChat) {
-        return (
-            <div className="flex-grow flex items-center justify-center bg-gray-50">
-                <p className="text-gray-500 text-lg">စကားဝိုင်းတစ်ခုကို ရွေးချယ်ပါ</p>
-            </div>
-        );
-    }
-
-    const ChatIcon = CHANNEL_MAP[selectedChat.channel]?.icon || MessageCircle;
-
-    return (
-        <div className="flex flex-col flex-grow h-full bg-gray-50">
-            {/* Header */}
-            <div className="p-4 border-b bg-white shadow-md flex items-center justify-between sticky top-0 z-10">
-                <div className="flex items-center">
-                    <button onClick={onBack} className="text-gray-500 mr-2 md:hidden">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <ChatIcon size={24} className={`mr-2 ${CHANNEL_MAP[selectedChat.channel]?.color}`} />
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-800">
-                            {selectedChat.userName || `User ${selectedChat.chatId?.substring(0, 8)}`}
-                        </h2>
-                        <p className="text-sm text-gray-500">{CHANNEL_MAP[selectedChat.channel]?.name}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-grow p-4 space-y-4 overflow-y-auto">
-                {messages.map(msg => (
-                    <div 
-                        key={msg.id} 
-                        className={`flex ${msg.is_admin ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div 
-                            className={`max-w-xs md:max-w-md p-3 rounded-xl shadow-lg 
-                                ${msg.is_admin 
-                                    ? 'bg-indigo-500 text-white rounded-br-none' 
-                                    : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
-                                }
-                            `}
-                        >
-                            <p className="text-sm font-medium whitespace-pre-wrap">{msg.text}</p>
-                            <div className={`text-xs mt-1 ${msg.is_admin ? 'text-indigo-200 text-right' : 'text-gray-400 text-left'}`}>
-                                {msg.is_admin ? msg.adminName : msg.userName || 'Customer'} - {formatTime(msg.timestamp)}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <form onSubmit={handleSend} className="p-4 bg-white border-t sticky bottom-0">
-                <div className="flex space-x-2">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="စာရိုက်ပါ..."
-                        className="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                        disabled={isSending}
-                    />
-                    <button
-                        type="submit"
-                        disabled={!input.trim() || isSending}
-                        className={`p-3 rounded-xl text-white shadow-md transition duration-150 flex items-center justify-center
-                            ${!input.trim() || isSending
-                                ? 'bg-indigo-300 cursor-not-allowed'
-                                : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'
-                            }
-                        `}
-                    >
-                        {isSending ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-};
-
-/**
- * Telegram User List Panel
- */
-const TgUserListPanel = ({ db }) => {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!db) return;
-        setLoading(true);
-
-        const usersQuery = query(collection(db, TG_USERS_COLLECTION_PATH), orderBy('lastSeen', 'desc'));
-
-        const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-            const userList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setUsers(userList);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching TG users:", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [db]);
-
-    return (
-        <div className="p-6 h-full overflow-y-auto bg-white rounded-xl shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">တယ်လီဂရမ် အသုံးပြုသူများ (Telegram Users)</h2>
-            <p className="text-gray-600 mb-6">
-                <code>/start</code> နှိပ်ထားသော User အားလုံး၏ စာရင်း။ (Broadcast အတွက် အသုံးပြုနိုင်ရန်)
-            </p>
-
-            {loading ? (
-                <div className="flex justify-center items-center h-48">
-                    <Loader2 size={32} className="animate-spin text-indigo-500" />
-                    <span className="ml-3 text-indigo-500">ဒေတာများ ဆွဲယူနေပါသည်...</span>
-                </div>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Chat ID
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    အမည် (Name)
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    နောက်ဆုံး မြင်ရချိန် (Last Seen)
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-gray-50 transition duration-100">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                                        {user.chatId}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {user.firstName} {user.lastName || ''} (@{user.username || 'N/A'})
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {formatTime(user.lastSeen)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
-    );
-};
-
-/**
- * Broadcast Panel for sending messages to all TG users.
- */
-const BroadcastPanel = ({ db, userId }) => {
-    const [message, setMessage] = useState('');
-    const [isSending, setIsSending] = useState(false);
-    const [successMsg, setSuccessMsg] = useState('');
-
-    const handleBroadcast = async () => {
-        if (!message.trim() || !db) return;
-
-        setIsSending(true);
-        setSuccessMsg('');
-        const messageText = message.trim();
-
-        const broadcastData = {
-            text: messageText,
-            timestamp: serverTimestamp(),
-            adminId: userId,
-            status: 'pending', // External server watches for 'pending' status
-            channel: 'telegram', // Target channel
-        };
-
-        try {
-            await addDoc(collection(db, BROADCAST_QUEUE_COLLECTION_PATH), broadcastData);
-            setMessage('');
-            setSuccessMsg("Broadcast မက်ဆေ့ခ်ျကို ပို့ရန် စီစဉ်ပြီးပါပြီ။ Backend Server မှ စတင်ပို့ဆောင်ပါမည်။");
-        } catch (error) {
-            console.error("Error queuing broadcast:", error);
-            setSuccessMsg("ပို့ရာတွင် အမှားပေါ်ပေါက်ခဲ့သည်။ ကျေးဇူးပြု၍ Console ကို စစ်ဆေးပါ။");
-        } finally {
-            setIsSending(false);
-            setTimeout(() => setSuccessMsg(''), 5000); // Clear message after 5 seconds
-        }
-    };
-
-    return (
-        <div className="p-6 h-full overflow-y-auto bg-white rounded-xl shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">သတင်းပို့ရန် (Broadcast Message)</h2>
-            <p className="text-gray-600 mb-6">Telegram တွင် <code>/start</code> နှိပ်ထားသည့် အသုံးပြုသူအားလုံးဆီသို့ မက်ဆေ့ခ်ျပို့ပါ။</p>
-
-            <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Broadcast လုပ်မည့် စာကို ရေးပါ။ (ဥပမာ: အရေးကြီးသော ကြေညာချက်)"
-                rows="6"
-                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 resize-none"
-                disabled={isSending}
-            />
-            
-            <button
-                onClick={handleBroadcast}
-                disabled={!message.trim() || isSending}
-                className={`mt-4 w-full py-3 rounded-lg text-white font-semibold transition duration-150 flex items-center justify-center
-                    ${!message.trim() || isSending
-                        ? 'bg-indigo-300 cursor-not-allowed'
-                        : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-lg'
-                    }
-                `}
-            >
-                {isSending ? (
-                    <Loader2 size={24} className="animate-spin mr-2" />
-                ) : (
-                    <Zap size={24} className="mr-2" />
-                )}
-                {isSending ? 'ပို့နေသည်...' : 'Broadcast စတင်ပို့ရန်'}
-            </button>
-
-            {successMsg && (
-                <div className={`mt-4 p-3 rounded-lg text-sm font-medium ${successMsg.includes('အမှား') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                    {successMsg}
-                </div>
-            )}
-        </div>
-    );
-};
-
-
-/**
- * Main Application Component
- */
-const App = () => {
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [chats, setChats] = useState([]);
-    const [selectedMenu, setSelectedMenu] = useState(MENU_ITEMS[0]);
-    const [selectedChat, setSelectedChat] = useState(null);
-    const [view, setView] = useState('chatlist'); // 'chatlist' or 'chatwindow' (for mobile responsiveness)
-
-    // 1. Firebase Auth and Initialization Effect
-    useEffect(() => {
-        if (!auth) {
-            console.error("Firebase Auth service is not available.");
-            setIsAuthReady(true);
-            return;
-        }
-
-        const authListener = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setUserId(user.uid);
-            } else {
-                setUserId(null);
-            }
-            setIsAuthReady(true);
-        });
-
-        const handleSignIn = async () => {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    // Fallback to anonymous sign-in if no token is provided
-                    await signInAnonymously(auth);
-                }
-                console.log("Firebase Auth successful.");
-            } catch (error) {
-                console.error("Firebase Sign-In Error:", error);
-            }
-        };
-
-        handleSignIn();
-        
-        return () => authListener(); // Cleanup auth listener
-    }, []);
-
-    // 2. Real-time Chat List Fetching Effect
-    useEffect(() => {
-        // Only run if Firebase is ready and user is signed in
-        if (!isAuthReady || !db || !userId) return;
-
-        console.log(`Starting chat listener for app ID: ${appId}`);
-
-        // Query for active chat threads, ordered by last activity
-        const chatsQuery = query(
-            collection(db, CHATS_COLLECTION_PATH),
-            orderBy('lastMessageTime', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
-            const fetchedChats = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                lastMessageTime: doc.data().lastMessageTime?.toMillis() || 0,
-            }));
-            setChats(fetchedChats);
-        }, (error) => {
-            console.error("Error fetching chats:", error);
-        });
-
-        return () => unsubscribe(); // Cleanup listener
-    }, [isAuthReady, db, userId]);
-
-    // Handle chat selection (for mobile view change)
-    const handleChatSelect = (chat) => {
-        setSelectedChat(chat);
-        // Switch to the chat window view on mobile
-        if (window.innerWidth < 768) { 
-            setView('chatwindow');
-        }
-    };
-
-    const handleBackToChatList = () => {
-        setSelectedChat(null);
-        setView('chatlist');
-    };
-
-    const handleLogout = async () => {
-        if (auth) {
-            try {
-                await signOut(auth);
-                setUserId(null);
-                setSelectedChat(null);
-                setChats([]);
-                console.log("Logged out successfully.");
-            } catch (error) {
-                console.error("Logout Error:", error);
-            }
-        }
-    };
-
-    // Show loading state while authentication is processing
-    if (!isAuthReady) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <Loader2 size={48} className="animate-spin text-indigo-600" />
-                <p className="ml-4 text-xl font-medium text-indigo-600">Admin Panel ကို ဖွင့်နေသည်...</p>
-            </div>
-        );
-    }
-    
-    // Fallback if Firebase didn't initialize (e.g., config missing)
-    if (!db || !auth) {
-        return (
-             <div className="p-10 bg-red-100 border border-red-400 text-red-700 min-h-screen">
-                <h1 className="text-2xl font-bold mb-4">အမှား: Firebase စနစ်ကို စတင်နိုင်ခြင်း မရှိပါ</h1>
-                <p>Environment Configuration တွင် <code>__firebase_config</code> ထည့်သွင်းထားခြင်း မရှိသောကြောင့် ဒေတာများကို ဖတ်ရှုနိုင်ခြင်း မရှိပါ။</p>
-            </div>
-        );
-    }
-
-    // --- Dynamic Content Rendering ---
-    
-    let mainContent;
-    const isChatType = selectedMenu.type === 'chat';
-    
-    if (isChatType) {
-        // Chat View
-        mainContent = (
-            <div className="flex w-full h-full">
-                {/* Chat List (Visible on Desktop, Conditional on Mobile) */}
-                <div className={`md:flex ${view === 'chatlist' ? 'flex' : 'hidden'} w-full md:w-80`}>
-                    <ChatList 
-                        chats={chats} 
-                        selectedChat={selectedChat} 
-                        setSelectedChat={handleChatSelect}
-                        currentChannelId={selectedMenu.id}
-                    />
-                </div>
-                
-                {/* Chat Window (Visible on Desktop, Conditional on Mobile) */}
-                <div className={`md:flex ${view === 'chatwindow' ? 'flex' : 'hidden'} flex-grow`}>
-                    <ChatWindow 
-                        db={db} 
-                        userId={userId} 
-                        selectedChat={selectedChat} 
-                        onBack={handleBackToChatList}
-                    />
-                </div>
-            </div>
-        );
-    } else if (selectedMenu.id === 'tg_users') {
-        // TG Users View
-        mainContent = <TgUserListPanel db={db} />;
-    } else if (selectedMenu.id === 'broadcast') {
-        // Broadcast View
-        mainContent = <BroadcastPanel db={db} userId={userId} />;
-    } else {
-         // Default Tool View (e.g., Settings)
-         mainContent = (
-            <div className="p-6 h-full overflow-y-auto bg-white rounded-xl shadow-lg">
-                <h2 className="text-2xl font-bold mb-4 text-gray-800">{selectedMenu.label}</h2>
-                <p className="text-gray-600">
-                    ဤသည်မှာ {selectedMenu.label} အတွက် UI နေရာဖြစ်သည်။
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex h-screen bg-gray-100 antialiased">
-            {/* Sidebar */}
-            <Sidebar 
-                selectedMenu={selectedMenu} 
-                setSelectedMenu={setSelectedMenu} 
-                onLogout={handleLogout} 
-                userId={userId}
-            />
-
-            {/* Main Content Area */}
-            <main className="flex-grow flex flex-col overflow-hidden transition-all duration-300">
-                <header className="hidden md:flex items-center justify-between p-4 bg-white border-b shadow-sm flex-shrink-0">
-                    <h2 className="text-2xl font-semibold text-gray-800">{selectedMenu.label}</h2>
-                    <div className="text-sm text-gray-500">
-                        Admin: <span className="font-medium text-indigo-600">{userId || 'Loading...'}</span>
-                    </div>
-                </header>
-                
-                {/* Content Panel (Chat, TG Users, Broadcast) */}
-                <div className={`flex-grow overflow-hidden ${isChatType ? '' : 'p-4'}`}>
-                    {mainContent}
-                </div>
-            </main>
-        </div>
-    );
-};
-
-export default App;
+function generateMockTelegramUsers() {
+  const arr = [];
+  for (let i = 1; i <= 40; i++) {
+    arr.push({ id: `tg_${i}`, name: `TG User ${i}`, username: `tguser${i}`, startedAt: Date.now() - i * 86400000 });
+  }
+  return arr;
+}
