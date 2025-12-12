@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Chat Panel</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Left Sidebar (Menu) */
+        .sidebar { width: 200px; background-color: #2c3e50; color: white; padding-top: 20px; flex-shrink: 0; }
+        .sidebar h3, .sidebar p { padding: 0 15px; margin-bottom: 20px; }
+        .sidebar-menu a { display: block; padding: 10px 15px; text-decoration: none; color: #ecf0f1; transition: background-color 0.3s; }
+        .sidebar-menu a:hover, .sidebar-menu a.active { background-color: #34495e; }
+
+        /* Main Content Area */
+        .chat-container { flex-grow: 1; display: flex; background-color: white; border-left: 1px solid #ddd; }
+
+        /* Chat List Panel */
+        .chat-list-panel { width: 300px; border-right: 1px solid #ddd; overflow-y: auto; flex-shrink: 0; }
+        .chat-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background-color 0.1s; display: flex; justify-content: space-between; align-items: center; }
+        .chat-item:hover, .chat-item.active { background-color: #f0f8ff; }
+        .chat-info { flex-grow: 1; }
+        .chat-platform { font-size: 0.75em; color: #999; text-transform: uppercase; }
+        .chat-last-message { font-size: 0.9em; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+        .unread-count { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 50%; font-size: 0.7em; margin-left: 10px; }
+        .chat-item .name { font-weight: bold; }
+
+        /* Chat Window */
+        .chat-window { flex-grow: 1; display: flex; flex-direction: column; }
+        .chat-header { padding: 15px; border-bottom: 1px solid #ddd; font-size: 1.1em; font-weight: bold; background-color: #f7f7f7; }
+        .message-area { flex-grow: 1; overflow-y: auto; padding: 20px; background-color: #f9f9f9; }
+        
+        /* Message Styles */
+        .message { margin-bottom: 15px; max-width: 70%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; word-wrap: break-word; }
+        .user-message { background-color: #ffffff; border: 1px solid #e5e5e5; align-self: flex-start; margin-right: auto; }
+        .admin-message { background-color: #0084ff; color: white; align-self: flex-end; margin-left: auto; }
+        .message-sender { font-size: 0.75em; color: #999; margin-bottom: 3px; }
+
+        /* Input Area */
+        .chat-input { display: flex; padding: 15px; border-top: 1px solid #ddd; background-color: white; }
+        #messageInput { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; margin-right: 10px; font-size: 1em; }
+        #sendButton { background-color: #0084ff; color: white; border: none; border-radius: 20px; padding: 10px 15px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>Admin Panel</h3>
+        <p>Logged in as: <%= adminUser.username %></p>
+        <div class="sidebar-menu">
+            <a href="#" id="menu-all" class="active" data-platform="">Chats (All)</a>
+            <a href="#" id="menu-telegram" data-platform="telegram">Telegram</a>
+            <a href="#" id="menu-facebook" data-platform="facebook">Facebook</a>
+            <a href="#" id="menu-viber" data-platform="viber">Viber</a>
+            <a href="#" id="menu-whatsapp" data-platform="whatsapp">WhatsApp</a>
+            <hr style="border-color: #34495e;">
+            <a href="/telegram-users">Telegram Users</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-list-panel" id="chatListPanel">
+            <% chats.forEach(chat => { %>
+                <div class="chat-item" 
+                    data-chat-id="<%= chat.chatId %>" 
+                    data-platform="<%= chat.platform %>" 
+                    data-sender-id="<%= chat.senderId %>">
+                    <div class="chat-info">
+                        <div class="name"><%= chat.senderName %> (<%= chat.platform.toUpperCase() %>)</div>
+                        <div class="chat-last-message"><%= chat.lastMessageText %></div>
+                    </div>
+                    <% if (chat.unreadCount > 0) { %>
+                        <span class="unread-count" data-chat-id-count="<%= chat.chatId %>"><%= chat.unreadCount %></span>
+                    <% } %>
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header" id="chatHeader">
+                Select a chat to start messaging
+            </div>
+            <div class="message-area" id="messageArea">
+                </div>
+            <div class="chat-input" id="chatInput" style="display: none;">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chatListPanel = document.getElementById('chatListPanel');
+        const chatHeader = document.getElementById('chatHeader');
+        const messageArea = document.getElementById('messageArea');
+        const chatInput = document.getElementById('chatInput');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const sidebarMenu = document.querySelector('.sidebar-menu');
+
+        let currentChatId = null;
+        let currentPlatform = null;
+        let currentSenderId = null;
+
+        // --- Core Functions ---
+
+        /** Fetches and displays the chat list based on the selected platform. */
+        async function loadChatList(platform = '') {
+            try {
+                const response = await fetch(`/api/chats?platform=${platform}`);
+                const chats = await response.json();
+                chatListPanel.innerHTML = ''; // Clear current list
+
+                chats.forEach(chat => {
+                    const chatItem = document.createElement('div');
+                    chatItem.className = 'chat-item' + (chat.chatId === currentChatId ? ' active' : '');
+                    chatItem.dataset.chatId = chat.chatId;
+                    chatItem.dataset.platform = chat.platform;
+                    chatItem.dataset.senderId = chat.senderId;
+                    
+                    const unreadSpan = chat.unreadCount > 0 ? `<span class="unread-count" data-chat-id-count="${chat.chatId}">${chat.unreadCount}</span>` : '';
+                    
+                    chatItem.innerHTML = `
+                        <div class="chat-info">
+                            <div class="name">${chat.senderName} (<span class="chat-platform">${chat.platform.toUpperCase()}</span>)</div>
+                            <div class="chat-last-message">${chat.lastMessageText}</div>
+                        </div>
+                        ${unreadSpan}
+                    `;
+                    chatListPanel.appendChild(chatItem);
+                });
+            } catch (error) {
+                console.error('Error loading chat list:', error);
+            }
+        }
+
+        /** Fetches and displays messages for a specific chatId. */
+        async function loadMessages(chatId, senderName, platform, senderId) {
+            currentChatId = chatId;
+            currentPlatform = platform;
+            currentSenderId = senderId;
+
+            chatHeader.textContent = `${senderName} (${platform.toUpperCase()})`;
+            messageArea.innerHTML = '';
+            chatInput.style.display = 'flex';
+
+            // Set active class on the selected chat item
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+            if (activeChat) activeChat.classList.add('active');
+
+            try {
+                const response = await fetch(`/api/chats/${chatId}/messages`);
+                const messages = await response.json();
+
+                messages.forEach(msg => appendMessage(msg));
+
+                messageArea.scrollTop = messageArea.scrollHeight;
+
+                // Remove unread badge
+                const unreadBadge = document.querySelector(`.unread-count[data-chat-id-count="${chatId}"]`);
+                if (unreadBadge) unreadBadge.remove();
+
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        /** Appends a single message to the chat window. */
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.className = 'message ' + (msg.isFromAdmin ? 'admin-message' : 'user-message');
+            
+            // Format timestamp (optional: use a library like moment.js)
+            const time = new Date(msg.timestamp).toLocaleTimeString();
+
+            div.innerHTML = `
+                <div class="message-text">${msg.text}</div>
+                <div class="message-time" style="font-size:0.7em; opacity:0.8;">${time}</div>
+            `;
+            messageArea.appendChild(div);
+        }
+
+        /** Sends the admin reply. */
+        function sendAdminReply() {
+            const message = messageInput.value.trim();
+            if (!message || !currentChatId) return;
+
+            const adminUsername = '<%= adminUser.username %>';
+
+            // 1. Emit to server for sending to the platform and DB
+            socket.emit('admin_reply', {
+                chatId: currentChatId,
+                senderId: currentSenderId,
+                platform: currentPlatform,
+                message: message,
+                adminUsername: adminUsername
+            });
+            
+            // 2. Clear input
+            messageInput.value = '';
+        }
+
+        // --- Event Listeners ---
+
+        // 1. Chat Item Click
+        chatListPanel.addEventListener('click', (e) => {
+            const chatItem = e.target.closest('.chat-item');
+            if (chatItem) {
+                const chatId = chatItem.dataset.chatId;
+                const platform = chatItem.dataset.platform;
+                const senderId = chatItem.dataset.senderId;
+                const senderName = chatItem.querySelector('.name').textContent.split('(')[0].trim();
+                
+                loadMessages(chatId, senderName, platform, senderId);
+            }
+        });
+
+        // 2. Send Button/Enter Key
+        sendButton.addEventListener('click', sendAdminReply);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendAdminReply();
+            }
+        });
+
+        // 3. Sidebar Menu Click
+        sidebarMenu.addEventListener('click', (e) => {
+            const menuItem = e.target.closest('a');
+            if (menuItem && menuItem.dataset.platform !== undefined) {
+                e.preventDefault();
+                
+                // Update active class
+                sidebarMenu.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+                menuItem.classList.add('active');
+
+                // Load chats for the selected platform
+                loadChatList(menuItem.dataset.platform);
+            }
+        });
+
+
+        // --- Socket.io Listeners (Real-time updates) ---
+
+        // Listener for a new incoming message from any platform
+        socket.on('new_message', (msg) => {
+            console.log('New message received:', msg);
+            
+            // 1. Update/Add to the chat list panel
+            const existingItem = document.querySelector(`.chat-item[data-chat-id="${msg.chatId}"]`);
+            if (existingItem) {
+                // Update existing item's last message and move to top (by reloading list)
+                loadChatList(document.querySelector('.sidebar-menu a.active').dataset.platform);
+
+                // Increment unread count if not currently viewing
+                if (msg.chatId !== currentChatId) {
+                    let unreadBadge = document.querySelector(`.unread-count[data-chat-id-count="${msg.chatId}"]`);
+                    if (!unreadBadge) {
+                        // If no badge exists, reload the entire list to add it
+                        loadChatList(document.querySelector('.sidebar-menu a.active').dataset.platform);
+                    } else {
+                        unreadBadge.textContent = parseInt(unreadBadge.textContent) + 1;
+                    }
+                }
+            } else {
+                // New chat, reload list to include it
+                loadChatList(document.querySelector('.sidebar-menu a.active').dataset.platform);
+            }
+
+            // 2. Append to the message area if the chat is currently open
+            if (msg.chatId === currentChatId) {
+                appendMessage(msg);
+                messageArea.scrollTop = messageArea.scrollHeight;
+                // Since a message arrived while chat is open, we should mark it as read immediately
+                // In a proper system, a separate endpoint would be called to mark as read here.
+                // For simplicity, we assume the loadMessages call marked it as read.
+            }
+        });
+
+        // Listener for admin's own reply
+        socket.on('new_message_for_chat', (msg) => {
+            if (msg.chatId === currentChatId) {
+                appendMessage(msg);
+                messageArea.scrollTop = messageArea.scrollHeight;
+            }
+            // Also reload chat list to move the conversation to the top
+            loadChatList(document.querySelector('.sidebar-menu a.active').dataset.platform);
+        });
+
+        // Listener for when a chat is marked as read
+        socket.on('chat_read', (data) => {
+             const unreadBadge = document.querySelector(`.unread-count[data-chat-id-count="${data.chatId}"]`);
+             if (unreadBadge) unreadBadge.remove();
+        });
+
+        // Initial load of all chats
+        loadChatList('');
+    </script>
+</body>
+</html>
