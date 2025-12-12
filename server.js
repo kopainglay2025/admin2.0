@@ -1,260 +1,459 @@
-import json
-import os
-from flask import Flask, request, jsonify
-from firebase_admin import credentials, initialize_app, firestore
-from google.cloud.firestore_v1.watch import Watch
-from threading import Thread
-import time
+// server.js
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const TelegramBot = require('node-telegram-bot-api');
+const cors = require('cors');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const axios = require('axios');
 
-# --- Environment Variables (Replace with actual values or use environment config) ---
-# NOTE: The service account key must be a valid JSON string.
-try:
-    # Use the service account key provided in the chat context
-    FIREBASE_SERVICE_ACCOUNT_KEY = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{"type": "service_account", "project_id": "mksadmin-6ffeb", "private_key_id": "d3131f45b11b49bdbf227ab8dcc90363b564aa70", "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDrfYdMxHqnF7OG\nlfFYMRgbuXYMwB36Wz3iX8U7rFHRVREXgmEveinNgmehyJBZFunGZNkv6qcaRVIP\nsWwf5vBdqGStIOejYsAtwFOrcXus6wnnrBkSV2HO8kQv7wf9+9tlHmudscFOfnKa\nkoyrbYK8Ts5YdRC3oe3G/auPt9BiPOwXodO3MyN9W/tVUcdNnseFTXras3e3cYoC\nnFgXhiYIzRtJXkp2bRHS++EPwu6bXv2meAQkpsyQZDblJc8/05mGGvgUPiuxoGjC\nfC9k3KyhIDx05LtpjgLkzwMLJ7ruM6DgyA11cRy/Jlhm18NskRHNP5rJmo7nLOgs\n33qN5Ml3AgMBAAECggEACFh9iAn0Jgg5mfM/oPy0bWvoNB5G5OcagI0cvbdArkBR\nuvL2I/gA+g7wda2LxN+1nAzzT+oEzz7vrPpNUHm49Dv4ijr+52DWwLuIYflDa2bO\nn6hCVAHgYU4sS0QxLoSGscTsBj2uq4Wtsa6wT47+mB/bp9gWP8iV8OLVxq66ZhDQ\nDZppfBjDLUz7trc5XYWozcQ9ExQVyBROjVKA3PfrvyeBTGd3VXfxGZ7gBVLNxdII\n5mqmX1KE7c1WbmTNS5+DZVBOE5FvPfiHaAxzbkfxLAAapYM+YvnrWlxFSnMaRG7j\nZjdeSp5SRM70Hy2MemUuZ+HBBrmAJR7Gg0lRArgAMQKBgQD7H314HIL9qzJXZ0OP\nKG4ikqsHnlvfNNG8r4AtWqejIRwLAGjqgN+bTRFfr5qjHr6dCUP1HvQUb0S7NZyB\nGnFey4dTwOfhO1UQgPU9jlBTl6Pe141QKG92jFh8H6a5lpTglKaGHxqI8jBnUbPX\nSZYg4N0SqT4AUvApBijHdqWcHwKBgQDwEFFAlone624FIln0V9KthSh7hwhXCu+q\nOhsQ+267+CcrwxwRwNvEhRTCePRZFeCZ4SCSoSqL1D9PtwcaHmqxPFy7ETEqzlH7\nik+a1j4bXRG3f9Bz+1DF2alr7KxJi1dCD3f/FUi++JV2MYDmH+58aZnI5+RodlT9\n4eNlBzgnrQKBgQCNyIfEqwRiSKhRpOIGD+Ou3XRV5cUlTuMkT0plUQvZFLaKl56k\n2EJnoqmuhq0ecBta+oI+AU35w6DgujI0ykM8LFmptf61shQjD0xnhtRfffxtsvH8\nUfgszKyg2BYALr671fH3Q9RtgaBGlWCeqtNymML46EkzUaB66RlZFOoILQKBgQDO\nyt+TKZoeIuOlHJAswTKEMr5Kmmk+wbbuBhump1AeL4delTWqvV0Sjijx1Mt3qfbN\n1zX92UMTLIRVIK7HewghIIQoyIh3/T511hD4qjDZ1XQe9d0U65oKtJLS2w8WUyeZ\nSkXtv+HoT65AICiPE1aWaUkF3WvN6JESGfGN54gh8QKBgHVpCh4wphmiT6qfU/Ze\ng/eOC1rfipfz7PDPzziNFAtSDmhYj7ljzsM2cmGtynLa6xsCBzBmus2hfdYP9xJI\njxvk3tYI21dCAsoofgRe+ni8SD1fIQlM5++k7Pu2CfLgvjD7nQ7nxT5mXcWQYDyV\nXVGqzIFXzpRr35lHRyFFE6xV\n-----END PRIVATE KEY-----\n')
-    # The key needs to be loaded as a dictionary (JSON object)
-    SERVICE_ACCOUNT_INFO = json.loads(FIREBASE_SERVICE_ACCOUNT_KEY)
-except json.JSONDecodeError:
-    print("ERROR: FIREBASE_SERVICE_ACCOUNT_KEY is not a valid JSON string.")
-    SERVICE_ACCOUNT_INFO = None
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/admin_messenger';
 
-# You need a real Telegram Bot Token for sending replies
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k')
+// ----- parse firebase key (fix \\n -> \n) if provided -----
+let FIREBASE_SERVICE_ACCOUNT = null;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  try {
+    FIREBASE_SERVICE_ACCOUNT = JSON.parse(
+      process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n')
+    );
+  } catch (err) {
+    console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', err.message);
+  }
+}
 
-# Placeholder for the Canvas App ID to match the frontend structure
-APP_ID = os.environ.get('APP_ID', 'default-app-id')
+// ----- Mongoose models -----
+mongoose.set('strictQuery', false);
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(()=> console.log('MongoDB connected'))
+  .catch(err => { console.error('MongoDB error', err); process.exit(1); });
 
-# --- Firestore Paths matching the React Frontend ---
-CHATS_COLLECTION_PATH = f'artifacts/{APP_ID}/public/data/chats'
-MESSAGES_COLLECTION_PATH = lambda chat_id: f'{CHATS_COLLECTION_PATH}/{chat_id}/messages'
-TG_USERS_COLLECTION_PATH = f'artifacts/{APP_ID}/public/data/tg_users'
-BROADCAST_QUEUE_COLLECTION_PATH = f'artifacts/{APP_ID}/public/data/broadcast_queue'
+const Schema = mongoose.Schema;
 
-app = Flask(__name__)
-db = None # Firestore client instance
+const MessageSchema = new Schema({
+  chatId: { type: String, required: true, index: true },
+  channel: { type: String, required: true }, // Telegram, Facebook, Viber, WhatsApp
+  fromId: String,
+  fromName: String,
+  text: String,
+  attachments: Array,
+  ts: { type: Date, default: Date.now },
+  direction: { type: String, enum: ['in','out'], default: 'in' }, // in = user->admin, out = admin->user
+  meta: Schema.Types.Mixed
+});
+const Message = mongoose.model('Message', MessageSchema);
 
-# --- Firebase Initialization ---
-def initialize_firebase():
-    """Firebase Admin SDK ကို စတင်အသုံးပြုရန်"""
-    global db
-    if SERVICE_ACCOUNT_INFO:
-        try:
-            # Use the service account info directly
-            cred = credentials.Certificate(SERVICE_ACCOUNT_INFO)
-            initialize_app(cred)
-            db = firestore.client()
-            print("Firebase Admin SDK စတင်အသုံးပြုနိုင်ပါပြီ။")
-        except Exception as e:
-            print(f"Firebase စတင်ရာတွင် အမှား: {e}")
-            db = None
-    else:
-        print("Firebase Service Account Key မမှန်ကန်ပါ။")
+const ChatSchema = new Schema({
+  chatId: { type: String, required: true, unique: true },
+  channel: { type: String, required: true },
+  peerName: String,
+  lastMessage: String,
+  lastTs: Date,
+  unread: { type: Number, default: 0 },
+  meta: Schema.Types.Mixed
+});
+const Chat = mongoose.model('Chat', ChatSchema);
 
-# --- External API Simulation (Telegram) ---
-def send_telegram_message(chat_id, text):
-    """
-    Telegram Bot API ကိုခေါ်ဆိုပြီး စာပြန်ပို့သည့် လုပ်ဆောင်ချက်။
-    (ဒီနေရာတွင် actual HTTP request ထည့်သွင်းရန်လိုအပ်သည်)
-    """
-    print(f"[TG API] Sending message to Chat ID {chat_id}: {text}")
-    # Example: response = requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={'chat_id': chat_id, 'text': text})
-    # For this conceptual example, we just print the action.
-    return True
+const TelegramUserSchema = new Schema({
+  telegramId: { type: Number, index: true, unique: true },
+  username: String,
+  first_name: String,
+  last_name: String,
+  language_code: String,
+  startedAt: { type: Date, default: Date.now },
+  meta: Schema.Types.Mixed
+});
+const TelegramUser = mongoose.model('TelegramUser', TelegramUserSchema);
 
-# --- Firestore Listeners ---
+// ----- Express + Socket.io setup -----
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
 
-def chat_listener(col_snapshot, changes, read_time):
-    """
-    Admin Panel မှ စာပြန်လိုက်သည်ကို စောင့်ကြည့်ပြီး သက်ဆိုင်ရာ Platform ကို စာပြန်ပို့ရန်။
-    """
-    for change in changes:
-        if change.type.name == 'ADDED':
-            msg_data = change.document.to_dict()
-            if msg_data.get('is_admin') and msg_data.get('status') != 'sent':
-                # Message is sent by Admin and needs relaying
-                message_id = change.document.id
-                chat_id = change.document.reference.parent.parent.id # Get the parent chat ID (e.g., 'TG_12345')
+app.use(cors());
+app.use(morgan('dev'));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
-                print(f"[LISTENER] New Admin Reply found in Chat {chat_id}: {msg_data.get('text')}")
+// simple rate limiter for broadcast endpoint
+const broadcastLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 3, // max 3 broadcast requests per minute per IP
+  message: 'Too many broadcasts, please try later.'
+});
 
-                # Determine the channel and target platform ID
-                channel = msg_data.get('channel')
-                
-                # In a real app, 'chat_id' is the platform-specific user ID.
-                # Here we assume chat_id = "CHANNEL_PLATFORM_ID" e.g., "telegram_12345"
-                platform_id = chat_id.split('_', 1)[-1] 
+// Utility: upsert chat
+async function upsertChat(chatId, channel, peerName, lastMessage, ts, meta) {
+  const update = { channel, peerName, lastMessage, lastTs: ts, meta };
+  const opts = { upsert: true, new: true, setDefaultsOnInsert: true };
+  const chat = await Chat.findOneAndUpdate({ chatId }, update, opts);
+  return chat;
+}
 
-                success = False
-                if channel == 'telegram':
-                    success = send_telegram_message(platform_id, msg_data.get('text'))
-                elif channel == 'facebook':
-                    # send_facebook_message(platform_id, msg_data.get('text'))
-                    pass
-                # ... Add other channels
+// ---- socket.io: client connections ----
+io.on('connection', (socket) => {
+  console.log('Socket connected', socket.id);
 
-                if success:
-                    # Update message status to prevent reprocessing
-                    msg_ref = change.document.reference
-                    msg_ref.update({'status': 'sent', 'sent_time': firestore.SERVER_TIMESTAMP})
-                    print(f"Message {message_id} successfully sent via {channel}.")
-                else:
-                    print(f"ERROR: Message {message_id} failed to send.")
+  socket.on('join_admin_room', (adminId) => {
+    socket.join('admins');
+    console.log('Joined admin room:', adminId);
+  });
 
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected', socket.id);
+  });
+});
 
-def broadcast_listener(col_snapshot, changes, read_time):
-    """
-    Broadcast Queue မှ မက်ဆေ့ချ်အသစ်များကို စောင့်ကြည့်ပြီး TG User အားလုံးဆီသို့ ပို့ရန်။
-    """
-    for change in changes:
-        if change.type.name == 'ADDED':
-            broadcast_data = change.document.to_dict()
-            broadcast_id = change.document.id
+// ----- Telegram Bot (node-telegram-bot-api) -----
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+let tgBot = null;
+if (TELEGRAM_BOT_TOKEN) {
+  // Using polling by default (simpler). For production, consider webhook mode (express route).
+  tgBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
-            if broadcast_data.get('status') == 'pending' and broadcast_data.get('channel') == 'telegram':
-                print(f"[LISTENER] Starting TG Broadcast {broadcast_id}: {broadcast_data.get('text')[:30]}...")
-                
-                # 1. Update status to processing
-                broadcast_ref = change.document.reference
-                broadcast_ref.update({'status': 'processing', 'processing_time': firestore.SERVER_TIMESTAMP})
+  tgBot.on('message', async (msg) => {
+    try {
+      const chatId = `tg:${msg.chat.id}`;
+      const channel = 'Telegram';
+      const peerName = msg.from.username ? `@${msg.from.username}` : `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim() || `${msg.chat.id}`;
+      const text = msg.text || (msg.caption || '') || '[non-text message]';
 
-                # 2. Fetch all TG users
-                tg_users_ref = db.collection(TG_USERS_COLLECTION_PATH)
-                all_users = tg_users_ref.get()
+      // save message
+      const messageDoc = new Message({
+        chatId,
+        channel,
+        fromId: msg.from.id,
+        fromName: peerName,
+        text,
+        ts: msg.date ? new Date(msg.date * 1000) : new Date(),
+        direction: 'in',
+        meta: msg
+      });
+      await messageDoc.save();
 
-                sent_count = 0
-                for user_doc in all_users:
-                    user_data = user_doc.to_dict()
-                    tg_chat_id = user_data.get('chatId') # This is the unique Telegram chat ID
-                    if tg_chat_id:
-                        send_telegram_message(tg_chat_id, broadcast_data.get('text'))
-                        sent_count += 1
-                
-                # 3. Update status to completed
-                broadcast_ref.update({
-                    'status': 'completed', 
-                    'completed_time': firestore.SERVER_TIMESTAMP, 
-                    'recipients_count': sent_count
-                })
-                print(f"TG Broadcast {broadcast_id} completed. Sent to {sent_count} users.")
+      // upsert chat
+      await upsertChat(chatId, channel, peerName, text, messageDoc.ts, { telegram: msg.chat });
 
+      // increment unread
+      await Chat.updateOne({ chatId }, { $inc: { unread: 1 } });
 
-def start_firestore_listeners():
-    """Listeners များကို သီးခြား Thread ဖြင့် စတင်ရန်။"""
-    if db:
-        # 1. Admin Reply Listener (watches all message subcollections)
-        # Note: Listening to ALL subcollections is complex/expensive in Firestore. 
-        # A more scalable solution is often a Cloud Function trigger on message creation.
-        # For demonstration, we listen to a sample thread or rely on polling (not ideal).
-        # We will demonstrate the Broadcast Queue listener which is simpler.
-        
-        # 2. Broadcast Queue Listener
-        broadcast_queue_ref = db.collection(BROADCAST_QUEUE_COLLECTION_PATH)
-        broadcast_watch = broadcast_queue_ref.on_snapshot(broadcast_listener)
-        print("Broadcast Queue Listener စတင်ပါပြီ။")
+      // If /start, store telegram user for broadcast list
+      if (text && text.trim().startsWith('/start')) {
+        const u = {
+          telegramId: msg.from.id,
+          username: msg.from.username,
+          first_name: msg.from.first_name,
+          last_name: msg.from.last_name,
+          language_code: msg.from.language_code
+        };
+        await TelegramUser.updateOne({ telegramId: u.telegramId || u.telegramId === 0 ? u.telegramId : msg.from.id },
+          { $set: { telegramId: msg.from.id, username: u.username, first_name: u.first_name, last_name: u.last_name, language_code: u.language_code, startedAt: new Date() } },
+          { upsert: true });
+      }
 
-        # Keep the thread alive (in a real app, the server process does this)
-        while True:
-            time.sleep(60) # Keep thread alive for demo purposes
+      // emit to admins via socket.io
+      io.to('admins').emit('new_message', {
+        channel,
+        chatId,
+        message: {
+          id: messageDoc._id,
+          text: messageDoc.text,
+          fromName: messageDoc.fromName,
+          ts: messageDoc.ts,
+          direction: messageDoc.direction
+        }
+      });
 
-# --- Flask Routes (Webhooks) ---
-
-@app.route('/')
-def health_check():
-    """စနစ်အလုပ်လုပ်ကြောင်း စစ်ဆေးရန်"""
-    return "Unified Messenger Backend Service is running.", 200
-
-@app.route('/webhook/telegram', methods=['POST'])
-def telegram_webhook():
-    """Telegram Webhook မှ စာဝင်လာသည်ကို လက်ခံရန်"""
-    if not db:
-        return jsonify({"status": "error", "message": "Firestore မချိတ်ဆက်နိုင်သေးပါ။"}), 500
-
-    update = request.get_json()
-    if not update or 'message' not in update:
-        return jsonify({"status": "ok", "message": "No new message"}), 200
-
-    message = update.get('message', {})
-    chat = message.get('chat', {})
-    
-    # Extract data
-    text = message.get('text', '')
-    tg_chat_id = str(chat.get('id'))
-    user_name = chat.get('first_name', '') + ' ' + chat.get('last_name', '')
-    username = chat.get('username')
-    
-    if not tg_chat_id:
-        return jsonify({"status": "error", "message": "Invalid chat ID"}), 200
-
-    # Unified chat identifier for Firestore
-    chat_doc_id = f"telegram_{tg_chat_id}"
-
-    # 1. Update/Create TG User Info (needed for Broadcast)
-    tg_users_ref = db.collection(TG_USERS_COLLECTION_PATH)
-    tg_users_ref.document(tg_chat_id).set({
-        'chatId': tg_chat_id,
-        'firstName': chat.get('first_name', ''),
-        'lastName': chat.get('last_name', ''),
-        'username': username,
-        'lastSeen': firestore.SERVER_TIMESTAMP,
-    }, merge=True)
-    
-    # 2. Update/Create Parent Chat Document (for Chat List view)
-    chat_doc_ref = db.collection(CHATS_COLLECTION_PATH).document(chat_doc_id)
-    chat_doc_ref.set({
-        'chatId': tg_chat_id,
-        'channel': 'telegram',
-        'userName': user_name.strip() or username or f"TG User {tg_chat_id}",
-        'lastMessage': text,
-        'lastMessageTime': firestore.SERVER_TIMESTAMP,
-        'unreadCount': firestore.Increment(1) # Increase unread count
-    }, merge=True)
-
-    # 3. Add Message to Subcollection
-    message_data = {
-        'text': text,
-        'timestamp': firestore.SERVER_TIMESTAMP,
-        'channel': 'telegram',
-        'senderId': tg_chat_id,
-        'userName': user_name.strip() or username,
-        'is_admin': False, # Mark as user message
+    } catch (err) {
+      console.error('Telegram message handler error', err);
     }
-    db.collection(MESSAGES_COLLECTION_PATH(chat_doc_id)).add(message_data)
+  });
 
-    print(f"Telegram message received from {tg_chat_id} and saved to Firestore.")
-    return jsonify({"status": "success", "message": "Message received"}), 200
+  console.log('Telegram bot started (polling).');
+} else {
+  console.warn('TELEGRAM_BOT_TOKEN not provided — Telegram features disabled.');
+}
 
-# --- Placeholder Webhooks for Other Channels ---
+// ----- API: Get chats (filter by channel) -----
+app.get('/api/chats', async (req, res) => {
+  try {
+    const channel = req.query.channel; // optional: Telegram, Viber, Facebook, WhatsApp
+    const filter = channel ? { channel } : {};
+    const chats = await Chat.find(filter).sort({ lastTs: -1 }).limit(200).lean();
+    res.json({ ok: true, chats });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
-@app.route('/webhook/facebook', methods=['POST'])
-def facebook_webhook():
-    """Facebook/Messenger Webhook အတွက် (Placeholder)"""
-    # ဤနေရာတွင် Facebook ၏ Message Format ကို ကိုင်တွယ်ရန် လိုအပ်ပါသည်။
-    return jsonify({"status": "ok", "message": "Facebook webhook received (not fully implemented)"}), 200
+// ----- API: Get messages for a chat -----
+app.get('/api/chats/:chatId/messages', async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const msgs = await Message.find({ chatId }).sort({ ts: 1 }).limit(2000).lean();
+    res.json({ ok: true, messages: msgs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
-@app.route('/webhook/viber', methods=['POST'])
-def viber_webhook():
-    """Viber Webhook အတွက် (Placeholder)"""
-    return jsonify({"status": "ok", "message": "Viber webhook received (not fully implemented)"}), 200
+// ----- API: Telegram users (for broadcast) -----
+app.get('/api/telegram/users', async (req, res) => {
+  try {
+    const users = await TelegramUser.find({}).sort({ startedAt: -1 }).lean();
+    res.json({ ok: true, users });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
-@app.route('/webhook/whatsapp', methods=['POST'])
-def whatsapp_webhook():
-    """WhatsApp Webhook အတွက် (Placeholder)"""
-    return jsonify({"status": "ok", "message": "WhatsApp webhook received (not fully implemented)"}), 200
+// ----- API: Broadcast to Telegram users -----
+// rate-limited endpoint
+app.post('/api/telegram/broadcast', broadcastLimiter, async (req, res) => {
+  try {
+    if (!tgBot) return res.status(500).json({ ok: false, error: 'Telegram bot not configured on server' });
 
+    const { recipients, message } = req.body; // recipients: array of telegramId or [] to broadcast to all
+    if (!message || !message.trim()) return res.status(400).json({ ok: false, error: 'Empty message' });
 
-# --- Application Setup ---
+    let users = [];
+    if (Array.isArray(recipients) && recipients.length > 0) {
+      users = await TelegramUser.find({ telegramId: { $in: recipients } }).lean();
+    } else {
+      users = await TelegramUser.find({}).lean();
+    }
 
-if __name__ == '__main__':
-    initialize_firebase()
-    
-    # Start the Firestore listeners in a background thread
-    # NOTE: For production, use a dedicated service like Cloud Functions or Managed service 
-    # to handle listeners for reliability.
-    if db:
-        listener_thread = Thread(target=start_firestore_listeners)
-        listener_thread.daemon = True
-        listener_thread.start()
-    
-    # Run the Flask app
-    port = int(os.environ.get('PORT', 80))
-    print(f"Flask server is running on port {port}")
-    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
+    // send with throttling to avoid hitting rate limits
+    const results = [];
+    for (let i = 0; i < users.length; i++) {
+      const u = users[i];
+      try {
+        await tgBot.sendMessage(u.telegramId, message, { parse_mode: 'HTML' });
+        results.push({ id: u.telegramId, ok: true });
+        // save outgoing message
+        const outMsg = new Message({
+          chatId: `tg:${u.telegramId}`,
+          channel: 'Telegram',
+          fromId: null,
+          fromName: 'admin-broadcast',
+          text: message,
+          direction: 'out',
+          ts: new Date()
+        });
+        await outMsg.save();
+        await upsertChat(`tg:${u.telegramId}`, 'Telegram', u.username || `${u.first_name||''} ${u.last_name||''}`.trim(), message, outMsg.ts, {});
+      } catch (err) {
+        console.warn('Broadcast send fail for', u.telegramId, err.message);
+        results.push({ id: u.telegramId, ok: false, error: err.message });
+      }
+      // small delay to be gentle (150-350ms)
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+
+    res.json({ ok: true, results });
+  } catch (err) {
+    console.error('Broadcast error', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ----- Webhook: Facebook Page (basic) -----
+// GET for verification
+app.get('/webhook/facebook', (req, res) => {
+  const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('WEBHOOK_VERIFIED');
+      return res.status(200).send(challenge);
+    } else {
+      return res.sendStatus(403);
+    }
+  }
+  res.sendStatus(400);
+});
+
+// POST for page events
+app.post('/webhook/facebook', async (req, res) => {
+  // Facebook Messenger message format: https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/
+  try {
+    const body = req.body;
+    if (body.object === 'page') {
+      body.entry.forEach(async (entry) => {
+        if (entry.messaging) {
+          for (const ev of entry.messaging) {
+            if (ev.message) {
+              const senderId = ev.sender?.id;
+              const channel = 'Facebook';
+              const chatId = `fb:${senderId}`;
+              const text = ev.message.text || '[attachment]';
+              const peerName = `FB:${senderId}`;
+
+              const messageDoc = new Message({
+                chatId,
+                channel,
+                fromId: senderId,
+                fromName: peerName,
+                text,
+                direction: 'in',
+                meta: ev
+              });
+              await messageDoc.save();
+              await upsertChat(chatId, channel, peerName, text, messageDoc.ts, {});
+              await Chat.updateOne({ chatId }, { $inc: { unread: 1 } });
+
+              io.to('admins').emit('new_message', { channel, chatId, message: { text, ts: messageDoc.ts } });
+
+              // For simple auto-reply or business logic, you can call Facebook Send API using FB_PAGE_ACCESS_TOKEN
+            }
+          }
+        }
+      });
+      return res.status(200).send('EVENT_RECEIVED');
+    } else {
+      return res.sendStatus(404);
+    }
+  } catch (err) {
+    console.error('Facebook webhook error', err);
+    res.status(500).send('err');
+  }
+});
+
+// ----- Webhook: Viber (example) -----
+app.post('/webhook/viber', async (req, res) => {
+  // Viber webhook events: https://developers.viber.com/docs/api/rest-bot-api/
+  try {
+    const body = req.body;
+    // handle message event
+    if (body.event === 'message') {
+      const sender = body.sender;
+      const chatId = `viber:${sender.id}`;
+      const channel = 'Viber';
+      const text = body.message && body.message.text ? body.message.text : '[attachment]';
+      const peerName = sender.name || sender.id;
+
+      const messageDoc = new Message({ chatId, channel, fromId: sender.id, fromName: peerName, text, direction: 'in', meta: body });
+      await messageDoc.save();
+      await upsertChat(chatId, channel, peerName, text, messageDoc.ts, {});
+      await Chat.updateOne({ chatId }, { $inc: { unread: 1 } });
+
+      io.to('admins').emit('new_message', { channel, chatId, message: { text, ts: messageDoc.ts } });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Viber webhook error', err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+// ----- Webhook: WhatsApp (Twilio-style example) -----
+app.post('/webhook/whatsapp', async (req, res) => {
+  // Twilio will POST form-encoded data for incoming WhatsApp messages
+  // For other providers, adjust accordingly.
+  try {
+    const body = req.body;
+    const from = body.From || body.from || '';
+    const text = body.Body || body.body || '[attachment]';
+    const chatId = `wa:${from}`;
+    const channel = 'WhatsApp';
+    const peerName = from;
+
+    const messageDoc = new Message({ chatId, channel, fromId: from, fromName: peerName, text, direction: 'in', meta: body });
+    await messageDoc.save();
+    await upsertChat(chatId, channel, peerName, text, messageDoc.ts, {});
+    await Chat.updateOne({ chatId }, { $inc: { unread: 1 } });
+
+    io.to('admins').emit('new_message', { channel, chatId, message: { text, ts: messageDoc.ts } });
+
+    // Respond OK to Twilio
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('WhatsApp webhook error', err);
+    res.status(500).send('err');
+  }
+});
+
+// ----- Admin action: send message to a chat (admin -> user) -----
+// body: { chatId, channel, text }
+app.post('/api/send', async (req, res) => {
+  try {
+    const { chatId, channel, text } = req.body;
+    if (!chatId || !channel || !text) return res.status(400).json({ ok:false, error: 'Missing fields' });
+
+    // Save outgoing message to DB
+    const outMsg = new Message({
+      chatId,
+      channel,
+      fromName: 'admin',
+      text,
+      direction: 'out',
+      ts: new Date()
+    });
+    await outMsg.save();
+
+    // update chat
+    await upsertChat(chatId, channel, chatId, text, outMsg.ts, {});
+
+    // deliver to channel-specific API
+    const parts = chatId.split(':'); // e.g. tg:12345, fb:9876, viber:id
+    const prefix = parts[0];
+    const dest = parts.slice(1).join(':');
+
+    if (prefix === 'tg' || channel === 'Telegram') {
+      if (!tgBot) return res.status(500).json({ ok:false, error: 'Telegram bot not configured' });
+      try {
+        await tgBot.sendMessage(dest, text, { parse_mode: 'HTML' });
+      } catch (err) {
+        console.error('Telegram send error', err);
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    } else if (prefix === 'fb' || channel === 'Facebook') {
+      // call Facebook Send API (page access token required)
+      try {
+        const token = process.env.FB_PAGE_ACCESS_TOKEN;
+        if (!token) throw new Error('FB_PAGE_ACCESS_TOKEN not configured');
+        await axios.post(`https://graph.facebook.com/v13.0/me/messages?access_token=${token}`, {
+          recipient: { id: dest },
+          message: { text }
+        });
+      } catch (err) {
+        console.error('FB send error', err.message);
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    } else if (prefix === 'viber' || channel === 'Viber') {
+      // call Viber send API with your auth token
+      // placeholder - implement using Viber REST API
+      console.warn('Viber send not implemented - add your Viber API call here');
+    } else if (prefix === 'wa' || channel === 'WhatsApp') {
+      // send via Twilio / WhatsApp Business API
+      console.warn('WhatsApp send not implemented - add Twilio or WABA call here');
+    } else {
+      console.warn('Unknown channel in send', channel);
+    }
+
+    // notify frontend
+    io.to('admins').emit('message_sent', { chatId, channel, text, ts: outMsg.ts });
+
+    res.json({ ok: true, message: outMsg });
+  } catch (err) {
+    console.error('send API error', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ----- small utility endpoints -----
+app.get('/', (req, res) => res.send('Admin Messenger Server is running'));
+
+// ----- start server -----
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
