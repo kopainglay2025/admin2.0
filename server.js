@@ -20,16 +20,27 @@ const server = http.createServer(app);
 const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK (FIXED CODE BLOCK)
 try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    const keyPath = process.env.FIREBASE_KEY_PATH;
+    
+    if (!keyPath) {
+        throw new Error("FIREBASE_KEY_PATH not set in .env file.");
+    }
+    
+    // Load the JSON file directly from the path
+    const serviceAccount = require(path.resolve(keyPath));
+
     firebaseAdmin.initializeApp({
         credential: firebaseAdmin.credential.cert(serviceAccount),
-        databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com" // Update with your actual DB URL
+        // Use your Firebase project ID for the databaseURL
+        databaseURL: `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com` 
     });
-    console.log("Firebase Admin Initialized.");
+    console.log("✅ Firebase Admin Initialized Successfully.");
 } catch (error) {
-    console.error("Firebase Initialization Error. Check FIREBASE_SERVICE_ACCOUNT_KEY:", error.message);
+    console.error("❌ Firebase Initialization Error. Check firebase-key.json and FIREBASE_KEY_PATH:", error.message);
+    // CRITICAL: Prevent the server from starting if Firebase fails
+    process.exit(1); 
 }
 
 const db = firebaseAdmin.database();
@@ -37,13 +48,17 @@ const telegramUsersRef = db.ref('telegram_users');
 
 // Initialize Telegram Bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-bot.telegram.setWebhook(process.env.TELEGRAM_WEBHOOK_URL).catch(e => console.error("Webhook Setup Error:", e));
+// Note: Ensure your server is accessible via the TELEGRAM_WEBHOOK_URL (e.g., using ngrok or a public domain)
+bot.telegram.setWebhook(process.env.TELEGRAM_WEBHOOK_URL).catch(e => console.error("Webhook Setup Error (May proceed if already set):", e.message));
 
 
 // --- MongoDB Setup ---
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+    .then(() => console.log('✅ MongoDB Connected'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection Error:', err);
+        process.exit(1);
+    });
 
 // --- MongoDB Schemas (models/User.js, models/Message.js, etc.) ---
 const UserSchema = new mongoose.Schema({
@@ -84,7 +99,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
-    secret: 'secret_key_for_session', // Change this!
+    secret: 'secret_key_for_session_Paing@123_Secure', // Change this!
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24 hours
@@ -141,7 +156,7 @@ const isAuthenticated = (req, res, next) => {
     }
 })();
 
-// --- Helper Functions ---
+// --- Helper Functions (Same as previous, included for completeness) ---
 
 /**
  * Saves an incoming message to MongoDB and emits it to all connected admins via Socket.io.
@@ -311,19 +326,21 @@ bot.on('text', async (ctx) => {
     handleIncomingMessage({
         chatId: chatId,
         platform: 'telegram',
-        senderId: ctx.from.id,
+        senderId: ctx.from.id.toString(), // Ensure senderId is a string
         senderName: senderName,
         text: ctx.message.text,
         isFromAdmin: false
     });
 
-    res.sendStatus(200); // Important for webhooks
+    // Telegram webhook must return 200 OK immediately
+    // ctx.reply() calls are asynchronous, so we trust the webhook handler in Telegraf is quick.
+    // If running with Express webhook, ensure you send status quickly.
 });
 
 // Handle /start command to make sure user info is saved
 bot.command('start', async (ctx) => {
     const chatId = 'telegram_' + ctx.from.id;
-    // Save User info (already done in bot.on('text') but good for /start)
+    // Save User info
     await telegramUsersRef.child(ctx.from.id).set({
         id: ctx.from.id,
         first_name: ctx.from.first_name,
@@ -341,7 +358,7 @@ bot.command('start', async (ctx) => {
     handleIncomingMessage({
         chatId: chatId,
         platform: 'telegram',
-        senderId: ctx.from.id,
+        senderId: ctx.from.id.toString(),
         senderName: ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : ''),
         text: '/start',
         isFromAdmin: false
@@ -371,7 +388,6 @@ app.post('/facebook/webhook', (req, res) => {
                     const text = event.message.text || "Attachment/Other Message";
                     
                     // Note: You need to call FB Graph API to get the sender's name with the token
-                    // For simplicity, we use a generic name here.
                     handleIncomingMessage({
                         chatId: chatId,
                         platform: 'facebook',
@@ -389,8 +405,17 @@ app.post('/facebook/webhook', (req, res) => {
     }
 });
 
-// 3. Viber & 4. WhatsApp Webhooks (Implement similar logic)
-// ...
+// 3. Viber & 4. WhatsApp Webhooks (Stubs - Needs actual implementation)
+app.post('/viber/webhook', (req, res) => {
+    // Logic to handle Viber incoming messages and call handleIncomingMessage()
+    res.sendStatus(200);
+});
+
+app.post('/whatsapp/webhook', (req, res) => {
+    // Logic to handle WhatsApp incoming messages (e.g., Twilio/Meta API) and call handleIncomingMessage()
+    res.sendStatus(200);
+});
+
 
 // --- Admin Reply/Broadcast Logic ---
 
@@ -408,7 +433,7 @@ async function sendReply(platform, senderId, text) {
         const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.FB_PAGE_ACCESS_TOKEN}`;
         return require('axios').post(url, messageData);
     }
-    // Add logic for Viber and WhatsApp
+    // Add logic for Viber and WhatsApp APIs
     console.log(`Sending reply to ${platform} user ${senderId}: ${text}`);
     return Promise.resolve(); // Mock for other platforms
 }
@@ -426,6 +451,7 @@ app.post('/telegram-broadcast', isAuthenticated, async (req, res) => {
     const users = snapshot.val() ? Object.values(snapshot.val()) : [];
     let successCount = 0;
     
+    // Use a basic rate limiter/batching in a production scenario
     for (const user of users) {
         try {
             await bot.telegram.sendMessage(user.id, message);
@@ -435,11 +461,14 @@ app.post('/telegram-broadcast', isAuthenticated, async (req, res) => {
         }
     }
 
-    // You might want to use flash messages instead of a simple render
+    // Reload users list for the view
+    const updatedSnapshot = await telegramUsersRef.once('value');
+    const updatedUsers = updatedSnapshot.val() ? Object.values(updatedSnapshot.val()) : [];
+    
     res.render('telegram_users', { 
         adminUser: req.user, 
-        users: users, 
-        broadcastMessage: `Broadcast sent to ${successCount} users.` 
+        users: updatedUsers, 
+        broadcastMessage: `Broadcast sent to ${successCount} users out of ${users.length} attempts.` 
     });
 });
 
@@ -494,5 +523,5 @@ io.on('connection', (socket) => {
 
 // --- Start Server ---
 server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}.`);
 });
