@@ -1,450 +1,186 @@
 // server.js
-// Full integrated server: Telegram + Facebook Messenger + Firestore + Socket.io + Admin
+require("dotenv").config();
 
-// -------------------------
-// 1. Load environment
-// -------------------------
-require('dotenv').config();
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const bodyParser = require("body-parser");
+const admin = require("firebase-admin");
+const { Telegraf } = require("telegraf");
+const cors = require("cors");
+const path = require("path");
 
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const bodyParser = require('body-parser');
-const basicAuth = require('express-basic-auth');
-const TelegramBot = require('node-telegram-bot-api');
-const admin = require('firebase-admin');
-const path = require('path');
-const axios = require('axios');
-const cors = require('cors');
-const { Buffer } = require('buffer');
-
-// -------------------------
-// 2. App & config
-// -------------------------
+// ----------------------------
+// 1. Initialize Express
+// ----------------------------
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*" }
 });
 
-const PORT = process.env.PORT || 80;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
-// Facebook
-const FB_PAGE_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || '';
-const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'verify_token';
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static("public")); // for frontend
 
-// Firestore collection names
-const CHAT_COLLECTION = 'telegram_chats';
-const MESSAGE_SUB_COLLECTION = 'messages';
-const USERS_COLLECTION = 'system_users'; // New collection for User List
 
-// -------------------------
-// 3. Initialize Firebase Admin
-// -------------------------
-let serviceAccount;
-try {
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY not set in environment');
-    }
-    // This JSON.parse will now correctly parse the private_key because the newlines
-    // were doubly-escaped (\\n) in the environment file.
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-} catch (err) {
-    console.error("ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY.", err.message);
-    process.exit(1);
-}
+// ----------------------------
+// 2. Firebase Initialization
+// ----------------------------
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
-try {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("Firebase Admin initialized successfully.");
-} catch (err) {
-    console.error("Firebase Admin initialization failed:", err.message);
-    process.exit(1);
-}
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
 const db = admin.firestore();
 
-// -------------------------
-// 4. Telegram bot setup
-// -------------------------
-const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
-// -------------------------
-// 5. Express middleware
-// -------------------------
-app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// ----------------------------
+// 3. Admin Login
+// ----------------------------
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
 
-// Basic Auth
-const basicAuthMiddleware = basicAuth({
-    users: { [ADMIN_USERNAME]: ADMIN_PASSWORD },
-    challenge: true
+    if (username === process.env.ADMIN_USERNAME &&
+        password === process.env.ADMIN_PASSWORD) 
+    {
+        return res.json({ success: true });
+    }
+
+    res.json({ success: false, message: "Invalid credentials" });
 });
 
-// -------------------------
-// 6. Helper: Save message (Updated with Platform)
-// -------------------------
-async function saveMessage(chatId, sender, text, mediaPath = null, username = null, filename = null, platform = 'telegram') {
-    try {
-        const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
 
-        const chatUpdate = {
-            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-            lastMessageText: text || (mediaPath ? (filename || 'Media') : 'No text'),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            platform: platform // Store platform type
-        };
+// ----------------------------
+// 4. SOCKET.IO — Real Time
+// ----------------------------
+io.on("connection", (socket) => {
+    console.log("Admin connected:", socket.id);
 
-        if (sender === 'user' && username) {
-            chatUpdate.username = username;
-            chatUpdate.telegramId = String(chatId); // Ensure ID is saved (used for both platforms now)
-        }
+    socket.on("reply_message", async (data) => {
+        const { channel, user_id, message } = data;
 
-        await chatRef.set(chatUpdate, { merge: true });
+        console.log("Admin Reply =>", data);
 
-        const messageData = {
-            chatId: String(chatId),
-            sender,
-            text: text || '',
-            mediaPath: mediaPath || null,
-            filename: filename || null,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        };
-
-        const messageRef = await chatRef.collection(MESSAGE_SUB_COLLECTION).add(messageData);
-
-        return {
-            id: messageRef.id,
-            ...messageData,
-            timestamp: new Date().toISOString()
-        };
-    } catch (err) {
-        console.error("saveMessage error:", err);
-        throw err;
-    }
-}
-
-// -------------------------
-// 7. Telegram message handler (including /start command)
-// -------------------------
-
-// NEW: Handler for the /start command to initialize/update user data in USERS_COLLECTION
-bot.onText(/^\/start/, async (msg) => {
-    try {
-        const userId = String(msg.from.id);
-        const username = msg.from.username || 'N/A';
-        const firstName = msg.from.first_name || 'N/A';
-        const lastName = msg.from.last_name || '';
-        const chatId = msg.chat.id;
-
-        const userData = {
-            platform: 'telegram',
-            telegramId: userId,
-            username: username,
-            firstName: firstName,
-            lastName: lastName,
-            role: 'Telegram User', // Default role for external users
-            status: 'Active',
-            lastInteraction: admin.firestore.FieldValue.serverTimestamp()
-        };
-
-        // 1. Save/Update user information in the USERS_COLLECTION (as requested)
-        await db.collection(USERS_COLLECTION).doc(userId).set(userData, { merge: true });
-
-        console.log(`User /start: Saved user ${userId} to USERS_COLLECTION.`);
-        
-        // 2. Save the /start message to the chat history
-        const savedMessage = await saveMessage(
-            chatId,
-            'user',
-            msg.text,
-            null,
-            msg.chat.username || msg.chat.first_name || String(chatId),
-            null,
-            'telegram'
-        );
-
-        // 3. Notify Admin Dashboard
-        io.emit('new_message', {
-            chatId,
-            message: savedMessage,
-            user: {
-                telegramId: String(chatId),
-                username: firstName + (lastName ? ' ' + lastName : ''),
-                lastMessageTime: savedMessage.timestamp,
-                lastMessageText: savedMessage.text,
-                platform: 'telegram'
-            },
-            platform: 'telegram'
+        // Save to Firestore
+        await db.collection("messages").add({
+            user_id,
+            message,
+            channel,
+            from_admin: true,
+            timestamp: Date.now()
         });
 
-    } catch (err) {
-        console.error("Telegram /start command error:", err);
-    }
-});
+        // Send to relevant platform
+        if (channel === "telegram") bot.telegram.sendMessage(user_id, message);
+        if (channel === "facebook") sendFacebookMessage(user_id, message);
+        if (channel === "viber") sendViberMessage(user_id, message);
+        if (channel === "whatsapp") sendWhatsAppMessage(user_id, message);
 
-
-bot.on('message', async (msg) => {
-    try {
-        // Since we have a dedicated /start handler, we filter it out here to prevent double processing.
-        const isCommand = msg.entities?.some(entity => entity.type === 'bot_command' && entity.offset === 0);
-        if (isCommand && msg.text.startsWith('/start')) return;
-
-        const chatId = msg.chat.id;
-        const username = msg.chat.username || msg.chat.first_name || String(chatId);
-        let text = msg.text || '';
-        let mediaPath = null;
-        let filename = null;
-
-        if (msg.photo) {
-            mediaPath = msg.photo[msg.photo.length - 1].file_id;
-            text = msg.caption || '';
-        } else if (msg.document) {
-            mediaPath = msg.document.file_id;
-            filename = msg.document.file_name;
-            text = msg.caption || '';
-        }
-
-        if (!text && !mediaPath) return;
-
-        const savedMessage = await saveMessage(chatId, 'user', text, mediaPath, username, filename, 'telegram');
-
-        io.emit('new_message', {
-            chatId,
-            message: savedMessage,
-            user: {
-                telegramId: String(chatId),
-                username,
-                lastMessageTime: savedMessage.timestamp,
-                lastMessageText: savedMessage.text,
-                platform: 'telegram'
-            },
-            platform: 'telegram'
-        });
-    } catch (err) {
-        console.error("Telegram Error:", err);
-    }
-});
-
-// -------------------------
-// 8. Facebook Messenger Integration
-// -------------------------
-// Helper: Send FB Message
-async function sendFacebookMessage(psid, text) {
-    if (!FB_PAGE_TOKEN) throw new Error("FB_PAGE_ACCESS_TOKEN missing");
-    const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_TOKEN}`;
-    await axios.post(url, {
-        recipient: { id: psid },
-        message: { text }
-    });
-}
-
-// FB Webhook
-app.get('/fb/webhook', (req, res) => {
-    if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === FB_VERIFY_TOKEN) {
-        res.status(200).send(req.query['hub.challenge']);
-    } else {
-        res.sendStatus(403);
-    }
-});
-
-app.post('/fb/webhook', async (req, res) => {
-    try {
-        const body = req.body;
-        if (body.object === 'page') {
-            body.entry.forEach(async (entry) => {
-                if (!entry.messaging) return;
-                for (const event of entry.messaging) {
-                    const psid = event.sender.id;
-                    if (event.message && event.message.text) {
-                        const text = event.message.text;
-                        const username = `FB User ${psid.substring(0,4)}`;
-                        
-                        // 1. Save message to Firestore
-                        const saved = await saveMessage(psid, 'user', text, null, username, null, 'facebook');
-                        
-                        // 2. NEW: Save/Update FB user in USERS_COLLECTION
-                        const userData = {
-                            platform: 'facebook',
-                            facebookId: psid,
-                            username: username,
-                            role: 'Facebook User',
-                            status: 'Active',
-                            lastInteraction: admin.firestore.FieldValue.serverTimestamp()
-                        };
-                        await db.collection(USERS_COLLECTION).doc(psid).set(userData, { merge: true });
-                        // End NEW
-
-                        // 3. Notify Admin Dashboard
-                        io.emit('new_message', {
-                            chatId: psid,
-                            message: saved,
-                            user: {
-                                telegramId: String(psid),
-                                username: username,
-                                lastMessageText: text,
-                                platform: 'facebook'
-                            },
-                            platform: 'facebook'
-                        });
-                    }
-                }
-            });
-            res.sendStatus(200);
-        } else {
-            res.sendStatus(404);
-        }
-    } catch (err) {
-        console.error("FB Webhook Error:", err);
-        res.sendStatus(500);
-    }
-});
-
-// -------------------------
-// 9. API Endpoints
-// -------------------------
-
-// GET Chats (Filterable by platform)
-app.get('/api/chats', basicAuthMiddleware, async (req, res) => {
-    try {
-        const platform = req.query.platform; // 'telegram' or 'facebook' or undefined
-        let query = db.collection(CHAT_COLLECTION).orderBy('lastMessageTime', 'desc');
-        
-        if (platform) {
-            query = query.where('platform', '==', platform);
-        }
-
-        const snapshot = await query.get();
-        const chats = snapshot.docs.map(doc => ({
-            telegramId: doc.id,
-            ...doc.data(),
-            lastMessageTime: doc.data().lastMessageTime?.toDate().toISOString()
-        }));
-        res.json(chats);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET Chat History
-app.get('/api/chats/:chatId/history', basicAuthMiddleware, async (req, res) => {
-    try {
-        const limit = parseInt(req.query.limit || '50');
-        const snapshot = await db.collection(CHAT_COLLECTION)
-            .doc(req.params.chatId)
-            .collection(MESSAGE_SUB_COLLECTION)
-            .orderBy('timestamp', 'desc')
-            .limit(limit)
-            .get();
-
-        const history = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data(),
-            timestamp: d.data().timestamp?.toDate().toISOString()
-        })).reverse();
-        
-        res.json(history);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// --- NEW: User List APIs ---
-
-// GET All System Users
-app.get('/api/users', basicAuthMiddleware, async (req, res) => {
-    try {
-        const snapshot = await db.collection(USERS_COLLECTION).get();
-        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        res.json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// CREATE New User
-app.post('/api/users', basicAuthMiddleware, async (req, res) => {
-    try {
-        const { name, role, status } = req.body;
-        if (!name) return res.status(400).json({ error: 'Name is required' });
-        
-        const newUser = {
-            name,
-            role: role || 'Viewer',
-            status: status || 'Active',
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        
-        const ref = await db.collection(USERS_COLLECTION).add(newUser);
-        res.json({ id: ref.id, ...newUser });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// DELETE User
-app.delete('/api/users/:id', basicAuthMiddleware, async (req, res) => {
-    try {
-        await db.collection(USERS_COLLECTION).doc(req.params.id).delete();
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Serve Frontend
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Socket IO
-io.on('connection', (socket) => {
-    // Single handler for admin replies to both Telegram and Facebook
-    socket.on('admin_reply', async (data, callback) => {
-        const { chatId, text } = data;
-        let platform = 'telegram'; // Default platform
-
-        try {
-            // 1. Get Chat details to determine platform
-            const chatRef = db.collection(CHAT_COLLECTION).doc(String(chatId));
-            const chatDoc = await chatRef.get();
-            
-            if (chatDoc.exists) {
-                platform = chatDoc.data().platform || 'telegram';
-            }
-
-            // 2. Send reply based on platform
-            if (platform === 'facebook') {
-                await sendFacebookMessage(chatId, text);
-            } else if (platform === 'telegram') {
-                await bot.sendMessage(chatId, text);
-            } else {
-                return callback({ success: false, error: `Unknown platform: ${platform}` });
-            }
-
-            // 3. Save message to Firestore
-            const savedMessage = await saveMessage(chatId, 'admin', text, null, null, null, platform);
-
-            // 4. Notify admin dashboard via Socket.io
-            io.emit('message_sent', { chatId, message: savedMessage });
-            
-            callback({ success: true, message: "Reply sent successfully." });
-        } catch (err) {
-            console.error(`Admin Reply Error for Chat ${chatId} on platform ${platform}:`, err);
-            callback({ success: false, error: err.message });
-        }
+        io.emit("new_message", data);
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+
+// ----------------------------
+// 5. Telegram Bot
+// ----------------------------
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+
+bot.on("text", async (ctx) => {
+    const user_id = ctx.from.id.toString();
+    const message = ctx.message.text;
+
+    await saveMessage("telegram", user_id, message);
+
+    io.emit("new_message", {
+        channel: "telegram",
+        user_id,
+        message,
+        from_admin: false
+    });
+});
+
+bot.launch();
+
+
+// ----------------------------
+// 6. Facebook Webhook
+// ----------------------------
+app.post("/facebook/webhook", async (req, res) => {
+    const body = req.body;
+
+    if (body.object === "page") {
+        body.entry.forEach(entry => {
+            const event = entry.messaging[0];
+            if (event.message && event.message.text) {
+                const user_id = event.sender.id;
+                const message = event.message.text;
+
+                saveMessage("facebook", user_id, message);
+
+                io.emit("new_message", {
+                    channel: "facebook",
+                    user_id,
+                    message,
+                    from_admin: false
+                });
+            }
+        });
+    }
+
+    res.sendStatus(200);
+});
+
+// Facebook sender function
+function sendFacebookMessage(psid, message) {
+    const PAGE_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
+
+    fetch(`https://graph.facebook.com/v12.0/me/messages?access_token=${PAGE_TOKEN}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            recipient: { id: psid },
+            message: { text: message }
+        })
+    });
+}
+
+
+// ----------------------------
+// 7. Viber Handler (Simple)
+// ----------------------------
+function sendViberMessage(id, text) {
+    // Add Viber API sender
+}
+
+
+// ----------------------------
+// 8. WhatsApp Handler (Cloud API)
+// ----------------------------
+function sendWhatsAppMessage(id, text) {
+    // Add WhatsApp Cloud API sender
+}
+
+
+// ----------------------------
+// Save message to Firestore
+// ----------------------------
+async function saveMessage(channel, user_id, message) {
+    await db.collection("messages").add({
+        channel,
+        user_id,
+        message,
+        from_admin: false,
+        timestamp: Date.now()
+    });
+}
+
+
+// ----------------------------
+// 10. Start Server
+// ----------------------------
+server.listen(process.env.PORT, () => {
+    console.log("Server running on port " + process.env.PORT);
 });
