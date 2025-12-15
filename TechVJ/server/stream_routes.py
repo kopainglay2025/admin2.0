@@ -32,7 +32,18 @@ async def admin_dashboard(request):
 
     return await render_page(request, "dashboard.html", context)
 
-
+@routes.get("/tg-chat")
+async def tg_chat_page(request):
+    """
+    Render the TG Chat page using base.html
+    """
+    return await render_page(
+        request,
+        "tg_chat.html",  # tg_chat.html ကို base.html extend လုပ်ထားပါတယ်
+        context={
+            "page_title": "TG Chat",
+        }
+    )
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
