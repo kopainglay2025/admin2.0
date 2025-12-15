@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block header %}
+TG Chat
+{% endblock %}
+
+{% block content %}
+<div id="chat-container" style="max-width: 900px; margin:auto; display:flex; flex-direction:column; gap:10px; height:75vh; overflow-y:auto; border:1px solid var(--glass-border); padding:16px; border-radius:12px; background: rgba(255,255,255,0.05);">
+    <!-- Messages will be appended here -->
+</div>
+
+<div style="max-width: 900px; margin:auto; display:flex; gap:10px; margin-top:12px;">
+    <input type="text" id="msg-input" placeholder="Type a message..." style="flex:1; padding:10px 14px; border-radius:12px; border:1px solid var(--glass-border); background:var(--bg-main); color:var(--text-main);">
+    <button onclick="sendMessage()" style="padding:10px 16px; border-radius:12px; background:var(--accent); color:#020617; border:none;">Send</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+// Firebase config (service account used in backend)
+const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "mksadmin-6ffeb.firebaseapp.com",
+    projectId: "mksadmin-6ffeb",
+    storageBucket: "mksadmin-6ffeb.appspot.com",
+    messagingSenderId: "110174734290420528988",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Reference chat collection
+const chatRef = collection(db, "tg_chat");
+const chatQuery = query(chatRef, orderBy("timestamp"));
+
+// Real-time listener
+onSnapshot(chatQuery, (snapshot) => {
+    const container = document.getElementById("chat-container");
+    container.innerHTML = "";
+    snapshot.forEach(doc => {
+        const msg = doc.data();
+        const div = document.createElement("div");
+        div.textContent = msg.sender + ": " + msg.message;
+        div.style.alignSelf = msg.sender === "Admin" ? "flex-end" : "flex-start";
+        div.style.background = msg.sender === "Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
+        div.style.color = msg.sender === "Admin" ? "#020617" : "var(--text-main)";
+        div.style.padding = "8px 14px";
+        div.style.borderRadius = "12px";
+        div.style.maxWidth = "70%";
+        container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+});
+
+// Send message
+function sendMessage() {
+    const input = document.getElementById("msg-input");
+    const text = input.value.trim();
+    if(text === "") return;
+    addDoc(chatRef, {
+        sender: "Admin",
+        message: text,
+        timestamp: serverTimestamp()
+    });
+    input.value = "";
+}
+</script>
+{% endblock %}
