@@ -26,7 +26,6 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type": "service_account", "project_id": "mksadmin
 
 
 
-
 # Bot Information
 API_ID = int(environ.get("API_ID", "23631217"))
 API_HASH = environ.get("API_HASH", "567c6df308dc6901790309499f729d12")
