@@ -1,31 +1,24 @@
 {% extends "base.html" %}
-
-{% block header %}
-TG Chat
-{% endblock %}
-
+{% block header %}TG Chat{% endblock %}
 {% block content %}
+
 <div style="display:flex; max-width:1200px; margin:auto; gap:20px; height:75vh;">
 
-    <!-- Chat Users List -->
-    <div id="user-list" style="flex:0 0 250px; background:rgba(255,255,255,0.05); border-radius:12px; overflow-y:auto; padding:10px;">
-        <!-- Users will be listed here -->
+    <!-- User list -->
+    <div id="user-list" style="flex:0 0 250px; overflow-y:auto; padding:10px; border-radius:12px; background:rgba(255,255,255,0.05);">
     </div>
 
-    <!-- Conversation Window -->
-    <div style="flex:1; display:flex; flex-direction:column; gap:10px; border-radius:12px; overflow:hidden; background:rgba(255,255,255,0.05);">
-        
-        <!-- Messages container -->
+    <!-- Conversation window -->
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; border-radius:12px; background:rgba(255,255,255,0.05); overflow:hidden;">
         <div id="chat-container" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;">
-            <!-- Messages appended here -->
         </div>
 
-        <!-- Input -->
         <div style="display:flex; gap:10px; padding:10px; border-top:1px solid var(--glass-border);">
             <input type="text" id="msg-input" placeholder="Type a message..." style="flex:1; padding:10px 14px; border-radius:20px; border:1px solid var(--glass-border); background:var(--bg-main); color:var(--text-main);">
+            <input type="file" id="file-input" style="display:none;">
+            <button onclick="document.getElementById('file-input').click()" style="padding:10px 14px; border-radius:20px; background:var(--accent); color:#020617; border:none;">📎</button>
             <button onclick="sendMessage()" style="padding:10px 16px; border-radius:20px; background:var(--accent); color:#020617; border:none;">Send</button>
         </div>
-
     </div>
 </div>
 
@@ -34,20 +27,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebas
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 // Firebase config
-const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "mksadmin-6ffeb.firebaseapp.com",
-    projectId: "mksadmin-6ffeb",
-    storageBucket: "mksadmin-6ffeb.appspot.com",
-    messagingSenderId: "110174734290420528988",
-    appId: "YOUR_APP_ID"
-};
+const firebaseConfig = { apiKey:"", authDomain:"", projectId:"mksadmin-6ffeb", storageBucket:"", messagingSenderId:"", appId:"" };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Reference collections
 const chatRef = collection(db, "tg_chat");
-const usersRef = collection(db, "tg_users"); // user list collection
+const usersRef = collection(db, "tg_users");
+
+let currentUserId = null;
 
 // Load users
 onSnapshot(usersRef, snapshot => {
@@ -58,16 +45,13 @@ onSnapshot(usersRef, snapshot => {
         const div = document.createElement("div");
         div.textContent = user.name || user.id;
         div.style.padding = "10px";
-        div.style.borderRadius = "12px";
         div.style.cursor = "pointer";
-        div.style.background = "rgba(255,255,255,0.05)";
         div.onclick = () => loadChat(user.id);
         list.appendChild(div);
     });
 });
 
-// Load chat with specific user
-let currentUserId = null;
+// Load chat
 function loadChat(userId){
     currentUserId = userId;
     const container = document.getElementById("chat-container");
@@ -77,21 +61,24 @@ function loadChat(userId){
         container.innerHTML = "";
         snapshot.forEach(doc => {
             const msg = doc.data();
-            if(msg.user_id !== currentUserId) return; // filter current conversation
+            if(msg.user_id !== currentUserId) return;
             const div = document.createElement("div");
             div.style.display = "flex";
-            div.style.flexDirection = msg.sender === "Admin" ? "row-reverse" : "row";
-            div.style.alignItems = "center";
-            div.style.gap = "10px";
+            div.style.flexDirection = msg.sender==="Admin" ? "row-reverse":"row";
+            div.style.alignItems="center";
+            div.style.gap="10px";
 
             const bubble = document.createElement("div");
-            bubble.textContent = msg.message;
-            bubble.style.padding = "10px 16px";
-            bubble.style.borderRadius = "20px";
-            bubble.style.background = msg.sender === "Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
-            bubble.style.color = msg.sender === "Admin" ? "#020617" : "var(--text-main)";
-            bubble.style.maxWidth = "70%";
-            bubble.style.wordWrap = "break-word";
+            bubble.style.padding="10px 16px";
+            bubble.style.borderRadius="20px";
+            bubble.style.maxWidth="70%";
+            bubble.style.wordWrap="break-word";
+            bubble.style.background = msg.sender==="Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
+            bubble.style.color = msg.sender==="Admin" ? "#020617" : "var(--text-main)";
+
+            if(msg.type==="text") bubble.textContent = msg.message;
+            if(msg.type==="photo") bubble.innerHTML = `<img src="https://api.telegram.org/file/bot<YOUR_BOT_TOKEN>/${msg.file_id}" style="max-width:200px;border-radius:12px;">`;
+            if(msg.type==="video") bubble.innerHTML = `<video src="https://api.telegram.org/file/bot<YOUR_BOT_TOKEN>/${msg.file_id}" style="max-width:200px;border-radius:12px;" controls></video>`;
 
             div.appendChild(bubble);
             container.appendChild(div);
@@ -101,18 +88,32 @@ function loadChat(userId){
 }
 
 // Send message
-function sendMessage() {
+function sendMessage(){
     if(!currentUserId) return alert("Select a user first!");
     const input = document.getElementById("msg-input");
-    const text = input.value.trim();
-    if(text === "") return;
-    addDoc(chatRef, {
-        sender: "Admin",
-        user_id: currentUserId,
-        message: text,
-        timestamp: serverTimestamp()
+    const fileInput = document.getElementById("file-input");
+
+    let content = {};
+    if(fileInput.files.length>0){
+        const file = fileInput.files[0];
+        // For simplicity: we send as text placeholder, backend should handle file upload
+        content = {type: "photo", file_id: "FILE_ID_FROM_BACKEND"};
+        fileInput.value="";
+    }else{
+        if(input.value.trim()==="") return;
+        content = {type:"text", message:input.value.trim()};
+        input.value="";
+    }
+
+    // Save admin message
+    addDoc(chatRef,{
+        sender:"Admin",
+        user_id:currentUserId,
+        timestamp:serverTimestamp(),
+        ...content
     });
-    input.value = "";
+
+    // Backend will read Firestore and send via Bot API
 }
 </script>
 {% endblock %}
