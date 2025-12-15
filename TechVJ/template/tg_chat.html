@@ -5,20 +5,35 @@ TG Chat
 {% endblock %}
 
 {% block content %}
-<div id="chat-container" style="max-width: 900px; margin:auto; display:flex; flex-direction:column; gap:10px; height:70vh; overflow-y:auto; border:1px solid var(--glass-border); padding:16px; border-radius:12px; background: rgba(255,255,255,0.05);">
-    <!-- Messages will appear here -->
-</div>
+<div style="display:flex; max-width:1200px; margin:auto; gap:20px; height:75vh;">
 
-<div style="max-width: 900px; margin:auto; display:flex; gap:10px; margin-top:12px;">
-    <input type="text" id="msg-input" placeholder="Type a message..." style="flex:1; padding:10px 14px; border-radius:20px; border:1px solid var(--glass-border); background:var(--bg-main); color:var(--text-main);">
-    <button onclick="sendMessage()" style="padding:10px 16px; border-radius:20px; background:var(--accent); color:#020617; border:none;">Send</button>
+    <!-- Chat Users List -->
+    <div id="user-list" style="flex:0 0 250px; background:rgba(255,255,255,0.05); border-radius:12px; overflow-y:auto; padding:10px;">
+        <!-- Users will be listed here -->
+    </div>
+
+    <!-- Conversation Window -->
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; border-radius:12px; overflow:hidden; background:rgba(255,255,255,0.05);">
+        
+        <!-- Messages container -->
+        <div id="chat-container" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <!-- Messages appended here -->
+        </div>
+
+        <!-- Input -->
+        <div style="display:flex; gap:10px; padding:10px; border-top:1px solid var(--glass-border);">
+            <input type="text" id="msg-input" placeholder="Type a message..." style="flex:1; padding:10px 14px; border-radius:20px; border:1px solid var(--glass-border); background:var(--bg-main); color:var(--text-main);">
+            <button onclick="sendMessage()" style="padding:10px 16px; border-radius:20px; background:var(--accent); color:#020617; border:none;">Send</button>
+        </div>
+
+    </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-// Firebase config (replace with your keys)
+// Firebase config
 const firebaseConfig = {
     apiKey: "YOUR_FIREBASE_API_KEY",
     authDomain: "mksadmin-6ffeb.firebaseapp.com",
@@ -27,43 +42,73 @@ const firebaseConfig = {
     messagingSenderId: "110174734290420528988",
     appId: "YOUR_APP_ID"
 };
-
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Reference chat collection
+// Reference collections
 const chatRef = collection(db, "tg_chat");
-const chatQuery = query(chatRef, orderBy("timestamp"));
+const usersRef = collection(db, "tg_users"); // user list collection
 
-// Real-time listener
-onSnapshot(chatQuery, (snapshot) => {
+// Load users
+onSnapshot(usersRef, snapshot => {
+    const list = document.getElementById("user-list");
+    list.innerHTML = "";
+    snapshot.forEach(doc => {
+        const user = doc.data();
+        const div = document.createElement("div");
+        div.textContent = user.name || user.id;
+        div.style.padding = "10px";
+        div.style.borderRadius = "12px";
+        div.style.cursor = "pointer";
+        div.style.background = "rgba(255,255,255,0.05)";
+        div.onclick = () => loadChat(user.id);
+        list.appendChild(div);
+    });
+});
+
+// Load chat with specific user
+let currentUserId = null;
+function loadChat(userId){
+    currentUserId = userId;
     const container = document.getElementById("chat-container");
     container.innerHTML = "";
-    snapshot.forEach(doc => {
-        const msg = doc.data();
-        const div = document.createElement("div");
-        div.textContent = msg.message;
-        div.style.alignSelf = msg.sender === "Admin" ? "flex-end" : "flex-start";
-        div.style.background = msg.sender === "Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
-        div.style.color = msg.sender === "Admin" ? "#020617" : "var(--text-main)";
-        div.style.padding = "10px 16px";
-        div.style.borderRadius = "20px";
-        div.style.maxWidth = "70%";
-        div.style.wordWrap = "break-word";
-        div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
-        container.appendChild(div);
+    const q = query(chatRef, orderBy("timestamp"));
+    onSnapshot(q, snapshot => {
+        container.innerHTML = "";
+        snapshot.forEach(doc => {
+            const msg = doc.data();
+            if(msg.user_id !== currentUserId) return; // filter current conversation
+            const div = document.createElement("div");
+            div.style.display = "flex";
+            div.style.flexDirection = msg.sender === "Admin" ? "row-reverse" : "row";
+            div.style.alignItems = "center";
+            div.style.gap = "10px";
+
+            const bubble = document.createElement("div");
+            bubble.textContent = msg.message;
+            bubble.style.padding = "10px 16px";
+            bubble.style.borderRadius = "20px";
+            bubble.style.background = msg.sender === "Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
+            bubble.style.color = msg.sender === "Admin" ? "#020617" : "var(--text-main)";
+            bubble.style.maxWidth = "70%";
+            bubble.style.wordWrap = "break-word";
+
+            div.appendChild(bubble);
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
     });
-    container.scrollTop = container.scrollHeight;
-});
+}
 
 // Send message
 function sendMessage() {
+    if(!currentUserId) return alert("Select a user first!");
     const input = document.getElementById("msg-input");
     const text = input.value.trim();
     if(text === "") return;
     addDoc(chatRef, {
         sender: "Admin",
+        user_id: currentUserId,
         message: text,
         timestamp: serverTimestamp()
     });
