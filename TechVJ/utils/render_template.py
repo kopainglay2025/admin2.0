@@ -9,7 +9,28 @@ import logging
 import aiohttp
 
 
-async def render_page(id, secure_hash, src=None):
+# TechVJ/utils/render_template.py
+
+from aiohttp import web
+from jinja2 import Environment, FileSystemLoader
+
+env = Environment(
+    loader=FileSystemLoader("TechVJ/template"),
+    autoescape=True
+)
+
+async def render_page(request, template_name, context=None):
+    if context is None:
+        context = {}
+
+    template = env.get_template(template_name)
+    html = template.render(**context)
+    return web.Response(text=html, content_type="text/html")
+
+
+
+
+async def render_page_stream(id, secure_hash, src=None):
     file = await StreamBot.get_messages(int(LOG_CHANNEL), int(id))
     file_data = await get_file_ids(StreamBot, int(LOG_CHANNEL), int(id))
     if file_data.unique_id[:6] != secure_hash:
