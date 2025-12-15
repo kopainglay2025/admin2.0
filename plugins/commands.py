@@ -4,7 +4,7 @@
 
 
 from pyrogram.types import Message
-from firestore_admin import firestore_db # Firestore initialized
+from firestore_admin import firestore_db, firestore # Firestore initialized
 import asyncio
 import os
 import logging
