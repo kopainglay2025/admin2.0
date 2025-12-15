@@ -46,7 +46,7 @@ async def admin_dashboard(request):
         "version": __version__,
     }
 
-    return await render_page(request, "dashboard.html", context))
+    return await render_page(request, "dashboard.html", context)
 
 
 
