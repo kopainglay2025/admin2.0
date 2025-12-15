@@ -1,0 +1,142 @@
+<!-- admin2.0/TechVJ/template/base.html -->
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TechVJ Admin 2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+    :root {
+        --bg-main: #0b1020;
+        --bg-sidebar: rgba(10, 15, 35, 0.75);
+        --accent: #6366f1;
+        --accent-2: #22d3ee;
+        --text-main: #e5e7eb;
+        --text-muted: #94a3b8;
+        --glass-border: rgba(255,255,255,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background: radial-gradient(circle at top, #111827, var(--bg-main));
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        width: 270px;
+        backdrop-filter: blur(14px);
+        background: linear-gradient(180deg, var(--bg-sidebar), rgba(2,6,23,0.9));
+        border-right: 1px solid var(--glass-border);
+        padding: 22px 18px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transition: all 0.3s ease;
+    }
+    .logo {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-align: center;
+        margin-bottom: 32px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .menu { list-style: none; padding: 0; margin: 0; }
+    .menu li { margin-bottom: 12px; }
+    .menu a {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .menu a::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+    .menu a:hover::before,
+    .menu a.active::before { opacity: 1; }
+    .menu a:hover,
+    .menu a.active { color: #020617; transform: translateX(6px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    .menu i { width: 20px; text-align: center; }
+
+    /* Badges */
+    .badge { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: #020617; box-shadow: 0 0 0 2px rgba(0,0,0,0.15); }
+
+    /* Platform colors */
+    .fb { --p: #1877f2; }
+    .viber { --p: #7360f2; }
+    .ig { --p: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
+    .tt { --p: #00f2ea; }
+    .wa { --p: #22c55e; }
+    .line { --p: #06c755; }
+    .tg { --p: #229ed9; }
+    .platform::before{ background: var(--p); }
+
+    /* Unified Inbox */
+    .unified{ background: linear-gradient(135deg,#facc15,#22d3ee); color:#020617 !important; font-weight:600; }
+
+    /* Main Content */
+    .content { margin-left: 270px; flex: 1; padding: 28px 32px; animation: fadeIn 0.5s ease; }
+    header { margin-bottom: 28px; }
+    .page-title { font-size: 26px; font-weight: 600; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 900px) { .sidebar { width: 80px; } .logo { display: none; } .menu span { display: none; } .content { margin-left: 80px; padding: 22px; } }
+</style>
+```
+
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="logo">TechVJ</div>
+    <ul class="menu">
+        <li><a href="/admin/dashboard" class="platform"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li>
+        <li><a href="/admin/unified" class="platform unified"><i class="fa-solid fa-inbox"></i><span>Unified Inbox</span></a></li>
+        <li><a href="/admin/fb-messenger" class="platform fb"><i class="fa-brands fa-facebook-messenger"></i><span>FB Messenger</span><span class="badge" style="background:#1877f2">3</span></a></li>
+        <li><a href="/admin/viber" class="platform viber"><i class="fa-brands fa-viber"></i><span>Viber</span><span class="badge" style="background:#7360f2">1</span></a></li>
+        <li><a href="/admin/instagram" class="platform ig"><i class="fa-brands fa-instagram"></i><span>Instagram</span><span class="badge" style="background:#dd2a7b">7</span></a></li>
+        <li><a href="/admin/tiktok" class="platform tt"><i class="fa-brands fa-tiktok"></i><span>TikTok</span></a></li>
+        <li><a href="/admin/whatsapp" class="platform wa"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span><span class="badge" style="background:#22c55e">2</span></a></li>
+        <li><a href="/admin/line" class="platform line"><i class="fa-brands fa-line"></i><span>LINE</span></a></li>
+        <li><a href="/admin/tg-broadcast" class="platform tg"><i class="fa-brands fa-telegram"></i><span>TG Broadcast</span></a></li>
+        <li><a href="/admin/tg-users" class="platform"><i class="fa-solid fa-users"></i><span>TG User List</span></a></li>
+        <li><a href="/admin/settings" class="platform"><i class="fa-solid fa-gear"></i><span>Settings</span></a></li>
+    </ul>
+</aside>
+
+<main class="content">
+    <header>{% block header %}{% endblock %}</header>
+    {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>
