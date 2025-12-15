@@ -4,7 +4,7 @@
 
 
 from pyrogram.types import Message
-from firestore_admin import firestore_db, firestore # Firestore initialized
+
 import asyncio
 import os
 import logging
@@ -56,28 +56,22 @@ def formate_file_name(file_name):
 # ----------------------
 # Incoming User Messages
 # ----------------------
+
+from firestore_admin import firestore_db, firestore_ref
+
 @Client.on_message(filters.incoming & ~filters.bot)
-async def handle_user_message(client: Client, message: Message):
-    """
-    Save incoming messages (text, photo, video) to Firestore.
-    Detect TikTok links in messages and store separately.
-    """
+async def handle_user_message(client, message):
     try:
         data = {
             "sender": "User",
             "user_id": message.from_user.id,
             "username": message.from_user.first_name,
-            "timestamp": firestore.SERVER_TIMESTAMP
+            "timestamp": firestore_ref.SERVER_TIMESTAMP
         }
 
-        # Detect message type
         if message.text:
             data["type"] = "text"
             data["message"] = message.text
-
-            # Check for TikTok link
-            if "tiktok.com" in message.text.lower():
-                data["tiktok_link"] = message.text
 
         elif message.photo:
             data["type"] = "photo"
@@ -87,11 +81,9 @@ async def handle_user_message(client: Client, message: Message):
             data["type"] = "video"
             data["file_id"] = message.video.file_id
         else:
-            return  # ignore other types
+            return
 
-        # Save to Firestore
         await firestore_db.collection("tg_chat").add(data)
-
     except Exception as e:
         print(f"Failed to save user message: {e}")
 
