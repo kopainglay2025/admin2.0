@@ -57,7 +57,7 @@ def formate_file_name(file_name):
 # Incoming User Messages
 # ----------------------
 
-from firestore_admin import firestore_db, firestore_ref
+from firestore_admin import firestore_db, firestore
 
 @Client.on_message(filters.incoming & ~filters.bot)
 async def handle_user_message(client, message):
@@ -66,7 +66,7 @@ async def handle_user_message(client, message):
             "sender": "User",
             "user_id": message.from_user.id,
             "username": message.from_user.first_name,
-            "timestamp": firestore_ref.SERVER_TIMESTAMP
+            "timestamp": firestore.SERVER_TIMESTAMP
         }
 
         if message.text:
