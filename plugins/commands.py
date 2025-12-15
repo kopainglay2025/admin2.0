@@ -59,10 +59,7 @@ def formate_file_name(file_name):
 # Incoming User Messages
 # ----------------------
 @Client.on_message(filters.incoming & ~filters.bot)
-async def handle_user_message(client: Client, message: Message):
-    """
-    Save incoming messages (text, photo, video) to Firestore
-    """
+async def handle_user_message(client, message):
     try:
         data = {
             "sender": "User",
@@ -71,7 +68,6 @@ async def handle_user_message(client: Client, message: Message):
             "timestamp": firestore.SERVER_TIMESTAMP
         }
 
-        # Determine type
         if message.text:
             data["type"] = "text"
             data["message"] = message.text
@@ -82,12 +78,13 @@ async def handle_user_message(client: Client, message: Message):
             data["type"] = "video"
             data["file_id"] = message.video.file_id
         else:
-            return  # ignore other types
+            return
 
         await firestore_db.collection("tg_chat").add(data)
 
     except Exception as e:
         print(f"Failed to save user message: {e}")
+
 
 
 # ----------------------
