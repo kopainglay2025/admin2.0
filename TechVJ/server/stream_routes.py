@@ -35,6 +35,21 @@ async def root_route_handler(_):
         }
     )
 
+@routes.get("/admin/dashboard")
+async def admin_dashboard(request):
+    context = {
+        "page": "dashboard",
+        "uptime": get_readable_time(time.time() - StartTime),
+        "bot_username": StreamBot.username,
+        "connected_bots": len(multi_clients),
+        "loads": work_loads,
+        "version": __version__,
+    }
+
+    return await render_page(request, "dashboard.html", context))
+
+
+
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
