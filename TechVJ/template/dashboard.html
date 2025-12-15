@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block header %}
+<div class="page-title">Dashboard</div>
+{% endblock %}
+
+{% block content %}
+
+<style>
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+}
+
+.card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 22px;
+    backdrop-filter: blur(12px);
+}
+
+.card h3 {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0 0 10px;
+}
+
+.card .value {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.load {
+    margin-top: 10px;
+}
+
+.load span {
+    display: block;
+    font-size: 13px;
+    color: #cbd5f5;
+}
+</style>
+
+<div class="cards">
+
+    <div class="card">
+        <h3>Server Status</h3>
+        <div class="value">🟢 Running</div>
+    </div>
+
+    <div class="card">
+        <h3>Uptime</h3>
+        <div class="value">{{ uptime }}</div>
+    </div>
+
+    <div class="card">
+        <h3>Telegram Bot</h3>
+        <div class="value">@{{ bot_username }}</div>
+    </div>
+
+    <div class="card">
+        <h3>Connected Bots</h3>
+        <div class="value">{{ connected_bots }}</div>
+    </div>
+
+</div>
+
+<br>
+
+<div class="card">
+    <h3>Bot Load</h3>
+
+    <div class="load">
+        {% for bot, load in loads.items() %}
+            <span>{{ bot }} : {{ load }}</span>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="margin-top:16px;color:#64748b;font-size:13px">
+    TechVJ v{{ version }}
+</div>
+
+{% endblock %}
