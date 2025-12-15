@@ -5,76 +5,69 @@ TG Chat
 {% endblock %}
 
 {% block content %}
-
-<style>
-.chat-container {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.message {
-    display: flex;
-    flex-direction: column;
-    padding: 10px 14px;
-    border-radius: 14px;
-    max-width: 70%;
-    word-wrap: break-word;
-}
-.message.user {
-    background-color: #6366f1;
-    color: #fff;
-    align-self: flex-start;
-}
-.message.admin {
-    background-color: #e5e7eb;
-    color: #020617;
-    align-self: flex-end;
-}
-.timestamp {
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 4px;
-}
-#chat-box {
-    height: 70vh;
-    overflow-y: scroll;
-    padding: 12px;
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    background: rgba(255,255,255,0.05);
-}
-</style>
-
-<div class="chat-container">
-    <div id="chat-box">
-        {% for msg in messages %}
-        <div class="message {% if msg.user_id %}user{% else %}admin{% endif %}">
-            <strong>{{ msg.username or 'User' }}</strong>
-            <div>{{ msg.message }}</div>
-            <div class="timestamp">{{ msg.timestamp | datetimeformat }}</div>
-        </div>
-        {% endfor %}
-    </div>
+<div id="chat-container" style="max-width: 900px; margin:auto; display:flex; flex-direction:column; gap:10px; height:70vh; overflow-y:auto; border:1px solid var(--glass-border); padding:16px; border-radius:12px; background: rgba(255,255,255,0.05);">
+    <!-- Messages will appear here -->
 </div>
 
-<script>
-const chatBox = document.getElementById('chat-box');
+<div style="max-width: 900px; margin:auto; display:flex; gap:10px; margin-top:12px;">
+    <input type="text" id="msg-input" placeholder="Type a message..." style="flex:1; padding:10px 14px; border-radius:20px; border:1px solid var(--glass-border); background:var(--bg-main); color:var(--text-main);">
+    <button onclick="sendMessage()" style="padding:10px 16px; border-radius:20px; background:var(--accent); color:#020617; border:none;">Send</button>
+</div>
 
-// Polling every 2 seconds for new messages (simplest real-time)
-setInterval(async () => {
-    const res = await fetch('/api/tg-chat');
-    const data = await res.json();
-    chatBox.innerHTML = data.messages.map(msg => {
-        return `<div class="message ${msg.user_id ? 'user':'admin'}">
-                    <strong>${msg.username || 'User'}</strong>
-                    <div>${msg.message}</div>
-                    <div class="timestamp">${new Date(msg.timestamp*1000).toLocaleTimeString()}</div>
-                </div>`;
-    }).join('');
-    chatBox.scrollTop = chatBox.scrollHeight;
-}, 2000);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+// Firebase config (replace with your keys)
+const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "mksadmin-6ffeb.firebaseapp.com",
+    projectId: "mksadmin-6ffeb",
+    storageBucket: "mksadmin-6ffeb.appspot.com",
+    messagingSenderId: "110174734290420528988",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Reference chat collection
+const chatRef = collection(db, "tg_chat");
+const chatQuery = query(chatRef, orderBy("timestamp"));
+
+// Real-time listener
+onSnapshot(chatQuery, (snapshot) => {
+    const container = document.getElementById("chat-container");
+    container.innerHTML = "";
+    snapshot.forEach(doc => {
+        const msg = doc.data();
+        const div = document.createElement("div");
+        div.textContent = msg.message;
+        div.style.alignSelf = msg.sender === "Admin" ? "flex-end" : "flex-start";
+        div.style.background = msg.sender === "Admin" ? "var(--accent)" : "rgba(255,255,255,0.1)";
+        div.style.color = msg.sender === "Admin" ? "#020617" : "var(--text-main)";
+        div.style.padding = "10px 16px";
+        div.style.borderRadius = "20px";
+        div.style.maxWidth = "70%";
+        div.style.wordWrap = "break-word";
+        div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+        container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+});
+
+// Send message
+function sendMessage() {
+    const input = document.getElementById("msg-input");
+    const text = input.value.trim();
+    if(text === "") return;
+    addDoc(chatRef, {
+        sender: "Admin",
+        message: text,
+        timestamp: serverTimestamp()
+    });
+    input.value = "";
+}
 </script>
-
 {% endblock %}
