@@ -51,6 +51,74 @@ def formate_file_name(file_name):
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ0
 
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from firestore_admin import firestore_db  # Firestore initialized
+import asyncio
+
+# ----------------------
+# Incoming User Messages
+# ----------------------
+@Client.on_message(filters.incoming & ~filters.bot)
+async def handle_user_message(client: Client, message: Message):
+    """
+    Save incoming messages (text, photo, video) to Firestore
+    """
+    try:
+        data = {
+            "sender": "User",
+            "user_id": message.from_user.id,
+            "username": message.from_user.first_name,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        }
+
+        # Determine type
+        if message.text:
+            data["type"] = "text"
+            data["message"] = message.text
+        elif message.photo:
+            data["type"] = "photo"
+            data["file_id"] = message.photo.file_id
+        elif message.video:
+            data["type"] = "video"
+            data["file_id"] = message.video.file_id
+        else:
+            return  # ignore other types
+
+        await firestore_db.collection("tg_chat").add(data)
+
+    except Exception as e:
+        print(f"Failed to save user message: {e}")
+
+
+# ----------------------
+# Admin sends reply
+# ----------------------
+async def send_admin_message(user_id: int, content: dict):
+    """
+    Send Admin message to Firestore & forward to Telegram user
+    content = {"type": "text/photo/video", "message": "...", "file_id": "..."}
+    """
+    try:
+        # Save to Firestore
+        data = {
+            "sender": "Admin",
+            "user_id": user_id,
+            "timestamp": firestore.SERVER_TIMESTAMP,
+            **content
+        }
+        await firestore_db.collection("tg_chat").add(data)
+
+        # Forward to Telegram user
+        if content["type"] == "text":
+            await client.send_message(chat_id=user_id, text=content["message"])
+        elif content["type"] == "photo":
+            await client.send_photo(chat_id=user_id, photo=content["file_id"])
+        elif content["type"] == "video":
+            await client.send_video(chat_id=user_id, video=content["file_id"])
+
+    except Exception as e:
+        print(f"Failed to send admin message: {e}")
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
