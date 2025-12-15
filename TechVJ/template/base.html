@@ -1,4 +1,4 @@
-<!-- Updated base.html for admin 2.0 -->
+<!-- base.html with Dark/Light Mode Toggle -->
 
 <!DOCTYPE html>
 
@@ -9,7 +9,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 ```
-<!-- Google Font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -23,10 +22,18 @@
         --text-muted: #94a3b8;
         --glass-border: rgba(255,255,255,0.08);
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', sans-serif; background: radial-gradient(circle at top, #111827, var(--bg-main)); color: var(--text-main); min-height: 100vh; display: flex; }
+    [data-theme="light"] {
+        --bg-main: #f8fafc;
+        --bg-sidebar: rgba(255, 255, 255, 0.85);
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --glass-border: rgba(0,0,0,0.08);
+    }
 
-    .sidebar { width: 270px; backdrop-filter: blur(14px); background: linear-gradient(180deg, var(--bg-sidebar), rgba(2,6,23,0.9)); border-right: 1px solid var(--glass-border); padding: 22px 18px; position: fixed; top: 0; left: 0; bottom: 0; transition: all 0.3s ease; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; transition: background 0.3s, color 0.3s; }
+
+    .sidebar { width: 270px; backdrop-filter: blur(14px); background: var(--bg-sidebar); border-right: 1px solid var(--glass-border); padding: 22px 18px; position: fixed; top: 0; left: 0; bottom: 0; transition: all 0.3s ease; }
     .logo { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; text-align: center; margin-bottom: 32px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
     .menu { list-style: none; padding: 0; margin: 0; }
@@ -50,8 +57,10 @@
     .unified{ background: linear-gradient(135deg,#facc15,#22d3ee); color:#020617 !important; font-weight:600; }
 
     .content { margin-left: 270px; flex: 1; padding: 28px 32px; animation: fadeIn 0.5s ease; }
-    header { margin-bottom: 28px; }
+    header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; }
     .page-title { font-size: 26px; font-weight: 600; }
+    .theme-toggle { cursor: pointer; font-size: 18px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--glass-border); transition: all 0.3s; }
+    .theme-toggle:hover { background: var(--glass-border); }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @media (max-width: 900px) { .sidebar { width: 80px; } .logo { display: none; } .menu span { display: none; } .content { margin-left: 80px; padding: 22px; } }
@@ -59,7 +68,7 @@
 ```
 
 </head>
-<body>
+<body data-theme="dark">
 
 <aside class="sidebar">
     <div class="logo">TechVJ</div>
@@ -80,9 +89,25 @@
 </aside>
 
 <main class="content">
-    <header>{% block header %}{% endblock %}</header>
+    <header>
+        <div class="page-title">{% block header %}{% endblock %}</div>
+        <div class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
+    </header>
     {% block content %}{% endblock %}
 </main>
+
+<script>
+function toggleTheme() {
+    const body = document.body;
+    if(body.getAttribute('data-theme') === 'dark') {
+        body.setAttribute('data-theme', 'light');
+        document.querySelector('.theme-toggle i').className = 'fa-solid fa-sun';
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        document.querySelector('.theme-toggle i').className = 'fa-solid fa-moon';
+    }
+}
+</script>
 
 </body>
 </html>
