@@ -16,26 +16,30 @@ def is_enabled(value, default):
         return False
     else:
         return default
-      
+
+
+
+
+
 # Bot Information
 API_ID = int(environ.get("API_ID", "23631217"))
 API_HASH = environ.get("API_HASH", "567c6df308dc6901790309499f729d12")
-BOT_TOKEN = environ.get("BOT_TOKEN", "")
+BOT_TOKEN = environ.get("BOT_TOKEN", "8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k")
 
 PICS = (environ.get('PICS', 'https://files.catbox.moe/ckoi9u.jpg https://i.postimg.cc/8C15CQ5y/1.png https://i.postimg.cc/gcNtrv0m/2.png https://i.postimg.cc/cHD71BBz/3.png https://i.postimg.cc/F1XYhY8q/4.png https://i.postimg.cc/1tNwGVxC/5.png https://i.postimg.cc/dtW30QpL/6.png https://i.postimg.cc/139dvs3c/7.png https://i.postimg.cc/QtXVtB8K/8.png https://i.postimg.cc/y8j8G1XV/9.png https://i.postimg.cc/zDF6KyJX/10.png https://i.postimg.cc/fyycVqzd/11.png https://i.postimg.cc/26ZBtBZr/13.png https://i.postimg.cc/PJn8nrWZ/14.png https://i.postimg.cc/cC7txyhz/15.png https://i.postimg.cc/kX9tjGXP/16.png https://i.postimg.cc/zXjH4NVb/17.png https://i.postimg.cc/sggGrLhn/18.png https://i.postimg.cc/y8pgYTh7/19.png')).split() # Bot Start Picture
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6139759254').split()]
-BOT_USERNAME = environ.get("BOT_USERNAME", "MZStorFXrobot") # without @
-PORT = environ.get("PORT", "8080")
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1113630298').split()]
+BOT_USERNAME = environ.get("BOT_USERNAME", "MKS_KP_ADMINBOT") # without @
+PORT = environ.get("PORT", "80")
 
 # Clone Info :-
-CLONE_MODE = bool(environ.get('CLONE_MODE', False)) # Set True or False
+CLONE_MODE = bool(environ.get('CLONE_MODE', True)) # Set True or False
 
 # If Clone Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
 CLONE_DB_URI = environ.get("CLONE_DB_URI", "mongodb+srv://Mrn_Officialx_imam_1503:Mrn_Officialx_imam_1503@cluster0.zfthfel.mongodb.net/?appName=Cluster0")
 CDB_NAME = environ.get("CDB_NAME", "Mrn_Officialx_imam_1503")
 
 # Database Information
-DB_URI = environ.get("DB_URI", "mongodb+srv://Mrn_Officialx_imam_1503:Mrn_Officialx_imam_1503@cluster0.zfthfel.mongodb.net/?appName=Cluster0")
+DB_URI = environ.get("DB_URI", "mongodb+srv://msrpremium:msrpremium@cluster0.hhap4r4.mongodb.net/?retryWrites=true&w=majority")
 DB_NAME = environ.get("DB_NAME", "Mrn_Officialx_imam_1503")
 
 # Auto Delete Information
@@ -46,7 +50,7 @@ AUTO_DELETE = int(environ.get("AUTO_DELETE", "30")) # Time in Minutes
 AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
 
 # Channel Information
-LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002338165303"))
+LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1001254905376"))
 
 # File Caption Information
 CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")
@@ -61,13 +65,13 @@ VERIFY_MODE = bool(environ.get('VERIFY_MODE', False)) # Set True or False
 # If Verify Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
 SHORTLINK_URL = environ.get("SHORTLINK_URL", "linkshortify.com") # shortlink domain without https://
 SHORTLINK_API = environ.get("SHORTLINK_API", "933f3923527586776d9c6c6c6eebd1a30563bee6") # shortlink api
-VERIFY_TUTORIAL = environ.get("VERIFY_TUTORIAL", "https://t.me/MRN_Tutorial/1806") # how to open link 
+VERIFY_TUTORIAL = environ.get("VERIFY_TUTORIAL", "https://mkschannel.org") # how to open link 
 
 # Website Info:
 WEBSITE_URL_MODE = bool(environ.get('WEBSITE_URL_MODE', True)) # Set True or False
 
 # If Website Url Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
-WEBSITE_URL = environ.get("WEBSITE_URL", "https://mrnfilesharing.blogspot.com/2025/01/redirecting-to-your-link-code-credit.html") # For More Information Check Video On Yt - @Tech_VJ
+WEBSITE_URL = environ.get("WEBSITE_URL", "https://mkschannel.org") # For More Information Check Video On Yt - @Tech_VJ
 
 # File Stream Config
 STREAM_MODE = bool(environ.get('STREAM_MODE', True)) # Set True or False
@@ -80,9 +84,6 @@ if 'DYNO' in environ:
     ON_HEROKU = True
 else:
     ON_HEROKU = False
-URL = environ.get("URL", "https://mrn-auto-filter-bot-d5869d42.koyeb.app/")
+URL = environ.get("URL", "https://mkschannel.org/")
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
-    
+
