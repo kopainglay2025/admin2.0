@@ -1,98 +1,75 @@
 {% extends "base.html" %}
 {% block header %}TG Chat{% endblock %}
 
-{% block content %}
-<div class="chat-wrapper">
-    <div class="chat-list" id="chatList"></div>
-
-    <div class="chat-box">
-        <div class="chat-messages" id="messages"></div>
-
-        <div class="chat-input">
-            <input id="msgInput" placeholder="Type a message...">
-            <input type="file" id="fileInput" hidden>
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-</div>
-
 <style>
-.chat-wrapper{display:flex;height:80vh}
-.chat-list{width:280px;border-right:1px solid var(--glass-border);overflow:auto}
-.chat-item{padding:14px;cursor:pointer}
-.chat-item:hover{background:var(--glass-border)}
-.chat-box{flex:1;display:flex;flex-direction:column}
-.chat-messages{flex:1;padding:16px;overflow:auto}
-.msg{max-width:60%;margin:8px;padding:10px;border-radius:12px}
-.user{background:#1f2937}
-.admin{background:#6366f1;margin-left:auto}
-.chat-input{display:flex;gap:8px;padding:12px}
+.chat {display:flex;height:75vh}
+.list {width:300px;overflow:auto}
+.item {padding:10px;cursor:pointer}
+.badge {float:right;background:red;color:#fff;border-radius:20px;padding:2px 6px}
+.box {flex:1;display:flex;flex-direction:column}
+.msgs {flex:1;overflow:auto;padding:10px}
+.msg.user {background:#2563eb;color:#fff}
+.msg.admin {background:#22c55e}
+.msg {margin:6px;padding:8px;border-radius:12px;max-width:60%}
+.media {max-width:220px;border-radius:10px}
 </style>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<div class="chat">
+  <div class="list" id="chatList"></div>
+  <div class="box">
+    <div class="msgs" id="msgs"></div>
+    <input id="txt" placeholder="Message…" onkeydown="if(event.key==='Enter')send()">
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "XXXX",
-  authDomain: "XXXX",
-  projectId: "XXXX"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+firebase.initializeApp({
+  databaseURL:"https://mksadmin-6ffeb-default-rtdb.firebaseio.com/"
+});
+const db = firebase.database();
 
-let activeUser = null;
+let current=null, unread={};
+const ws=new WebSocket(`ws://${location.host}/ws/tg-chat`);
 
-// Load chat list
-db.collection("tg_chats")
-  .orderBy("updated_at","desc")
-  .onSnapshot(snap=>{
-    chatList.innerHTML="";
-    snap.forEach(d=>{
-      chatList.innerHTML+=`
-        <div class="chat-item" onclick="openChat('${d.id}')">
-          ${d.data().username || d.id}
-        </div>`;
-    });
+db.ref("tg_chats").on("value",s=>{
+  chatList.innerHTML="";
+  const d=s.val()||{};
+  Object.keys(d).forEach(uid=>{
+    const u=d[uid];
+    chatList.innerHTML+=`
+      <div class="item" onclick="openChat('${uid}')">
+        ${u.user?.name||uid}
+        ${unread[uid]?`<span class="badge">${unread[uid]}</span>`:""}
+      </div>`;
+  });
 });
 
 function openChat(uid){
-  activeUser = uid;
-  db.collection("tg_chats").document(uid)
-    .collection("messages")
-    .orderBy("timestamp")
-    .onSnapshot(snap=>{
-      messages.innerHTML="";
-      snap.forEach(m=>{
-        const d=m.data();
-        messages.innerHTML+=`
-          <div class="msg ${d.from}">
-            ${d.text || d.type}
-          </div>`;
-      });
-      messages.scrollTop=messages.scrollHeight;
-    });
-}
-
-function sendMessage(){
-  const text=msgInput.value;
-  if(!text||!activeUser) return;
-
-  db.collection("tg_chats").document(activeUser)
-    .collection("messages").add({
-      from:"admin",
-      type:"text",
-      text:text,
-      timestamp:Date.now()
-    });
-
-  fetch("/tg-send",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({user_id:activeUser,text})
+  current=uid; unread[uid]=0; msgs.innerHTML="";
+  db.ref(`tg_chats/${uid}/messages`).off();
+  db.ref(`tg_chats/${uid}/messages`).on("child_added",s=>{
+    const m=s.val();
+    let html="";
+    if(m.type==="text") html=m.text;
+    if(m.type==="photo") html=`<img src="/tg-file/${m.file_id}" class="media">`;
+    if(m.type==="video") html=`<video controls class="media" src="/tg-file/${m.file_id}"></video>`;
+    if(m.type==="sticker") html=`<img src="/tg-file/${m.file_id}" class="media">`;
+    msgs.innerHTML+=`<div class="msg ${m.from}">${html}</div>`;
+    msgs.scrollTop=msgs.scrollHeight;
   });
-
-  msgInput.value="";
 }
+
+function send(){
+  if(!current) return;
+  ws.send(JSON.stringify({user_id:current,text:txt.value}));
+  txt.value="";
+}
+
+db.ref("tg_chats").on("child_changed",s=>{
+  if(s.key!==current) unread[s.key]=(unread[s.key]||0)+1;
+});
 </script>
 {% endblock %}
