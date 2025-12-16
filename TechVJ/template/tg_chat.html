@@ -1,91 +1,98 @@
 {% extends "base.html" %}
-{% block header %}Telegram Chat{% endblock %}
-{% block content %}
+{% block header %}TG Chat{% endblock %}
 
-<div class="chat-layout">
+{% block content %}
+<div class="chat-wrapper">
     <div class="chat-list" id="chatList"></div>
 
     <div class="chat-box">
         <div class="chat-messages" id="messages"></div>
 
         <div class="chat-input">
-            <input type="text" id="msgInput" placeholder="Type a message…">
-            <button onclick="sendMsg()">Send</button>
+            <input id="msgInput" placeholder="Type a message...">
+            <input type="file" id="fileInput" hidden>
+            <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 </div>
 
+<style>
+.chat-wrapper{display:flex;height:80vh}
+.chat-list{width:280px;border-right:1px solid var(--glass-border);overflow:auto}
+.chat-item{padding:14px;cursor:pointer}
+.chat-item:hover{background:var(--glass-border)}
+.chat-box{flex:1;display:flex;flex-direction:column}
+.chat-messages{flex:1;padding:16px;overflow:auto}
+.msg{max-width:60%;margin:8px;padding:10px;border-radius:12px}
+.user{background:#1f2937}
+.admin{background:#6366f1;margin-left:auto}
+.chat-input{display:flex;gap:8px;padding:12px}
+</style>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "XXX",
-  authDomain: "XXX",
-  databaseURL: "XXX",
+  apiKey: "XXXX",
+  authDomain: "XXXX",
+  projectId: "XXXX"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db = firebase.firestore();
 
-let currentUser = null;
+let activeUser = null;
 
 // Load chat list
-db.ref("tg_chats").on("value", snap => {
-    const list = document.getElementById("chatList");
-    list.innerHTML = "";
-    snap.forEach(user => {
-        const u = user.val().user;
-        const div = document.createElement("div");
-        div.className = "chat-user";
-        div.innerText = u.name;
-        div.onclick = () => openChat(u.id);
-        list.appendChild(div);
+db.collection("tg_chats")
+  .orderBy("updated_at","desc")
+  .onSnapshot(snap=>{
+    chatList.innerHTML="";
+    snap.forEach(d=>{
+      chatList.innerHTML+=`
+        <div class="chat-item" onclick="openChat('${d.id}')">
+          ${d.data().username || d.id}
+        </div>`;
     });
 });
 
 function openChat(uid){
-    currentUser = uid;
-    const msgBox = document.getElementById("messages");
-    msgBox.innerHTML = "";
-
-    db.ref(`tg_chats/${uid}/messages`).on("child_added", snap=>{
-        const m = snap.val();
-        const div = document.createElement("div");
-        div.className = "msg " + (m.from === "admin" ? "me":"them");
-        div.innerText = m.text || m.type;
-        msgBox.appendChild(div);
-        msgBox.scrollTop = msgBox.scrollHeight;
+  activeUser = uid;
+  db.collection("tg_chats").document(uid)
+    .collection("messages")
+    .orderBy("timestamp")
+    .onSnapshot(snap=>{
+      messages.innerHTML="";
+      snap.forEach(m=>{
+        const d=m.data();
+        messages.innerHTML+=`
+          <div class="msg ${d.from}">
+            ${d.text || d.type}
+          </div>`;
+      });
+      messages.scrollTop=messages.scrollHeight;
     });
 }
 
-function sendMsg(){
-    const text = msgInput.value;
-    fetch("/tg/send",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            user_id: currentUser,
-            type:"text",
-            text:text
-        })
+function sendMessage(){
+  const text=msgInput.value;
+  if(!text||!activeUser) return;
+
+  db.collection("tg_chats").document(activeUser)
+    .collection("messages").add({
+      from:"admin",
+      type:"text",
+      text:text,
+      timestamp:Date.now()
     });
-    msgInput.value="";
+
+  fetch("/tg-send",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user_id:activeUser,text})
+  });
+
+  msgInput.value="";
 }
 </script>
-
-<style>
-.chat-layout{display:flex;height:75vh}
-.chat-list{width:260px;border-right:1px solid var(--glass-border);overflow:auto}
-.chat-user{padding:14px;cursor:pointer}
-.chat-user:hover{background:var(--glass-border)}
-.chat-box{flex:1;display:flex;flex-direction:column}
-.chat-messages{flex:1;padding:16px;overflow:auto}
-.msg{max-width:65%;padding:10px 14px;border-radius:14px;margin-bottom:10px}
-.me{background:#6366f1;color:#fff;margin-left:auto}
-.them{background:#1f2937}
-.chat-input{display:flex;padding:12px;border-top:1px solid var(--glass-border)}
-.chat-input input{flex:1;padding:10px;border-radius:10px;border:none}
-.chat-input button{margin-left:10px}
-</style>
-
 {% endblock %}
