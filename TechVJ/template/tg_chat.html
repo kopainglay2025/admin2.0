@@ -1,75 +1,112 @@
 {% extends "base.html" %}
-{% block header %}TG Chat{% endblock %}
+
+{% block header %}
+TG Chat
+{% endblock %}
+
+{% block content %}
 
 <style>
 .chat {display:flex;height:75vh}
 .list {width:300px;overflow:auto}
 .item {padding:10px;cursor:pointer}
-.badge {float:right;background:red;color:#fff;border-radius:20px;padding:2px 6px}
+.badge {
+  float:right;
+  background:red;
+  color:#fff;
+  border-radius:20px;
+  padding:2px 6px;
+  font-size:12px;
+}
 .box {flex:1;display:flex;flex-direction:column}
 .msgs {flex:1;overflow:auto;padding:10px}
+.msg {
+  margin:6px;
+  padding:8px;
+  border-radius:12px;
+  max-width:60%;
+}
 .msg.user {background:#2563eb;color:#fff}
-.msg.admin {background:#22c55e}
-.msg {margin:6px;padding:8px;border-radius:12px;max-width:60%}
+.msg.admin {background:#22c55e;color:#020617}
 .media {max-width:220px;border-radius:10px}
 </style>
 
 <div class="chat">
   <div class="list" id="chatList"></div>
+
   <div class="box">
     <div class="msgs" id="msgs"></div>
-    <input id="txt" placeholder="Message…" onkeydown="if(event.key==='Enter')send()">
+    <input id="txt"
+           placeholder="Message…"
+           onkeydown="if(event.key==='Enter')send()">
   </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
 <script>
 firebase.initializeApp({
-  databaseURL:"https://mksadmin-6ffeb-default-rtdb.firebaseio.com/"
+  databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com/"
 });
 const db = firebase.database();
 
-let current=null, unread={};
-const ws=new WebSocket(`ws://${location.host}/ws/tg-chat`);
+let current = null;
+let unread = {};
 
-db.ref("tg_chats").on("value",s=>{
-  chatList.innerHTML="";
-  const d=s.val()||{};
-  Object.keys(d).forEach(uid=>{
-    const u=d[uid];
-    chatList.innerHTML+=`
+const ws = new WebSocket(`ws://${location.host}/ws/tg-chat`);
+
+db.ref("tg_chats").on("value", snap => {
+  chatList.innerHTML = "";
+  const data = snap.val() || {};
+  Object.keys(data).forEach(uid => {
+    const u = data[uid];
+    chatList.innerHTML += `
       <div class="item" onclick="openChat('${uid}')">
-        ${u.user?.name||uid}
-        ${unread[uid]?`<span class="badge">${unread[uid]}</span>`:""}
+        ${u.user?.name || uid}
+        ${unread[uid] ? `<span class="badge">${unread[uid]}</span>` : ""}
       </div>`;
   });
 });
 
 function openChat(uid){
-  current=uid; unread[uid]=0; msgs.innerHTML="";
+  current = uid;
+  unread[uid] = 0;
+  msgs.innerHTML = "";
+
   db.ref(`tg_chats/${uid}/messages`).off();
-  db.ref(`tg_chats/${uid}/messages`).on("child_added",s=>{
-    const m=s.val();
-    let html="";
-    if(m.type==="text") html=m.text;
-    if(m.type==="photo") html=`<img src="/tg-file/${m.file_id}" class="media">`;
-    if(m.type==="video") html=`<video controls class="media" src="/tg-file/${m.file_id}"></video>`;
-    if(m.type==="sticker") html=`<img src="/tg-file/${m.file_id}" class="media">`;
-    msgs.innerHTML+=`<div class="msg ${m.from}">${html}</div>`;
-    msgs.scrollTop=msgs.scrollHeight;
+  db.ref(`tg_chats/${uid}/messages`).on("child_added", s => {
+    const m = s.val();
+    let html = "";
+
+    if(m.type === "text") html = m.text;
+    if(m.type === "photo")
+      html = `<img src="/tg-file/${m.file_id}" class="media">`;
+    if(m.type === "video")
+      html = `<video controls class="media" src="/tg-file/${m.file_id}"></video>`;
+    if(m.type === "sticker")
+      html = `<img src="/tg-file/${m.file_id}" class="media">`;
+
+    msgs.innerHTML += `<div class="msg ${m.from}">${html}</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
   });
 }
 
 function send(){
-  if(!current) return;
-  ws.send(JSON.stringify({user_id:current,text:txt.value}));
-  txt.value="";
+  if(!current || !txt.value) return;
+  ws.send(JSON.stringify({
+    user_id: current,
+    text: txt.value
+  }));
+  txt.value = "";
 }
 
-db.ref("tg_chats").on("child_changed",s=>{
-  if(s.key!==current) unread[s.key]=(unread[s.key]||0)+1;
+db.ref("tg_chats").on("child_changed", snap => {
+  if(snap.key !== current){
+    unread[snap.key] = (unread[snap.key] || 0) + 1;
+  }
 });
 </script>
+
 {% endblock %}
