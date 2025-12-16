@@ -1,111 +1,239 @@
 {% extends "base.html" %}
 
 {% block header %}
-TG Chat
+Telegram Chat
 {% endblock %}
 
 {% block content %}
 
 <style>
-.chat {display:flex;height:75vh}
-.list {width:300px;overflow:auto}
-.item {padding:10px;cursor:pointer}
-.badge {
-  float:right;
-  background:red;
-  color:#fff;
-  border-radius:20px;
-  padding:2px 6px;
-  font-size:12px;
+/* layout */
+.tg-chat {
+    display: flex;
+    gap: 18px;
+    height: calc(100vh - 160px);
 }
-.box {flex:1;display:flex;flex-direction:column}
-.msgs {flex:1;overflow:auto;padding:10px}
+
+/* chat list */
+.tg-list {
+    width: 320px;
+    background: var(--bg-sidebar);
+    border-radius: 18px;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.tg-user {
+    padding: 12px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: 0.2s;
+}
+.tg-user:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.tg-user-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+.tg-last {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.unread {
+    float: right;
+    background: #ef4444;
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+/* chat box */
+.tg-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-sidebar);
+    border-radius: 18px;
+}
+
+.tg-messages {
+    flex: 1;
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
 .msg {
-  margin:6px;
-  padding:8px;
-  border-radius:12px;
-  max-width:60%;
+    max-width: 65%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    word-wrap: break-word;
 }
-.msg.user {background:#2563eb;color:#fff}
-.msg.admin {background:#22c55e;color:#020617}
-.media {max-width:220px;border-radius:10px}
+.msg.user {
+    background: #2563eb;
+    color: #fff;
+    align-self: flex-start;
+}
+.msg.admin {
+    background: #22c55e;
+    color: #020617;
+    align-self: flex-end;
+}
+
+.media {
+    max-width: 240px;
+    border-radius: 14px;
+    margin-top: 6px;
+}
+.sticker {
+    max-width: 140px;
+}
+
+/* input */
+.tg-input {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    border-top: 1px solid var(--glass-border);
+}
+.tg-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: none;
+    outline: none;
+    font-family: inherit;
+}
+.tg-input button {
+    padding: 12px 18px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg,var(--accent),var(--accent-2));
+    color: #020617;
+    font-weight: 600;
+}
 </style>
 
-<div class="chat">
-  <div class="list" id="chatList"></div>
+<div class="tg-chat">
 
-  <div class="box">
-    <div class="msgs" id="msgs"></div>
-    <input id="txt"
-           placeholder="Message…"
-           onkeydown="if(event.key==='Enter')send()">
-  </div>
+    <!-- LEFT : CHAT LIST -->
+    <div class="tg-list" id="chatList"></div>
+
+    <!-- RIGHT : CHAT BOX -->
+    <div class="tg-box">
+        <div class="tg-messages" id="messages"></div>
+
+        <div class="tg-input">
+            <input id="msgInput"
+                   placeholder="Type a message…"
+                   onkeydown="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
 </div>
 
-<!-- Firebase -->
+<!-- Firebase JS -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
 <script>
+/* Firebase init (admin read only) */
 firebase.initializeApp({
-  databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com/"
+    databaseURL: "https://mksadmin-6ffeb-default-rtdb.firebaseio.com/"
 });
 const db = firebase.database();
 
-let current = null;
-let unread = {};
+let currentUser = null;
+let unreadMap = {};
 
+/* WebSocket */
 const ws = new WebSocket(`ws://${location.host}/ws/tg-chat`);
 
+/* -------- Chat List Realtime -------- */
 db.ref("tg_chats").on("value", snap => {
-  chatList.innerHTML = "";
-  const data = snap.val() || {};
-  Object.keys(data).forEach(uid => {
-    const u = data[uid];
-    chatList.innerHTML += `
-      <div class="item" onclick="openChat('${uid}')">
-        ${u.user?.name || uid}
-        ${unread[uid] ? `<span class="badge">${unread[uid]}</span>` : ""}
-      </div>`;
-  });
+    const data = snap.val() || {};
+    chatList.innerHTML = "";
+
+    Object.keys(data)
+        .sort((a,b) => data[b].updated_at - data[a].updated_at)
+        .forEach(uid => {
+            const c = data[uid];
+
+            chatList.innerHTML += `
+                <div class="tg-user" onclick="openChat('${uid}')">
+                    <div class="tg-user-name">
+                        ${c.user?.name || uid}
+                        ${unreadMap[uid] ? `<span class="unread">${unreadMap[uid]}</span>` : ""}
+                    </div>
+                    <div class="tg-last">${c.last_message || ""}</div>
+                </div>
+            `;
+        });
 });
 
+/* -------- Open Chat -------- */
 function openChat(uid){
-  current = uid;
-  unread[uid] = 0;
-  msgs.innerHTML = "";
+    currentUser = uid;
+    unreadMap[uid] = 0;
+    messages.innerHTML = "";
 
-  db.ref(`tg_chats/${uid}/messages`).off();
-  db.ref(`tg_chats/${uid}/messages`).on("child_added", s => {
-    const m = s.val();
-    let html = "";
-
-    if(m.type === "text") html = m.text;
-    if(m.type === "photo")
-      html = `<img src="/tg-file/${m.file_id}" class="media">`;
-    if(m.type === "video")
-      html = `<video controls class="media" src="/tg-file/${m.file_id}"></video>`;
-    if(m.type === "sticker")
-      html = `<img src="/tg-file/${m.file_id}" class="media">`;
-
-    msgs.innerHTML += `<div class="msg ${m.from}">${html}</div>`;
-    msgs.scrollTop = msgs.scrollHeight;
-  });
+    db.ref(`tg_chats/${uid}/messages`).off();
+    db.ref(`tg_chats/${uid}/messages`).on("child_added", s => {
+        renderMessage(s.val());
+    });
 }
 
-function send(){
-  if(!current || !txt.value) return;
-  ws.send(JSON.stringify({
-    user_id: current,
-    text: txt.value
-  }));
-  txt.value = "";
+/* -------- Render Message -------- */
+function renderMessage(m){
+    const div = document.createElement("div");
+    div.className = "msg " + m.from;
+
+    if(m.type === "text"){
+        div.innerText = m.text;
+    }
+    if(m.type === "photo"){
+        div.innerHTML = `<img src="/tg-file/${m.file_id}" class="media">`;
+    }
+    if(m.type === "video"){
+        div.innerHTML = `
+            <video controls class="media">
+                <source src="/tg-file/${m.file_id}">
+            </video>`;
+    }
+    if(m.type === "sticker"){
+        div.innerHTML = `<img src="/tg-file/${m.file_id}" class="sticker">`;
+    }
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
 }
 
+/* -------- Send Message -------- */
+function sendMessage(){
+    const text = msgInput.value.trim();
+    if(!text || !currentUser) return;
+
+    ws.send(JSON.stringify({
+        user_id: currentUser,
+        text: text
+    }));
+    msgInput.value = "";
+}
+
+/* -------- Unread Counter -------- */
 db.ref("tg_chats").on("child_changed", snap => {
-  if(snap.key !== current){
-    unread[snap.key] = (unread[snap.key] || 0) + 1;
-  }
+    if(snap.key !== currentUser){
+        unreadMap[snap.key] = (unreadMap[snap.key] || 0) + 1;
+    }
 });
 </script>
 
