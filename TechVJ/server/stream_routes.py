@@ -13,6 +13,9 @@ from ..utils.time_format import get_readable_time
 from ..utils.custom_dl import ByteStreamer
 from TechVJ.utils.render_template import render_page
 from config import MULTI_CLIENT
+import json
+from tg_chat_db import save_msg
+
 
 
 routes = web.RouteTableDef()
@@ -32,18 +35,32 @@ async def admin_dashboard(request):
 
     return await render_page(request, "dashboard.html", context)
 
+
+
 @routes.get("/tg-chat")
-async def tg_chat_page(request):
-    """
-    Render the TG Chat page using base.html
-    """
-    return await render_page(
-        request,
-        "tg_chat.html",  # tg_chat.html ကို base.html extend လုပ်ထားပါတယ်
-        context={
-            "page_title": "TG Chat",
-        }
-    )
+async def tg_chat(request):
+    return await render_page(request, "tg_chat.html", {})
+
+@routes.get("/ws/tg-chat")
+async def tg_chat_ws(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        data = json.loads(msg.data)
+        uid = int(data["user_id"])
+        text = data["text"]
+
+        await StreamBot.send_message(uid, text)
+        save_msg(uid, "admin", "text", {"text": text})
+
+    return ws
+
+@routes.get("/tg-file/{file_id}")
+async def tg_file(request):
+    file_id = request.match_info["file_id"]
+    file = await StreamBot.download_media(file_id, in_memory=True)
+    return web.Response(body=file.getvalue())
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
