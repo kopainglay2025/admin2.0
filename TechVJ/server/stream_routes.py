@@ -52,7 +52,7 @@ async def admin_dashboard(request):
         context = {
             "users": users_list,
             "active_chat": active_chat,
-            "now": datetime.utcnow().isoformat()
+            "now": datetime.utcnow()
         }
         
         return await render_page(request, "dashboard.html", context)
@@ -118,6 +118,26 @@ async def send_message_handler(request):
     except Exception as e:
         logging.error(f"Send Message Error: {e}")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
+
+# Bot က User ဆီက message လက်ခံရရှိတဲ့အခါ ဤ function ကို ခေါ်ပေးရန် လိုအပ်သည်
+async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
+    """
+    Bot က message အသစ်ရရင် ဤ function ကို ခေါ်ပြီး Dashboard ကို update လုပ်ပေးပါ
+    """
+    new_msg = {
+        "message": message_text,
+        "message_type": msg_type,
+        "from_admin": False,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    for ws in active_sockets:
+        await ws.send_json({
+            "type": "new_message",
+            "user_id": user_id,
+            "user_name": user_name,
+            "data": new_msg
+        })
 
 
 @routes.get("/user")
