@@ -44,7 +44,7 @@ class Database:
         chat = dict(
             message=message,
             message_type=message_type,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow().isoformat()
         )
         # Push into single document per user
         await self.chat_col.update_one(
