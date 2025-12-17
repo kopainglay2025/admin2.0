@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Pro | Dashboard</title>
+    <title>Bot Admin | {{ bot_username }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
         :root {
-            /* Dark Theme Colors */
             --bg-body: #0f172a;
             --bg-sidebar: rgba(30, 41, 59, 0.7);
             --card-bg: #1e293b;
@@ -17,245 +16,255 @@
             --accent-glow: rgba(99, 102, 241, 0.4);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.08);
         }
 
         [data-theme="light"] {
-            /* Light Theme Colors */
             --bg-body: #f1f5f9;
-            --bg-sidebar: rgba(255, 255, 255, 0.8);
+            --bg-sidebar: rgba(255, 255, 255, 0.85);
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
-            --border: rgba(0, 0, 0, 0.05);
+            --border: rgba(0, 0, 0, 0.08);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-body); color: var(--text-main); transition: background 0.3s; overflow-x: hidden; }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: var(--bg-body); 
-            color: var(--text-main); 
-            min-height: 100vh; 
-            display: flex; 
-            transition: all 0.3s ease; 
-        }
-
-        /* --- Sidebar --- */
-        .sidebar { 
-            width: 280px; 
-            height: 100vh;
-            backdrop-filter: blur(20px); 
-            background: var(--bg-sidebar); 
-            border-right: 1px solid var(--border); 
-            padding: 24px; 
-            position: fixed; 
-            z-index: 100;
-            transition: 0.3s;
-        }
-
-        .logo { 
-            font-size: 24px; 
-            font-weight: 800; 
-            padding: 10px 15px;
-            margin-bottom: 30px; 
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, #818cf8, #22d3ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .menu-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin: 20px 0 10px 15px;
-            font-weight: 700;
-        }
-
-        .menu { list-style: none; }
-        .menu li { margin-bottom: 5px; }
+        /* Sidebar Navigation */
+        .sidebar { width: 260px; height: 100vh; position: fixed; background: var(--bg-sidebar); backdrop-filter: blur(20px); border-right: 1px solid var(--border); padding: 25px; z-index: 1000; transition: 0.3s; }
+        .logo { font-size: 22px; font-weight: 800; margin-bottom: 35px; background: linear-gradient(135deg, #818cf8, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 12px; }
         
-        .menu a { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            padding: 12px 16px; 
-            border-radius: 12px; 
-            color: var(--text-muted); 
-            text-decoration: none; 
-            font-weight: 500; 
-            font-size: 14px;
-            transition: 0.2s;
-        }
+        .menu-list { list-style: none; }
+        .menu-item { margin-bottom: 8px; }
+        .menu-link { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-radius: 14px; color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.3s; }
+        .menu-link:hover, .menu-link.active { background: var(--accent); color: white; box-shadow: 0 4px 15px var(--accent-glow); }
+        .menu-link i { width: 20px; font-size: 18px; }
 
-        .menu a:hover { 
-            background: rgba(99, 102, 241, 0.1); 
-            color: var(--accent);
-            transform: translateX(4px);
-        }
+        /* Main Wrapper */
+        .main-wrapper { margin-left: 260px; padding: 30px; min-height: 100vh; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .page-info h2 { font-size: 26px; font-weight: 700; }
+        .header-tools { display: flex; gap: 15px; }
 
-        .menu a.active { 
-            background: var(--accent); 
-            color: white; 
-            box-shadow: 0 4px 15px var(--accent-glow);
-        }
+        .theme-btn { cursor: pointer; width: 45px; height: 45px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: var(--card-bg); transition: 0.3s; }
+        .theme-btn:hover { transform: translateY(-2px); border-color: var(--accent); }
 
-        .menu i { font-size: 18px; width: 24px; }
+        /* Dashboard Statistics */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card-bg); padding: 24px; border-radius: 20px; border: 1px solid var(--border); transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; display: block; }
+        .stat-value { font-size: 28px; font-weight: 800; color: var(--text-main); }
+        .stat-badge { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(34, 197, 94, 0.1); color: #22c55e; margin-top: 10px; display: inline-block; }
 
-        .badge { 
-            margin-left: auto; 
-            background: #ef4444;
-            color: white;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 700;
-        }
+        /* Unified Chat Interface */
+        .chat-container { display: grid; grid-template-columns: 320px 1fr; height: 650px; background: var(--card-bg); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        
+        /* Chat Sidebar (User List) */
+        .chat-sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
+        .chat-sidebar-header { padding: 20px; font-weight: 700; font-size: 18px; border-bottom: 1px solid var(--border); }
+        .user-list { overflow-y: auto; flex: 1; }
+        .user-item { padding: 15px 20px; display: flex; gap: 15px; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .user-item:hover { background: rgba(99, 102, 241, 0.08); }
+        .user-item.active { background: rgba(99, 102, 241, 0.15); border-left: 4px solid var(--accent); }
+        
+        .avatar { width: 45px; height: 45px; border-radius: 14px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; position: relative; }
+        .status-online { width: 12px; height: 12px; background: #22c55e; border: 2px solid var(--card-bg); border-radius: 50%; position: absolute; bottom: -2px; right: -2px; }
 
-        /* --- Main Content --- */
-        .content { 
-            margin-left: 280px; 
-            flex: 1; 
-            padding: 30px 40px; 
-            transition: 0.3s;
-        }
+        /* Chat Main Section */
+        .chat-main { display: flex; flex-direction: column; position: relative; }
+        .chat-header { padding: 18px 25px; border-bottom: 1px solid var(--border); background: var(--card-bg); z-index: 10; display: flex; align-items: center; gap: 15px; }
+        
+        .chat-messages { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(var(--border) 1px, transparent 0); background-size: 24px 24px; }
+        
+        .msg { max-width: 70%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; }
+        .msg.received { align-self: flex-start; background: var(--bg-body); color: var(--text-main); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+        .msg.sent { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; box-shadow: 0 4px 12px var(--accent-glow); }
+        .msg-time { font-size: 10px; margin-top: 5px; opacity: 0.7; display: block; text-align: right; }
 
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 40px; 
-        }
+        /* Chat Input */
+        .chat-footer { padding: 20px 25px; background: var(--card-bg); border-top: 1px solid var(--border); display: flex; gap: 15px; align-items: center; }
+        .input-box { flex: 1; background: var(--bg-body); border: 1px solid var(--border); padding: 12px 20px; border-radius: 14px; color: var(--text-main); outline: none; transition: 0.3s; }
+        .input-box:focus { border-color: var(--accent); }
+        .send-btn { width: 48px; height: 48px; border-radius: 14px; background: var(--accent); border: none; color: white; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
+        .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 15px var(--accent-glow); }
 
-        .page-title h1 { font-size: 28px; font-weight: 700; }
-        .page-title p { color: var(--text-muted); font-size: 14px; }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .theme-toggle { 
-            cursor: pointer; 
-            width: 45px;
-            height: 45px;
-            background: var(--card-bg);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            transition: 0.3s;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-
-        .theme-toggle:hover { transform: scale(1.05); }
-
-        /* --- Dashboard Grid Example --- */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-
-        /* Responsive */
         @media (max-width: 1024px) {
-            .sidebar { width: 85px; padding: 20px 10px; }
-            .logo span, .menu span, .menu-label, .badge { display: none; }
-            .content { margin-left: 85px; }
-            .menu a { justify-content: center; padding: 15px; }
+            .sidebar { width: 80px; padding: 20px 10px; }
+            .sidebar span, .logo span { display: none; }
+            .main-wrapper { margin-left: 80px; }
+            .chat-container { grid-template-columns: 1fr; }
+            .chat-sidebar { display: none; }
         }
     </style>
 </head>
 <body data-theme="dark">
 
-<aside class="sidebar">
-    <div class="logo">
-        <i class="fa-solid fa-bolt"></i>
-        <span>ADMIN PRO</span>
-    </div>
-
-    <p class="menu-label">Main Menu</p>
-    <ul class="menu">
-        <li><a href="#" class="active"><i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span></a></li>
-        <li><a href="#"><i class="fa-solid fa-comment-dots"></i> <span>All Chat</span></a></li>
-    </ul>
-
-    <p class="menu-label">Social Channels</p>
-    <ul class="menu">
-        <li><a href="#"><i class="fa-brands fa-facebook-messenger" style="color: #0084ff;"></i> <span>Messenger</span> <span class="badge">12</span></a></li>
-        <li><a href="#"><i class="fa-brands fa-whatsapp" style="color: #25d366;"></i> <span>WhatsApp</span></a></li>
-        <li><a href="#"><i class="fa-brands fa-instagram" style="color: #e4405f;"></i> <span>Instagram</span> <span class="badge">5</span></a></li>
-        <li><a href="#"><i class="fa-brands fa-telegram" style="color: #229ed9;"></i> <span>Telegram</span></a></li>
-    </ul>
-
-    <p class="menu-label">System</p>
-    <ul class="menu">
-        <li><a href="#"><i class="fa-solid fa-gear"></i> <span>Settings</span></a></li>
-    </ul>
-</aside>
-
-<main class="content">
-    <header>
-        <div class="page-title">
-            <h1>Welcome back, Admin!</h1>
-            <p>Here's what's happening with your channels today.</p>
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="fa-solid fa-robot"></i>
+            <span>V-STREAM</span>
         </div>
-        <div class="header-actions">
-            <div class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
-                <i class="fa-solid fa-moon"></i>
+        <ul class="menu-list">
+            <li class="menu-item"><a href="/dashboard" class="menu-link active"><i class="fa-solid fa-chart-line"></i> <span>Dashboard</span></a></li>
+            <li class="menu-item"><a href="#" class="menu-link"><i class="fa-solid fa-comment-dots"></i> <span>Live Chat</span></a></li>
+            <li class="menu-item"><a href="#" class="menu-link"><i class="fa-solid fa-users"></i> <span>TG Users</span></a></li>
+            <li class="menu-item"><a href="#" class="menu-link"><i class="fa-solid fa-gears"></i> <span>Settings</span></a></li>
+        </ul>
+    </aside>
+
+    <main class="main-wrapper">
+        <header>
+            <div class="page-info">
+                <h2>Admin Console</h2>
+                <p style="color: var(--text-muted); font-size: 13px;">Uptime: {{ uptime }} | Version: {{ version }}</p>
+            </div>
+            <div class="header-tools">
+                <div class="theme-btn" onclick="toggleTheme()" id="themeToggle"><i class="fa-solid fa-moon"></i></div>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Bot Username</span>
+                <div class="stat-value" style="font-size: 18px; color: #22d3ee;">@{{ bot_username }}</div>
+                <div class="stat-badge">Active Connection</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Connected Multi-Clients</span>
+                <div class="stat-value">{{ connected_bots }}</div>
+                <div class="stat-badge">Stable</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Current Workloads</span>
+                <div class="stat-value">{{ loads }}%</div>
+                <div class="stat-badge">Healthy</div>
             </div>
         </div>
-    </header>
 
-    <div class="dashboard-grid">
-        <div class="stat-card">
-            <p style="color: var(--text-muted); font-size: 14px;">Total Messages</p>
-            <h2 style="margin-top: 10px; font-size: 24px;">1,284</h2>
-        </div>
-        <div class="stat-card">
-            <p style="color: var(--text-muted); font-size: 14px;">Active Users</p>
-            <h2 style="margin-top: 10px; font-size: 24px;">432</h2>
-        </div>
-        <div class="stat-card">
-            <p style="color: var(--text-muted); font-size: 14px;">Response Rate</p>
-            <h2 style="margin-top: 10px; font-size: 24px;">98%</h2>
-        </div>
-    </div>
+        <h3 style="margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-brands fa-telegram" style="color: #229ed9;"></i> Telegram Live Support
+        </h3>
 
-    <div style="margin-top: 30px;">
-        {% block content %}{% endblock %}
-    </div>
-</main>
+        <div class="chat-container">
+            <div class="chat-sidebar">
+                <div class="chat-sidebar-header">Conversations</div>
+                <div class="user-list">
+                    <div class="user-item active">
+                        <div class="avatar">TG<div class="status-online"></div></div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 14px;">User_ID: 123456</strong>
+                                <span style="font-size: 10px; color: var(--text-muted);">12:40 PM</span>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Hi, is the bot working?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<script>
-    function toggleTheme() {
-        const body = document.body;
-        const icon = document.querySelector('#themeBtn i');
-        
-        if(body.getAttribute('data-theme') === 'dark') {
-            body.setAttribute('data-theme', 'light');
-            icon.className = 'fa-solid fa-sun';
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            icon.className = 'fa-solid fa-moon';
+            <div class="chat-main">
+                <div class="chat-header">
+                    <div class="avatar" style="width: 35px; height: 35px; font-size: 12px;">TG</div>
+                    <div>
+                        <h4 style="font-size: 14px;">Support Chat (ID: 123456)</h4>
+                        <span style="font-size: 11px; color: #22c55e;">Online</span>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="msg received">
+                        Hello! I am having trouble with a file download.
+                        <span class="msg-time">12:38 PM</span>
+                    </div>
+                    <div class="msg sent">
+                        Hi there! Could you please send me the link you're trying to download?
+                        <span class="msg-time">12:39 PM</span>
+                    </div>
+                    <div class="msg received">
+                        It's a movie file. I'll send it now.
+                        <span class="msg-time">12:40 PM</span>
+                    </div>
+                </div>
+
+                <div class="chat-footer">
+                    <input type="text" id="chatInput" class="input-box" placeholder="Write a reply to Telegram user...">
+                    <button class="send-btn" onclick="handleSendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 1. Theme Toggle Logic
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('#themeToggle i');
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                icon.className = 'fa-solid fa-sun';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                icon.className = 'fa-solid fa-moon';
+            }
         }
-    }
-</script>
 
+        // 2. Real Telegram Message Sending Logic
+        async function handleSendMessage() {
+            const input = document.getElementById('chatInput');
+            const chatMessages = document.getElementById('chatMessages');
+            const text = input.value.trim();
+            
+            // Replace with dynamic ID from your user list selection
+            const activeUserId = "123456789"; 
+
+            if (text !== "") {
+                // UI Update (Immediate)
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'msg sent';
+                msgDiv.innerHTML = `${text} <span class="msg-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+                chatMessages.appendChild(msgDiv);
+                
+                input.value = "";
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Backend API Call to Python (aiohttp)
+                try {
+                    const response = await fetch('/api/send_message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: activeUserId,
+                            text: text
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.status !== 'success') {
+                        console.error("Failed to send:", result.message);
+                        msgDiv.style.opacity = "0.5"; // Show failure
+                        msgDiv.innerHTML += " (Failed)";
+                    }
+                } catch (error) {
+                    console.error("Network Error:", error);
+                }
+            }
+        }
+
+        // 3. Listen for Enter Key
+        document.getElementById('chatInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleSendMessage();
+            }
+        });
+
+        // 4. Auto-scroll on Load
+        window.onload = () => {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+    </script>
 </body>
 </html>
