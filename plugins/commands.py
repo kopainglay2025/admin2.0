@@ -19,7 +19,7 @@ import json
 import base64
 from urllib.parse import quote_plus
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
-from TechVJ.server.stream_routes import notify_admin_new_message
+
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -44,6 +44,38 @@ def formate_file_name(file_name):
     file_name = '@VJ_Botz ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
+
+async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
+    """
+    Bot က message အသစ်ရရင် ဤ function ကို ခေါ်ပြီး Dashboard ကို update လုပ်ပေးပါ
+    """
+    new_msg = {
+        "message": message_text,
+        "message_type": msg_type,
+        "from_admin": False,
+        "timestamp": datetime.utcnow().isoformat() # ISO format string အဖြစ် ပို့ဆောင်ခြင်း
+    }
+    
+    try:
+        # main.py မှ active_sockets သို့မဟုတ် Connection Manager ကို ခေါ်ယူခြင်း
+        from main import active_sockets
+        
+        # Dashboard ဖွင့်ထားသော Admin များအားလုံးထံသို့ ပေးပို့ခြင်း
+        for ws in active_sockets:
+            try:
+                await ws.send_json({
+                    "type": "new_message",
+                    "user_id": user_id,
+                    "user_name": user_name,
+                    "data": new_msg
+                })
+            except Exception:
+                # ချိတ်ဆက်မှုပြတ်တောက်နေသော socket များကို ကျော်သွားရန်
+                continue
+    except ImportError:
+        print("Error: active_sockets list not found in main.py")
+    except Exception as e:
+        print(f"WebSocket Notify Error: {e}")
 
 
 @Client.on_message(filters.command("start") & filters.incoming)
@@ -321,7 +353,6 @@ async def base_site_handler(client, m: Message):
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
-
 @Client.on_message(filters.incoming & filters.private)
 async def save_user_message(client, message):
     user_id = message.from_user.id
@@ -351,12 +382,13 @@ async def save_user_message(client, message):
         content = "Unsupported type"
 
     # 1. Database ထဲသို့ သိမ်းဆည်းခြင်း
-    # db.add_chat သည် chat entry ကို ပြန်ပေးသည်ဟု ယူဆသည်
+    # error ရှောင်ရှားရန် timestamp ကို datetime object အတိုင်း db ထဲ ထည့်သွင်းပါ
     await db.add_chat(
         user_id=user_id, 
         user_name=user_name, 
         message=content, 
-        message_type=msg_type
+        message_type=msg_type,
+        timestamp=datetime.utcnow() # strftime error မတက်စေရန် object အတိုင်း သိမ်းပါ
     )
 
     # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
