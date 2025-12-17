@@ -52,7 +52,7 @@ async def admin_dashboard(request):
         context = {
             "users": users_list,
             "active_chat": active_chat,
-            "now": datetime.utcnow()
+            "now": datetime.utcnow().isoformat()
         }
         
         return await render_page(request, "dashboard.html", context)
