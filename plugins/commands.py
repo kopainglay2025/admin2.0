@@ -388,9 +388,19 @@ async def save_user_message(client, message):
     elif message.photo:
         msg_type = "photo"
         file_id = message.photo.file_id
+        direct_link = await get_telegram_file_url(file_id)
+        if direct_link:
+            content = direct_link
+        else:
+            content = f"Sent a {msg_type} (URL error)"
     elif message.video:
         msg_type = "video"
         file_id = message.video.file_id
+        direct_link = await get_telegram_file_url(file_id)
+        if direct_link:
+            content = direct_link
+        else:
+            content = f"Sent a {msg_type} (URL error)"
     elif message.sticker:
         msg_type = "sticker"
         file_id = message.sticker.file_id
@@ -400,17 +410,16 @@ async def save_user_message(client, message):
     elif message.document:
         msg_type = "document"
         file_id = message.document.file_id
-    else:
-        msg_type = "other"
-        content = "Unsupported type"
-
-    # Media ဖြစ်ပါက URL အဖြစ်ပြောင်းလဲခြင်း
-    if file_id:
         direct_link = await get_telegram_file_url(file_id)
         if direct_link:
             content = direct_link
         else:
             content = f"Sent a {msg_type} (URL error)"
+    else:
+        msg_type = "other"
+        content = "Unsupported type"
+
+
 
     # 1. Database ထဲသို့ သိမ်းဆည်းခြင်း
     await db.add_chat(
