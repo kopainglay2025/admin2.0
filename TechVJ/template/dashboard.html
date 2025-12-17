@@ -311,6 +311,90 @@
             </div>
         </div>
     </div>
+<!-- ... ယခင် HTML ကုဒ်များ ... -->
+<!-- Script အပိုင်းတွင် အောက်ပါ Websocket code ကို အစားထိုးပါ -->
+
+<script>
+    const chatWindow = document.getElementById('chatWindow');
+    const messageInput = document.getElementById('messageInput');
+    const messageList = document.getElementById('messageList');
+    const currentUserId = new URLSearchParams(window.location.search).get('user_id');
+
+    // Websocket Connection တည်ဆောက်ခြင်း
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+    ws.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        
+        if (payload.type === "new_message") {
+            // လက်ရှိ ကြည့်နေတဲ့ user ရဲ့ message ဖြစ်ရင် chat list ထဲ ထည့်ပေးမယ်
+            if (payload.user_id.toString() === currentUserId) {
+                appendMessage(payload.data);
+            } else {
+                // တခြား user ဆီက message ဆိုရင် sidebar မှာ notification ပေးမယ် (optional)
+                console.log("New message from user:", payload.user_id);
+            }
+        }
+    };
+
+    function appendMessage(msg) {
+        const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        let msgHtml = '';
+
+        if (msg.from_admin) {
+            msgHtml = `
+                <div class="flex flex-col items-end mb-4 group">
+                    <div class="msg-bubble msg-sent shadow-sm">${msg.message}</div>
+                    <span class="text-[10px] text-slate-400 mt-1 mr-2">${timeStr}</span>
+                </div>
+            `;
+        } else {
+            msgHtml = `
+                <div class="flex flex-col items-start mb-4 group">
+                    <div class="flex items-end gap-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">U</div>
+                        <div class="msg-bubble msg-received shadow-sm">${msg.message}</div>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-1 ml-9">${timeStr}</span>
+                </div>
+            `;
+        }
+        
+        messageList.insertAdjacentHTML('beforeend', msgHtml);
+        scrollToBottom();
+    }
+
+    // Scroll function
+    const scrollToBottom = () => {
+        if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+    };
+
+    // Form submission
+    const replyForm = document.getElementById('replyForm');
+    if (replyForm) {
+        replyForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !currentUserId) return;
+
+            messageInput.value = '';
+            
+            try {
+                await fetch('/send_message', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        message: text
+                    })
+                });
+            } catch (err) {
+                console.error("Error sending message:", err);
+            }
+        };
+    }
+</script>
 
     <script>
         const chatWindow = document.getElementById('chatWindow');
