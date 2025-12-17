@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Telegram Chat History</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #e5ddd5;
+            padding: 20px;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .user-header {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #075E54;
+        }
+        .chat-bubble {
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin: 5px 0;
+            display: inline-block;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        .message.user {
+            background: #dcf8c6;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .message.bot {
+            background: #fff;
+            text-align: left;
+        }
+        .timestamp {
+            font-size: 10px;
+            color: gray;
+            margin-top: 2px;
+        }
+        .media {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        {% for user in users %}
+            <div class="user-header">
+                {{ user.user_name }} (ID: {{ user.user_id }})
+            </div>
+            <div class="chat-bubble">
+                {% for chat in user.chats %}
+                    {% set sender = 'user' if chat.message_type != 'bot' else 'bot' %}
+                    <div class="message {{ sender }}">
+                        {% if chat.message_type == 'photo' %}
+                            <img src="https://api.telegram.org/file/bot<YOUR_BOT_TOKEN>/{{ chat.message }}" class="media">
+                        {% elif chat.message_type == 'video' %}
+                            <video class="media" controls>
+                                <source src="https://api.telegram.org/file/bot<YOUR_BOT_TOKEN>/{{ chat.message }}" type="video/mp4">
+                            </video>
+                        {% elif chat.message_type == 'sticker' or chat.message_type == 'animation' %}
+                            <img src="https://api.telegram.org/file/bot<YOUR_BOT_TOKEN>/{{ chat.message }}" class="media">
+                        {% else %}
+                            {{ chat.message }}
+                        {% endif %}
+                        <div class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
