@@ -13,12 +13,14 @@ from ..utils.time_format import get_readable_time
 from ..utils.custom_dl import ByteStreamer
 from TechVJ.utils.render_template import render_page
 from config import MULTI_CLIENT
-import json
 from tg_chat_db import save_msg
+import json, time
+from tg_chat_db import save_msg, get_user_messages  
 
-
+ws_clients = set()
 
 routes = web.RouteTableDef()
+
 
 
 @routes.get("/", allow_head=True)
@@ -37,30 +39,49 @@ async def admin_dashboard(request):
 
 
 
-@routes.get("/tg-chat")
-async def tg_chat(request):
-    return await render_page(request, "tg_chat.html", {})
 
-@routes.get("/ws/tg-chat")
-async def tg_chat_ws(request):
+@routes.get("/ws/chat")
+async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    async for msg in ws:
-        data = json.loads(msg.data)
-        uid = int(data["user_id"])
-        text = data["text"]
+    ws_clients.add(ws)
 
-        await StreamBot.send_message(uid, text)
-        save_msg(uid, "admin", "text", {"text": text})
+    # Send chat history when admin connects
+    chat_history = await get_user_messages()
+    for msg in chat_history:
+        await ws.send_str(json.dumps({
+            "type": "message",
+            "user_id": msg["user_id"],
+            "sender": msg["sender"],
+            "text": msg["text"],
+            "time": msg["time"]
+        }))
 
+    try:
+        async for msg in ws:
+            if msg.type == web.WSMsgType.TEXT:
+                data = json.loads(msg.data)
+                if data.get("type") == "reply":
+                    from plugins.bot import StreamBot
+                    user_id = data.get("user_id")
+                    text = data.get("text")
+                    await StreamBot.send_message(user_id, text)
+                    ts = int(time.time())
+                    await save_msg(user_id, "admin", text)
+                    # Broadcast the reply to all admin WS clients
+                    for client in ws_clients:
+                        await client.send_str(json.dumps({
+                            "type": "message",
+                            "user_id": user_id,
+                            "sender": "admin",
+                            "text": text,
+                            "time": ts
+                        }))
+    finally:
+        ws_clients.remove(ws)
+    
     return ws
-
-@routes.get("/tg-file/{file_id}")
-async def tg_file(request):
-    file_id = request.match_info["file_id"]
-    file = await StreamBot.download_media(file_id, in_memory=True)
-    return web.Response(body=file.getvalue())
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
