@@ -48,29 +48,29 @@ def formate_file_name(file_name):
 
 
 
-from tg_chat_db import save_msg
 import time, json
 ws_clients = set()
-@Client.on_message(filters.text)
+
+@Client.on_message(filters.private)
 async def handle_user_message(client, message):
     user_id = message.from_user.id
     text = message.text or message.caption or ""
-    ts = int(time.time())
-    
-    await save_msg(user_id, "user", text)
-    
+    user_name = message.from_user.first_name
+
+    # Save user message
+    await db.save_msg(user_id, "user", text, user_name=user_name)
+
+    # Send to all connected admin WS clients
     data = {
-        "type": "message",
+        "type":"message",
         "user_id": user_id,
-        "sender": "user",
-        "user_name": message.from_user.first_name,
+        "sender":"user",
+        "user_name": user_name,
         "text": text,
-        "time": ts
+        "time": int(time.time())
     }
-    
     for ws in ws_clients:
         await ws.send_str(json.dumps(data))
-
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
