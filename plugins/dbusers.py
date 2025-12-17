@@ -6,8 +6,8 @@ class Database:
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
-        self.users_col = self.db.users   # users collection
-        self.chat_col = self.db.chat     # chat collection
+        self.users_col = self.db.users
+        self.chat_col = self.db.chat
 
     # ---- Users functions ----
     def new_user(self, id, name):
@@ -37,28 +37,29 @@ class Database:
         await self.chat_col.delete_many({'user_id': int(user_id)})
 
     # ---- Chat functions ----
-    def new_chat(self, user_id, user_name, message, message_type='text'):
-        """
-        message_type: text, photo, video, sticker, emoji, command, etc.
-        """
-        return dict(
-            user_id=int(user_id),
-            user_name=user_name,
+    async def add_chat(self, user_id, user_name, message, message_type='text'):
+        chat = dict(
             message=message,
             message_type=message_type,
             timestamp=datetime.utcnow()
         )
-
-    async def add_chat(self, user_id, user_name, message, message_type='text'):
-        chat = self.new_chat(user_id, user_name, message, message_type)
-        await self.chat_col.insert_one(chat)
+        # Push into single document per user
+        await self.chat_col.update_one(
+            {'user_id': int(user_id)},                   # filter by user_id
+            {'$setOnInsert': {'user_name': user_name, 'user_id': int(user_id)},
+             '$push': {'chats': chat}},                 # push chat into chats array
+            upsert=True                                  # insert if not exist
+        )
 
     async def get_user_chats(self, user_id, limit=50):
         """
-        Get last `limit` chats of a user
+        Get last `limit` chats of a user (from chats array)
         """
-        cursor = self.chat_col.find({'user_id': int(user_id)}).sort('timestamp', -1).limit(limit)
-        return await cursor.to_list(length=limit)
+        user_doc = await self.chat_col.find_one({'user_id': int(user_id)})
+        if not user_doc or 'chats' not in user_doc:
+            return []
+        # Return last `limit` chats
+        return user_doc['chats'][-limit:]
 
     async def total_chats_count(self):
         return await self.chat_col.count_documents({})
