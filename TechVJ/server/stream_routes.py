@@ -26,36 +26,33 @@ routes = web.RouteTableDef()
 @routes.get("/", allow_head=True)
 @routes.get("/dashboard")
 async def admin_dashboard(request):
-    # Fetch last 50 chats per user from DB (example)
-    user_chats_cursor = db.chat_col.find({}).sort("chats.timestamp", -1)
-    users_chats = await user_chats_cursor.to_list(length=50)  # last 50 messages
+    """
+    Route handler for /dashboard
+    Fetches all chat summaries for the sidebar and 
+    the specific chat history for a selected user.
+    """
+    # 1. Get all chat documents for the sidebar
+    # We use a projection to keep it light (just names and IDs)
+    cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
+    users_list = await cursor.to_list(length=100)
 
-    # Transform chats for template
-    chats_for_template = []
-    for user_doc in users_chats:
-        user_name = user_doc.get("user_name")
-        for chat in user_doc.get("chats", []):
-            chats_for_template.append({
-                "user_name": user_name,
-                "message": chat.get("message"),
-                "message_type": chat.get("message_type"),
-                "timestamp": chat.get("timestamp")
-            })
+    # 2. Get active user from query params (e.g., /dashboard?user_id=123)
+    # Default to the first user if none selected
+    active_user_id = request.query.get('user_id')
+    active_chat = None
+    
+    if active_user_id:
+        active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
+    elif users_list:
+        active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
 
-    # Sort by timestamp ascending
-    chats_for_template.sort(key=lambda x: x["timestamp"])
-
+    # 3. Render the template
     context = {
-        "page": "dashboard",
-        "uptime": get_readable_time(time.time() - StartTime),
-        "bot_username": StreamBot.username,
-        "connected_bots": len(multi_clients),
-        "loads": work_loads,
-        "version": __version__,
-        "chats": chats_for_template
+        "users": users_list,
+        "active_chat": active_chat,
+        "now": datetime.utcnow()
     }
-
-    return await render_page(request, "dashboard.html", context)
+    return render_page("dashboard.html", request, context))
 
 
 
@@ -65,7 +62,7 @@ async def show_user_chats(request):
     Fetch all users and their last 50 messages
     """
     # Query all users who have chat
-    cursor = db.chat_col.find({})
+    cursor = db.get_user_chats.find({})
     users_chats = await cursor.to_list(length=100)  # 100 users max
 
     # Prepare data for template
