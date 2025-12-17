@@ -6,15 +6,15 @@ class Database:
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
-        self.users_col = self.db.users
-        self.chat_col = self.db.chat  # chat collection
+        self.users_col = self.db.users  # single collection for users + chats
 
     # ---- User functions ----
     def new_user(self, id, name):
         return dict(
             id=int(id),
             name=name,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            chats=[]  # chat history stored here
         )
 
     async def add_user(self, id, name):
@@ -35,31 +35,29 @@ class Database:
 
     async def delete_user(self, user_id):
         await self.users_col.delete_many({'id': int(user_id)})
-        await self.chat_col.delete_many({'user_id': int(user_id)})
 
     # ---- Chat functions ----
-    def new_chat(self, user_id, user_name, message, message_type):
-        """
-        message_type: text, photo, video, sticker, emoji
-        """
+    def new_chat(self, message, message_type):
         return dict(
-            user_id=int(user_id),
-            user_name=user_name,
             message=message,
-            message_type=message_type,
+            message_type=message_type,  # text, photo, video, sticker, emoji, command
             timestamp=datetime.utcnow()
         )
 
-    async def add_chat(self, user_id, user_name, message, message_type='text'):
-        chat = self.new_chat(user_id, user_name, message, message_type)
-        await self.chat_col.insert_one(chat)
+    async def add_chat(self, user_id, message, message_type='text'):
+        chat = self.new_chat(message, message_type)
+        # Push chat into user's chats array
+        await self.users_col.update_one(
+            {'id': int(user_id)},
+            {'$push': {'chats': chat}}
+        )
 
     async def get_user_chats(self, user_id, limit=50):
-        """
-        Get last `limit` chats of a user
-        """
-        cursor = self.chat_col.find({'user_id': int(user_id)}).sort('timestamp', -1).limit(limit)
-        return await cursor.to_list(length=limit)
+        user = await self.users_col.find_one({'id': int(user_id)}, {'chats': 1, '_id': 0})
+        if not user or 'chats' not in user:
+            return []
+        # return last `limit` chats
+        return user['chats'][-limit:]
 
 # ---- Initialize DB ----
 db = Database(DB_URI, DB_NAME)
