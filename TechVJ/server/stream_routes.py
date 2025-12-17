@@ -71,7 +71,43 @@ async def admin_dashboard(request):
 
 # Note: Ensure the 'dashboard.html' generated previously is placed in your templates folder.
 
+@routes.post("/send_message")
+async def send_message_handler(request):
+    """
+    Admin ကနေ User ဆီ စာပြန်ပို့တဲ့အခါ လက်ခံဆောင်ရွက်ပေးမယ့် Route
+    """
+    try:
+        data = await request.json()
+        user_id = int(data.get("user_id"))
+        text = data.get("message")
 
+        if not text or not user_id:
+            return web.json_response({"error": "Missing message or user_id"}, status=400)
+
+        # 1. Telegram Bot ကနေ User ဆီ စာပို့ခြင်း
+        # multi_clients[0] ကို သုံးပြီး စာပို့ပါမယ်
+        client = multi_clients[0]
+        sent_msg = await client.send_message(chat_id=user_id, text=text)
+
+        # 2. ပို့လိုက်တဲ့ စာကို Database ထဲမှာ မှတ်တမ်းတင်ခြင်း
+        chat_data = {
+            "message": text,
+            "message_type": "text",
+            "from_admin": True,  # Admin ဆီက ပို့တာဖြစ်ကြောင်း မှတ်သားရန်
+            "timestamp": datetime.utcnow()
+        }
+
+        await db.chat_col.update_one(
+            {'user_id': user_id},
+            {'$push': {'chats': chat_data}},
+            upsert=True
+        )
+
+        return web.json_response({"status": "success", "message_id": sent_msg.id})
+
+    except Exception as e:
+        logging.error(f"Send Message Error: {e}")
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
 
 @routes.get("/user")
 async def show_user_chats(request):
