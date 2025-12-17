@@ -1,112 +1,312 @@
-<!-- base.html with Dark/Light Mode Toggle -->
-
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin 2.0</title>
+    <title>Admin Dashboard UI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Load Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-```
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* Custom CSS Variables for Theme Management */
+        :root {
+            --bg-main: #0b1020;
+            --bg-sidebar: rgba(10, 15, 35, 0.75);
+            --bg-card: #1e293b;
+            --accent: #8b5cf6; /* Violet-500 */
+            --accent-2: #22d3ee; /* Cyan-400 */
+            --text-main: #e5e7eb;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255,255,255,0.08);
+            --shadow-subtle: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06);
+        }
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-sidebar: rgba(255, 255, 255, 0.85);
+            --bg-card: #ffffff;
+            --accent: #7c3aed; /* Deeper Violet-600 */
+            --accent-2: #06b6d4; /* Deeper Cyan-500 */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass-border: rgba(0,0,0,0.08);
+            --shadow-subtle: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03);
+        }
 
-<style>
-    :root {
-        --bg-main: #0b1020;
-        --bg-sidebar: rgba(10, 15, 35, 0.75);
-        --accent: #6366f1;
-        --accent-2: #22d3ee;
-        --text-main: #e5e7eb;
-        --text-muted: #94a3b8;
-        --glass-border: rgba(255,255,255,0.08);
-    }
-    [data-theme="light"] {
-        --bg-main: #f8fafc;
-        --bg-sidebar: rgba(255, 255, 255, 0.85);
-        --text-main: #1e293b;
-        --text-muted: #64748b;
-        --glass-border: rgba(0,0,0,0.08);
-    }
+        /* Base styles */
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
 
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; transition: background 0.3s, color 0.3s; }
+        /* Specific Menu Item Styling (Using the gradient effect) */
+        .menu-link {
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+        .menu-link::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            border-radius: 0.75rem; /* rounded-xl */
+            z-index: -1;
+        }
+        .menu-link:hover {
+            transform: translateX(4px);
+            color: #020617; /* Slate-900 for text contrast */
+        }
+        .menu-link.active, .menu-link:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        }
+        .menu-link.active::before, .menu-link:hover::before {
+            opacity: 1;
+        }
 
-    .sidebar { width: 270px; backdrop-filter: blur(14px); background: var(--bg-sidebar); border-right: 1px solid var(--glass-border); padding: 22px 18px; position: fixed; top: 0; left: 0; bottom: 0; transition: all 0.3s ease; }
-    .logo { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; text-align: center; margin-bottom: 32px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Platform Color Definitions */
+        .fb { --p-start: #1877f2; --p-end: #0e6fe6; }
+        .viber { --p-start: #7360f2; --p-end: #6150e0; }
+        .ig { --p-start: #f58529; --p-end: #8134af; }
+        .tt { --p-start: #00f2ea; --p-end: #00c7e2; }
+        .wa { --p-start: #22c55e; --p-end: #16a34a; }
+        .line { --p-start: #06c755; --p-end: #04b04d; }
+        .tg { --p-start: #229ed9; --p-end: #1a7ebf; }
+        
+        .platform-badge {
+            background: linear-gradient(90deg, var(--p-start), var(--p-end));
+        }
 
-    .menu { list-style: none; padding: 0; margin: 0; }
-    .menu li { margin-bottom: 12px; }
-    .menu a { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; color: var(--text-muted); text-decoration: none; font-weight: 500; position: relative; overflow: hidden; transition: all 0.3s ease; }
-    .menu a::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, var(--accent), var(--accent-2)); opacity: 0; transition: opacity 0.3s ease; z-index: -1; }
-    .menu a:hover::before, .menu a.active::before { opacity: 1; }
-    .menu a:hover, .menu a.active { color: #020617; transform: translateX(6px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
-    .menu i { width: 20px; text-align: center; }
+        .unified-link.active::before {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        }
 
-    .badge { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: #020617; box-shadow: 0 0 0 2px rgba(0,0,0,0.15); }
+        /* Responsive Sidebar toggle */
+        @media (max-width: 900px) {
+            .sidebar { width: 80px; }
+            .logo { display: none; }
+            .menu span { display: none; }
+            .content { margin-left: 80px; }
+        }
 
-    .fb { --p: #1877f2; }
-    .viber { --p: #7360f2; }
-    .ig { --p: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
-    .tt { --p: #00f2ea; }
-    .wa { --p: #22c55e; }
-    .line { --p: #06c755; }
-    .tg { --p: #229ed9; }
-    .platform::before{ background: var(--p); }
-    .unified{ background: linear-gradient(135deg,#facc15,#22d3ee); color:#020617 !important; font-weight:600; }
-
-    .content { margin-left: 270px; flex: 1; padding: 28px 32px; animation: fadeIn 0.5s ease; }
-    header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; }
-    .page-title { font-size: 26px; font-weight: 600; }
-    .theme-toggle { cursor: pointer; font-size: 18px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--glass-border); transition: all 0.3s; }
-    .theme-toggle:hover { background: var(--glass-border); }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 900px) { .sidebar { width: 80px; } .logo { display: none; } .menu span { display: none; } .content { margin-left: 80px; padding: 22px; } }
-</style>
-```
-
+    </style>
 </head>
-<body data-theme="dark">
+<body data-theme="dark" class="bg-[var(--bg-main)] text-[var(--text-main)] min-h-screen flex">
 
-<aside class="sidebar">
-    <div class="logo">Admin</div>
-    <ul class="menu">
-        <li><a href="/dashboard" class="platform"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li>
-        <li><a href="/all-chat" class="platform unified"><i class="fa-solid fa-inbox"></i><span>All Chat</span></a></li>
-        <li><a href="/fb-messenger" class="platform fb"><i class="fa-brands fa-facebook-messenger"></i><span>FB Page</span><span class="badge">3</span></a></li>
-        <li><a href="/viber" class="platform viber"><i class="fa-brands fa-viber"></i><span>Viber</span><span class="badge">1</span></a></li>
-        <li><a href="/instagram" class="platform ig"><i class="fa-brands fa-instagram"></i><span>IG</span><span class="badge">7</span></a></li>
-        <li><a href="/tiktok" class="platform tt"><i class="fa-brands fa-tiktok"></i><span>TikTok</span></a></li>
-        <li><a href="/whatsapp" class="platform wa"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span><span class="badge">2</span></a></li>
-        <li><a href="/line" class="platform line"><i class="fa-brands fa-line"></i><span>LINE</span></a></li>
-        <li><a href="/tg-chat" class="platform tg"><i class="fa-brands fa-telegram"></i><span>TG Chat</span></a></li>
-        <li><a href="/tg-broadcast" class="platform tg"><i class="fa-brands fa-telegram"></i><span>TG Broadcast</span></a></li>
-        <li><a href="/tg-users" class="platform"><i class="fa-solid fa-users"></i><span>TG User List</span></a></li>
-        <li><a href="/settings" class="platform"><i class="fa-solid fa-gear"></i><span>Settings</span></a></li>
-    </ul>
-</aside>
+    <!-- Sidebar -->
+    <aside class="sidebar fixed top-0 bottom-0 left-0 w-[270px] p-5 border-r border-[var(--glass-border)] backdrop-blur-xl bg-[var(--bg-sidebar)] transition-all duration-300 z-50">
+        <div class="logo text-3xl font-extrabold tracking-wider text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]">
+            ADMIN 2.0
+        </div>
+        <ul class="space-y-3">
+            <li>
+                <a href="/dashboard" class="menu-link flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] font-medium hover:text-[#020617] transition-colors duration-300">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="/all-chat" class="menu-link unified-link active flex items-center gap-3 p-3 rounded-xl text-[#020617] font-semibold transition-colors duration-300">
+                    <i class="fa-solid fa-inbox w-5 text-center"></i>
+                    <span>All Chat</span>
+                    <span class="ml-auto bg-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md text-slate-800">13</span>
+                </a>
+            </li>
+            <!-- Platform-specific Links -->
+            <li>
+                <a href="/fb-messenger" class="menu-link fb flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-facebook-messenger w-5 text-center"></i>
+                    <span>FB Messenger</span>
+                    <span class="platform-badge ml-auto text-white text-xs font-bold px-2 py-0.5 rounded-full" style="--p-start: #1877f2; --p-end: #0e6fe6;">3</span>
+                </a>
+            </li>
+            <li>
+                <a href="/viber" class="menu-link viber flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-viber w-5 text-center"></i>
+                    <span>Viber</span>
+                    <span class="platform-badge ml-auto text-white text-xs font-bold px-2 py-0.5 rounded-full" style="--p-start: #7360f2; --p-end: #6150e0;">1</span>
+                </a>
+            </li>
+            <li>
+                <a href="/instagram" class="menu-link ig flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-instagram w-5 text-center"></i>
+                    <span>Instagram</span>
+                    <span class="platform-badge ml-auto text-white text-xs font-bold px-2 py-0.5 rounded-full" style="--p-start: #f58529; --p-end: #dd2a7b; background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af);">7</span>
+                </a>
+            </li>
+            <li>
+                <a href="/tiktok" class="menu-link tt flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-tiktok w-5 text-center"></i>
+                    <span>TikTok</span>
+                </a>
+            </li>
+            <li>
+                <a href="/whatsapp" class="menu-link wa flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-whatsapp w-5 text-center"></i>
+                    <span>WhatsApp</span>
+                    <span class="platform-badge ml-auto text-white text-xs font-bold px-2 py-0.5 rounded-full" style="--p-start: #22c55e; --p-end: #16a34a;">2</span>
+                </a>
+            </li>
+            <li>
+                <a href="/line" class="menu-link line flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-line w-5 text-center"></i>
+                    <span>LINE</span>
+                </a>
+            </li>
+            <li>
+                <a href="/tg-chat" class="menu-link tg flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-brands fa-telegram w-5 text-center"></i>
+                    <span>TG Chat</span>
+                </a>
+            </li>
+            <li class="pt-4 border-t border-[var(--glass-border)] mt-4">
+                <a href="/settings" class="menu-link flex items-center gap-3 p-3 rounded-xl text-[var(--text-muted)] hover:text-[#020617] font-medium">
+                    <i class="fa-solid fa-gear w-5 text-center"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
 
-<main class="content">
-    <header>
-        <div class="page-title">{% block header %}{% endblock %}</div>
-        <div class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
-    </header>
-    {% block content %}{% endblock %}
-</main>
+    <!-- Main Content -->
+    <main class="content ml-[270px] flex-1 p-8 transition-all duration-300">
+        <!-- Header -->
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">All Unified Chat</h1>
+            <button class="theme-toggle p-3 rounded-xl border border-[var(--glass-border)] cursor-pointer hover:bg-[var(--glass-border)] transition-all duration-300" onclick="toggleTheme()">
+                <i class="fa-solid fa-moon text-xl"></i>
+            </button>
+        </header>
+
+        <!-- Content Area: Unified Chat List -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Chat List Panel -->
+            <div class="lg:col-span-1 bg-[var(--bg-card)] rounded-2xl p-6 shadow-xl transition-colors duration-300">
+                <h2 class="text-xl font-semibold mb-4 border-b border-[var(--glass-border)] pb-3">Recent Conversations</h2>
+                <div class="space-y-3">
+                    <!-- Chat Item 1 (Active) -->
+                    <div class="flex items-center p-3 rounded-xl bg-[var(--accent)] text-[#020617] shadow-md cursor-pointer transition-transform duration-200 transform hover:scale-[1.01]">
+                        <div class="relative w-10 h-10 mr-3">
+                            <img src="https://placehold.co/100x100/38bdf8/white?text=A" onerror="this.onerror=null;this.src='https://placehold.co/100x100/38bdf8/white?text=A';" alt="Avatar" class="w-full h-full rounded-full object-cover">
+                            <i class="fa-brands fa-whatsapp absolute bottom-0 right-0 text-xs text-white bg-green-500 rounded-full p-0.5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold truncate">Aung Myint (WA)</p>
+                            <p class="text-xs opacity-80 truncate">Payment confirmed, thank you!</p>
+                        </div>
+                        <span class="text-xs font-semibold ml-2 text-white/90">2m</span>
+                    </div>
+
+                    <!-- Chat Item 2 -->
+                    <div class="flex items-center p-3 rounded-xl bg-[var(--bg-main)] hover:bg-[var(--glass-border)] transition-all duration-200 cursor-pointer border border-[var(--glass-border)] transform hover:scale-[1.01]">
+                        <div class="relative w-10 h-10 mr-3">
+                            <img src="https://placehold.co/100x100/fca5a5/white?text=J" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fca5a5/white?text=J';" alt="Avatar" class="w-full h-full rounded-full object-cover">
+                            <i class="fa-brands fa-facebook-messenger absolute bottom-0 right-0 text-xs text-white bg-blue-600 rounded-full p-0.5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">Jasmine L.</p>
+                            <p class="text-xs text-[var(--text-muted)] truncate">Checking on order #90210...</p>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] ml-2">1h</span>
+                    </div>
+
+                    <!-- Chat Item 3 -->
+                    <div class="flex items-center p-3 rounded-xl bg-[var(--bg-main)] hover:bg-[var(--glass-border)] transition-all duration-200 cursor-pointer border border-[var(--glass-border)] transform hover:scale-[1.01]">
+                        <div class="relative w-10 h-10 mr-3">
+                            <img src="https://placehold.co/100x100/a78bfa/white?text=L" onerror="this.onerror=null;this.src='https://placehold.co/100x100/a78bfa/white?text=L';" alt="Avatar" class="w-full h-full rounded-full object-cover">
+                            <i class="fa-brands fa-line absolute bottom-0 right-0 text-xs text-white bg-green-500 rounded-full p-0.5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">Lin Nyo</p>
+                            <p class="text-xs text-[var(--text-muted)] truncate">Re: [Ticket #45] The feature is broken.</p>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] ml-2">5h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Window Panel -->
+            <div class="lg:col-span-2 bg-[var(--bg-card)] rounded-2xl p-6 shadow-xl transition-colors duration-300 flex flex-col h-[70vh]">
+                <div class="flex items-center border-b border-[var(--glass-border)] pb-4 mb-4">
+                    <img src="https://placehold.co/100x100/38bdf8/white?text=A" onerror="this.onerror=null;this.src='https://placehold.co/100x100/38bdf8/white?text=A';" alt="Avatar" class="w-10 h-10 rounded-full object-cover mr-3">
+                    <div>
+                        <p class="font-bold text-lg">Aung Myint</p>
+                        <p class="text-xs text-[var(--text-muted)]">Active on WhatsApp</p>
+                    </div>
+                    <button class="ml-auto text-sm text-[var(--accent)] hover:text-[var(--accent-2)] transition-colors duration-200">View Profile</button>
+                </div>
+                
+                <!-- Messages Placeholder -->
+                <div class="flex-1 overflow-y-auto space-y-4 mb-4">
+                    <!-- User Message -->
+                    <div class="flex justify-start">
+                        <div class="max-w-xs md:max-w-md bg-gray-600/20 text-[var(--text-main)] p-4 rounded-t-2xl rounded-br-2xl shadow-md">
+                            Hi, I just completed the bank transfer for order XYZ. Can you confirm the payment?
+                            <div class="text-right text-xs text-[var(--text-muted)] mt-1">1:55 PM</div>
+                        </div>
+                    </div>
+                    <!-- Agent Reply -->
+                    <div class="flex justify-end">
+                        <div class="max-w-xs md:max-w-md bg-[var(--accent)] text-white p-4 rounded-t-2xl rounded-bl-2xl shadow-md">
+                            Thank you for letting us know! Let me check that for you.
+                            <div class="text-right text-xs text-white/80 mt-1">1:56 PM</div>
+                        </div>
+                    </div>
+                    <!-- Agent Reply 2 -->
+                    <div class="flex justify-end">
+                        <div class="max-w-xs md:max-w-md bg-[var(--accent)] text-white p-4 rounded-t-2xl rounded-bl-2xl shadow-md">
+                            <i class="fa-solid fa-check-circle mr-1"></i> Payment confirmed. Your order will be processed immediately!
+                            <div class="text-right text-xs text-white/80 mt-1">1:58 PM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Box -->
+                <div class="mt-auto flex gap-3">
+                    <input type="text" placeholder="Type your message here..." class="flex-1 p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--glass-border)] focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition-all duration-200 text-[var(--text-main)] placeholder-[var(--text-muted)]">
+                    <button class="bg-[var(--accent)] text-white p-4 rounded-xl hover:bg-[var(--accent-2)] transition-colors duration-300 w-16">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
 
 <script>
+/**
+ * Toggles the theme between 'dark' and 'light' by changing the data-theme attribute on the body.
+ */
 function toggleTheme() {
     const body = document.body;
+    const toggleIcon = document.querySelector('.theme-toggle i');
+    
     if(body.getAttribute('data-theme') === 'dark') {
+        // Switch to Light Mode
         body.setAttribute('data-theme', 'light');
-        document.querySelector('.theme-toggle i').className = 'fa-solid fa-sun';
+        if (toggleIcon) {
+            toggleIcon.className = 'fa-solid fa-sun';
+        }
     } else {
+        // Switch to Dark Mode
         body.setAttribute('data-theme', 'dark');
-        document.querySelector('.theme-toggle i').className = 'fa-solid fa-moon';
+        if (toggleIcon) {
+            toggleIcon.className = 'fa-solid fa-moon';
+        }
     }
 }
+
+// Initialize the icon based on the current theme on load
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const toggleIcon = document.querySelector('.theme-toggle i');
+    if (body.getAttribute('data-theme') === 'light' && toggleIcon) {
+        toggleIcon.className = 'fa-solid fa-sun';
+    } else if (toggleIcon) {
+        toggleIcon.className = 'fa-solid fa-moon';
+    }
+});
 </script>
 
 </body>
