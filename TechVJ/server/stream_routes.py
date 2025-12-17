@@ -34,6 +34,7 @@ async def root_route_handler(request):
 @routes.get("/dashboard")
 async def admin_dashboard(request):
     try:
+        # User list ကို နောက်ဆုံး message တစ်ခုနဲ့အတူ ဆွဲထုတ်ခြင်း
         cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
         users_list = await cursor.to_list(length=100)
 
@@ -46,6 +47,7 @@ async def admin_dashboard(request):
             except (ValueError, TypeError):
                 active_chat = None
         
+        # အကယ်၍ user ရွေးမထားရင် ပထမဆုံး user ကို default ပြခြင်း
         if not active_chat and users_list:
             active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
 
@@ -55,6 +57,7 @@ async def admin_dashboard(request):
             "now": datetime.utcnow()
         }
         
+        # render_page သည် သင့်ရဲ့ template rendering function ဖြစ်ရပါမည်
         return await render_page(request, "dashboard.html", context)
         
     except Exception as e:
@@ -64,7 +67,7 @@ async def admin_dashboard(request):
 @routes.get("/ws")
 async def websocket_handler(request):
     """
-    Real-time update ရရန် Websocket handler
+    Dashboard သို့ Real-time updates များ ပို့ဆောင်ရန် WebSocket
     """
     ws = web.WebSocketResponse()
     await ws.prepare(request)
@@ -81,6 +84,9 @@ async def websocket_handler(request):
 
 @routes.post("/send_message")
 async def send_message_handler(request):
+    """
+    Admin မှ User ဆီသို့ စာပြန်သည့်အခါ ခေါ်ဆိုသည့် API
+    """
     try:
         data = await request.json()
         user_id = int(data.get("user_id"))
@@ -89,14 +95,17 @@ async def send_message_handler(request):
         if not text or not user_id:
             return web.json_response({"error": "Missing message or user_id"}, status=400)
 
+        # Multi-client setup ရှိပါက ပထမဆုံး client ကို သုံး၍ စာပို့ခြင်း
         client = multi_clients[0]
         sent_msg = await client.send_message(chat_id=user_id, text=text)
 
+        # Database ထဲတွင် သိမ်းဆည်းရန် Data
+        # dashboard.html ရှိ strftime နှင့် ကိုက်ညီစေရန် datetime object သုံးပါ
         chat_data = {
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow() # ISO string အစား object အတိုင်းသိမ်းခြင်း
         }
 
         await db.chat_col.update_one(
@@ -105,13 +114,19 @@ async def send_message_handler(request):
             upsert=True
         )
 
-        # Websocket မှတစ်ဆင့် connected ဖြစ်နေသူအားလုံးကို update ပို့ပေးခြင်း
+        # WebSocket မှတစ်ဆင့် UI update လုပ်ရန်အတွက်မူ string သာပို့ရမည်
+        ws_data = chat_data.copy()
+        ws_data["timestamp"] = ws_data["timestamp"].isoformat()
+
         for ws in active_sockets:
-            await ws.send_json({
-                "type": "new_message",
-                "user_id": user_id,
-                "data": chat_data
-            })
+            try:
+                await ws.send_json({
+                    "type": "new_message",
+                    "user_id": user_id,
+                    "data": ws_data
+                })
+            except:
+                continue
 
         return web.json_response({"status": "success", "message_id": sent_msg.id})
 
@@ -119,10 +134,9 @@ async def send_message_handler(request):
         logging.error(f"Send Message Error: {e}")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
-# Bot က User ဆီက message လက်ခံရရှိတဲ့အခါ ဤ function ကို ခေါ်ပေးရန် လိုအပ်သည်
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
     """
-    Bot က message အသစ်ရရင် ဤ function ကို ခေါ်ပြီး Dashboard ကို update လုပ်ပေးပါ
+    Telegram Bot ဆီမှ message အသစ်ရောက်လာတိုင်း WebSocket သို့ လှမ်းပို့ပေးသော function
     """
     new_msg = {
         "message": message_text,
@@ -132,12 +146,15 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
     }
     
     for ws in active_sockets:
-        await ws.send_json({
-            "type": "new_message",
-            "user_id": user_id,
-            "user_name": user_name,
-            "data": new_msg
-        })
+        try:
+            await ws.send_json({
+                "type": "new_message",
+                "user_id": user_id,
+                "user_name": user_name,
+                "data": new_msg
+            })
+        except:
+            continue
 @routes.get("/user")
 async def show_user_chats(request):
     """
