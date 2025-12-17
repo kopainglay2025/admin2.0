@@ -35,6 +35,7 @@
             border-radius: 10px; 
         }
 
+        /* Message Bubbles */
         .msg-bubble { 
             max-width: 70%; 
             padding: 10px 16px; 
@@ -55,6 +56,33 @@
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); 
             color: white; 
             border-bottom-right-radius: 4px; 
+        }
+
+        /* Media Preview Styles */
+        .media-container {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            max-width: 300px;
+            background: #eee;
+            border: 1px solid #e2e8f0;
+        }
+
+        .media-container:hover {
+            opacity: 0.9;
+        }
+
+        .media-preview-img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .media-preview-video {
+            width: 100%;
+            display: block;
         }
 
         .animate-pop-in {
@@ -126,7 +154,7 @@
                     <div class="flex-1 overflow-hidden">
                         <div class="flex justify-between items-center mb-0.5">
                             <span class="font-bold text-slate-800 truncate text-[15px]">{{ user.user_name }}</span>
-                            <span class="text-[11px] text-slate-400 font-medium">Just now</span>
+                            <span class="text-[11px] text-slate-400 font-medium">Active</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <p id="last-msg-{{ user.user_id }}" class="text-[13px] text-slate-500 truncate pr-2">
@@ -160,11 +188,6 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex gap-4 text-slate-400">
-                    <button class="hover:text-blue-600"><i class="fas fa-phone-alt"></i></button>
-                    <button class="hover:text-blue-600"><i class="fas fa-video"></i></button>
-                    <button class="hover:text-blue-600"><i class="fas fa-info-circle"></i></button>
-                </div>
             </div>
 
             <!-- Messages List -->
@@ -172,9 +195,27 @@
                 <div class="flex flex-col gap-4" id="messageList">
                     {% for msg in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }}">
+                        
+                        <!-- Media Preview Rendering -->
+                        {% if msg.message_type == 'photo' %}
+                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'photo.jpg')">
+                            <img src="{{ msg.message }}" alt="User Image" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Photo+Unavailable'">
+                        </div>
+                        {% elif msg.message_type == 'video' %}
+                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'video.mp4')">
+                            <video class="media-preview-video">
+                                <source src="{{ msg.message }}" type="video/mp4">
+                            </video>
+                            <div class="p-2 text-center text-xs font-bold text-slate-500 bg-white">
+                                <i class="fas fa-play mr-1"></i> Play / Download Video
+                            </div>
+                        </div>
+                        {% else %}
                         <div class="msg-bubble {{ 'msg-sent' if msg.from_admin else 'msg-received' }}">
                             {{ msg.message }}
                         </div>
+                        {% endif %}
+
                         <span class="text-[10px] text-slate-400 mt-1 px-1">
                             {% if msg.timestamp %}
                                 {% if msg.timestamp is string %}
@@ -204,7 +245,6 @@
             </div>
 
             {% else %}
-            <!-- Empty State -->
             <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
                 <div class="bg-white p-8 rounded-full shadow-sm mb-4">
                     <i class="far fa-comments text-6xl text-slate-200"></i>
@@ -222,12 +262,21 @@
         const messageInput = document.getElementById('messageInput');
         const statusText = document.getElementById('statusText');
         const statusDot = document.getElementById('statusDot');
-        
-        // URL မှ User ID ကို ရယူခြင်း
         const urlParams = new URLSearchParams(window.location.search);
         const currentUserId = urlParams.get('user_id');
 
-        // WebSocket ချိတ်ဆက်မှု တည်ဆောက်ခြင်း
+        // Media Download Helper
+        function downloadMedia(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.target = "_blank";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // WebSocket Connection
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
@@ -243,24 +292,18 @@
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            
             if (data.type === "new_message") {
                 const msg = data.data;
                 const senderId = data.user_id.toString();
 
-                // 1. Sidebar က နောက်ဆုံးစာသားကို ချက်ချင်း Update လုပ်မယ်
                 const lastMsgEl = document.getElementById(`last-msg-${senderId}`);
                 if (lastMsgEl) {
-                    lastMsgEl.innerText = (msg.from_admin ? "You: " : "") + msg.message;
-                    lastMsgEl.classList.add('text-blue-600', 'font-medium');
-                    setTimeout(() => lastMsgEl.classList.remove('text-blue-600', 'font-medium'), 3000);
+                    lastMsgEl.innerText = msg.message_type !== 'text' ? `Sent a ${msg.message_type}` : (msg.from_admin ? "You: " : "") + msg.message;
                 }
 
-                // 2. လက်ရှိကြည့်နေတဲ့ User ဆီကစာဆိုရင် Screen ပေါ်တင်ပြမယ်
                 if (senderId === currentUserId) {
                     appendMessage(msg);
                 } else {
-                    // အခြား User ဆိုရင် အသိပေးချက် အနီစက်ပြမယ်
                     const unreadEl = document.getElementById(`unread-${senderId}`);
                     if (unreadEl) unreadEl.classList.remove('hidden');
                 }
@@ -269,58 +312,52 @@
 
         function appendMessage(msg) {
             if (!messageList) return;
-
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const msgDiv = document.createElement('div');
             msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-pop-in`;
             
-            msgDiv.innerHTML = `
-                <div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">
-                    ${msg.message}
-                </div>
-                <span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>
-            `;
-            
+            let contentHtml = '';
+            if (msg.message_type === 'photo') {
+                contentHtml = `
+                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'photo.jpg')">
+                        <img src="${msg.message}" class="media-preview-img">
+                    </div>`;
+            } else if (msg.message_type === 'video') {
+                contentHtml = `
+                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'video.mp4')">
+                        <video class="media-preview-video"><source src="${msg.message}" type="video/mp4"></video>
+                        <div class="p-2 text-center text-xs font-bold text-slate-500 bg-white">Play / Download Video</div>
+                    </div>`;
+            } else {
+                contentHtml = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
+            }
+
+            msgDiv.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>`;
             messageList.appendChild(msgDiv);
             scrollToBottom();
         }
 
         function scrollToBottom() {
-            if (chatWindow) {
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-            }
+            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Reply ပို့သည့်အပိုင်း
         const replyForm = document.getElementById('replyForm');
         if (replyForm) {
             replyForm.onsubmit = async (e) => {
                 e.preventDefault();
                 const text = messageInput.value.trim();
                 if (!text || !currentUserId) return;
-
-                const originalText = text;
                 messageInput.value = '';
-
                 try {
-                    const response = await fetch('/send_message', {
+                    await fetch('/send_message', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            user_id: currentUserId, 
-                            message: originalText 
-                        })
+                        body: JSON.stringify({ user_id: currentUserId, message: text })
                     });
-                    
-                    if (!response.ok) throw new Error("Failed to send");
-                } catch (err) {
-                    console.error(err);
-                    messageInput.value = originalText;
-                }
+                } catch (err) { console.error(err); }
             };
         }
 
-        // စာမျက်နှာစဖွင့်ချိန်တွင် အောက်ဆုံးသို့ ရွှေ့ထားရန်
         window.onload = scrollToBottom;
     </script>
 </body>
