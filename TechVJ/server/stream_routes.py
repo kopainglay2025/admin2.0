@@ -15,8 +15,11 @@ from TechVJ.utils.render_template import render_page
 from config import MULTI_CLIENT
 from tg_chat_db import save_msg
 import json, time
-from tg_chat_db import save_msg, get_user_messages  
+
 from plugins.commands import ws_clients
+
+from tg_chat_db import save_msg, get_user_messages, get_users_list
+
 
 
 routes = web.RouteTableDef()
@@ -47,29 +50,25 @@ async def websocket_handler(request):
 
     ws_clients.add(ws)
 
-    # Send chat history when admin connects
-    chat_history = await get_user_messages()
-    for msg in chat_history:
-        await ws.send_str(json.dumps({
-            "type": "message",
-            "user_id": msg["user_id"],
-            "sender": msg["sender"],
-            "text": msg["text"],
-            "time": msg["time"]
-        }))
+    # Send user list and chat history
+    users = await get_users_list()
+    await ws.send_str(json.dumps({"type": "users_list", "users": users}))
 
     try:
         async for msg in ws:
             if msg.type == web.WSMsgType.TEXT:
                 data = json.loads(msg.data)
+                
                 if data.get("type") == "reply":
                     from plugins.bot import StreamBot
                     user_id = data.get("user_id")
                     text = data.get("text")
-                    await StreamBot.send_message(user_id, text)
                     ts = int(time.time())
+
+                    await StreamBot.send_message(user_id, text)
                     await save_msg(user_id, "admin", text)
-                    # Broadcast the reply to all admin WS clients
+
+                    # Broadcast to all admin WS clients
                     for client in ws_clients:
                         await client.send_str(json.dumps({
                             "type": "message",
@@ -78,6 +77,16 @@ async def websocket_handler(request):
                             "text": text,
                             "time": ts
                         }))
+
+                elif data.get("type") == "fetch_chat":
+                    # Fetch chat history for selected user
+                    user_id = data.get("user_id")
+                    messages = await get_user_messages(user_id)
+                    await ws.send_str(json.dumps({
+                        "type": "chat_history",
+                        "user_id": user_id,
+                        "messages": messages
+                    }))
     finally:
         ws_clients.remove(ws)
     
