@@ -5,31 +5,47 @@
 <title>Admin Chat Dashboard</title>
 <style>
 body, html { margin:0; padding:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f2f3f5; height:100%; }
-.wrapper { display:flex; height:100vh; }
+.wrapper { display:flex; height:100vh; overflow:hidden; }
 
-/* Sidebar (User List) */
-.sidebar { width:250px; background:#fff; border-right:1px solid #ddd; overflow-y:auto; }
-.sidebar h2 { text-align:center; padding:15px 0; margin:0; font-size:1.2em; border-bottom:1px solid #eee; }
-.user-item { padding:12px 20px; cursor:pointer; display:flex; align-items:center; transition:0.2s; border-bottom:1px solid #f0f0f0; }
-.user-item:hover { background:#f5f6f7; }
-.user-avatar { width:35px; height:35px; border-radius:50%; background:#90caf9; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px; }
+/* Sidebar */
+.sidebar {
+    width:260px;
+    background: linear-gradient(180deg, #37474f 0%, #263238 100%);
+    color:white;
+    display:flex;
+    flex-direction:column;
+}
+.sidebar h2 {
+    text-align:center; padding:20px 0; margin:0; font-size:1.4em; letter-spacing:1px;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+}
+.sidebar a {
+    padding:15px 25px; display:block; color:white; border-left:3px solid transparent; transition:0.3s; font-weight:500;
+}
+.sidebar a:hover, .sidebar a.active {
+    background: rgba(255,255,255,0.05); border-left:3px solid #4fc3f7; transform: translateX(5px);
+}
+.user-list { flex:1; overflow-y:auto; }
+.user-item { padding:12px 20px; cursor:pointer; display:flex; align-items:center; transition:0.2s; border-bottom:1px solid rgba(255,255,255,0.1); }
+.user-item:hover { background: rgba(255,255,255,0.08); }
+.user-avatar { width:40px; height:40px; border-radius:50%; background:#4fc3f7; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px; flex-shrink:0; }
 
 /* Chat Window */
 .chat-window { flex:1; display:flex; flex-direction:column; background:#f0f2f5; }
-.chat-header { padding:15px 20px; background:#fff; border-bottom:1px solid #ddd; font-weight:bold; font-size:1.1em; }
+.chat-header { padding:15px 20px; background:#fff; border-bottom:1px solid #ddd; font-weight:bold; font-size:1.1em; display:flex; align-items:center; justify-content:space-between; }
 .chat-container { flex:1; padding:20px; display:flex; flex-direction:column; overflow-y:auto; }
-.chat-wrapper { display:flex; flex-direction:column; margin-bottom:10px; }
-.chat-bubble { padding:10px 15px; border-radius:18px; max-width:65%; position:relative; transition:0.2s; word-wrap:break-word; }
-.chat-bubble:hover { box-shadow:0 2px 8px rgba(0,0,0,0.15); }
-.chat-user { background:#fff; align-self:flex-start; color:#333; border:1px solid #e0e0e0; }
+.chat-wrapper { display:flex; flex-direction:column; margin-bottom:12px; }
+.chat-bubble { padding:12px 18px; border-radius:20px; max-width:65%; position:relative; word-wrap:break-word; transition:0.2s; }
+.chat-bubble:hover { box-shadow:0 3px 10px rgba(0,0,0,0.15); }
+.chat-user { background:#fff; align-self:flex-start; color:#333; border:1px solid #ddd; }
 .chat-bot { background:#4fc3f7; align-self:flex-end; color:#fff; text-align:right; }
-.chat-time { font-size:0.75em; color:#999; margin-top:3px; }
+.chat-time { font-size:0.75em; color:#999; margin-top:4px; }
 
 /* Responsive */
 @media (max-width:768px){
-  .wrapper { flex-direction:column; }
-  .sidebar { width:100%; height:80px; display:flex; overflow-x:auto; }
-  .user-item { flex:1; justify-content:center; padding:10px; }
+    .wrapper { flex-direction:column; }
+    .sidebar { width:100%; height:80px; flex-direction:row; overflow-x:auto; }
+    .sidebar a { flex:1; text-align:center; padding:12px; font-size:0.9em; }
 }
 </style>
 </head>
@@ -37,44 +53,74 @@ body, html { margin:0; padding:0; font-family:'Segoe UI', Tahoma, Geneva, Verdan
 
 <div class="wrapper">
 
-  <!-- User List -->
+  <!-- Sidebar -->
   <div class="sidebar">
-    <h2>Users</h2>
-    {% for user in users %}
-      <div class="user-item" onclick="showUserChats('{{ user.id }}','{{ user.name }}')">
+    <h2>Admin Menu</h2>
+    <a href="/dashboard" class="active">Dashboard</a>
+    <a href="/users">Users</a>
+    <a href="/chat">Chat History</a>
+    <a href="/settings">Settings</a>
+    <a href="/logout">Logout</a>
+    <div class="user-list" id="user-list">
+      {% for user in users %}
+      <div class="user-item" onclick="loadUserChats('{{ user.id }}','{{ user.name }}')">
         <div class="user-avatar">{{ user.name[0]|upper }}</div>
         <div class="user-name">{{ user.name }}</div>
       </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
   </div>
 
   <!-- Chat Window -->
   <div class="chat-window">
     <div class="chat-header" id="chat-header">Select a user to view chats</div>
     <div class="chat-container" id="chat-container">
-      <!-- Chats will appear here -->
-      {% if chats %}
-        {% for chat in chats %}
-          <div class="chat-wrapper" style="align-items: {% if chat.message_type=='command' %}flex-end{% else %}flex-start{% endif %};">
-            <div class="chat-bubble {% if chat.message_type=='command' %}chat-bot{% else %}chat-user{% endif %}">
-              <strong>{{ chat.user_name }}:</strong> {{ chat.message }}
-              <div class="chat-time">{{ chat.timestamp }}</div>
-            </div>
-          </div>
-        {% endfor %}
-      {% endif %}
+      <!-- Chats will appear here dynamically -->
+      <p style="text-align:center;color:#888;">Select a user from the left panel</p>
     </div>
   </div>
 
 </div>
 
 <script>
-// Example JS to fetch chats for selected user
-function showUserChats(userId, userName){
-  document.getElementById('chat-header').innerText = "Chats with " + userName;
-  // TODO: AJAX fetch /chat/user/<userId> and update #chat-container
-  // For now, just clear container
-  document.getElementById('chat-container').innerHTML = "<p style='text-align:center;color:#888;'>Loading chats for " + userName + "...</p>";
+// Example JS AJAX to fetch chats
+async function loadUserChats(userId, userName){
+    document.getElementById('chat-header').innerText = "Chats with " + userName;
+    const container = document.getElementById('chat-container');
+    container.innerHTML = "<p style='text-align:center;color:#888;'>Loading chats...</p>";
+
+    try {
+        const response = await fetch(`/chat/user/${userId}`);
+        const data = await response.json();
+        container.innerHTML = '';
+        data.chats.forEach(chat => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chat-wrapper';
+            wrapper.style.alignItems = chat.message_type=='command' ? 'flex-end' : 'flex-start';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble ' + (chat.message_type=='command' ? 'chat-bot' : 'chat-user');
+
+            if(chat.message_type=='photo'){
+                bubble.innerHTML = `<strong>${chat.user_name}:</strong><br><img src="${chat.message}" style="max-width:200px;border-radius:10px;">`;
+            } else if(chat.message_type=='video'){
+                bubble.innerHTML = `<strong>${chat.user_name}:</strong><br><video src="${chat.message}" controls style="max-width:200px;border-radius:10px;"></video>`;
+            } else {
+                bubble.innerHTML = `<strong>${chat.user_name}:</strong> ${chat.message}`;
+            }
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'chat-time';
+            timeDiv.innerText = chat.timestamp;
+            bubble.appendChild(timeDiv);
+
+            wrapper.appendChild(bubble);
+            container.appendChild(wrapper);
+        });
+        container.scrollTop = container.scrollHeight; // auto scroll to bottom
+    } catch(e){
+        container.innerHTML = "<p style='text-align:center;color:red;'>Failed to load chats</p>";
+    }
 }
 </script>
 
