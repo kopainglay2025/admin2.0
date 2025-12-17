@@ -52,7 +52,7 @@ async def admin_dashboard(request):
         context = {
             "users": users_list,
             "active_chat": active_chat,
-            "now": datetime.utcnow().isoformat()
+            "now": datetime.utcnow()
         }
         
         return await render_page(request, "dashboard.html", context)
@@ -96,7 +96,7 @@ async def send_message_handler(request):
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow()
         }
 
         await db.chat_col.update_one(
