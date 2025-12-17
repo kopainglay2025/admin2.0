@@ -86,7 +86,7 @@
         }
 
         .animate-pop-in {
-            animation: popIn 0.2s ease-out;
+            animation: popIn 0.2s ease-out forwards;
         }
 
         @keyframes popIn {
@@ -100,11 +100,12 @@
         }
 
         .notification-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background-color: #ef4444;
             border-radius: 50%;
             display: inline-block;
+            border: 2px solid white;
         }
     </style>
 </head>
@@ -159,7 +160,12 @@
                         <div class="flex justify-between items-center">
                             <p id="last-msg-{{ user.user_id }}" class="text-[13px] text-slate-500 truncate pr-2">
                                 {% if user.chats %}
-                                    {{ "You: " if user.chats[-1].from_admin else "" }}{{ user.chats[-1].message }}
+                                    {{ "You: " if user.chats[-1].from_admin else "" }}
+                                    {% if user.chats[-1].message_type == 'text' %}
+                                        {{ user.chats[-1].message }}
+                                    {% else %}
+                                        Sent a {{ user.chats[-1].message_type }}
+                                    {% endif %}
                                 {% else %}
                                     No messages yet
                                 {% endif %}
@@ -197,18 +203,22 @@
                     <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }}">
                         
                         <!-- Media Preview Rendering -->
-                        {% if msg.message_type == 'photo' %}
-                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'photo.jpg')">
-                            <img src="{{ msg.message }}" alt="User Image" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Photo+Unavailable'">
+                        {% if msg.message_type in ['photo', 'sticker', 'animation'] %}
+                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'media_file')">
+                            <img src="{{ msg.message }}" alt="Media" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
                         </div>
                         {% elif msg.message_type == 'video' %}
                         <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'video.mp4')">
-                            <video class="media-preview-video">
+                            <video class="media-preview-video" controls>
                                 <source src="{{ msg.message }}" type="video/mp4">
                             </video>
-                            <div class="p-2 text-center text-xs font-bold text-slate-500 bg-white">
-                                <i class="fas fa-play mr-1"></i> Play / Download Video
+                        </div>
+                        {% elif msg.message_type == 'document' %}
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('{{ msg.message }}', 'document')">
+                            <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
+                                <i class="fas fa-file-alt text-xl"></i>
                             </div>
+                            <div class="text-sm font-bold text-slate-700">Document Received</div>
                         </div>
                         {% else %}
                         <div class="msg-bubble {{ 'msg-sent' if msg.from_admin else 'msg-received' }}">
@@ -219,10 +229,12 @@
                         <span class="text-[10px] text-slate-400 mt-1 px-1">
                             {% if msg.timestamp %}
                                 {% if msg.timestamp is string %}
-                                    {{ msg.timestamp[:16].replace('T', ' ') }}
+                                    {{ msg.timestamp[11:16] }}
                                 {% else %}
                                     {{ msg.timestamp.strftime('%I:%M %p') }}
                                 {% endif %}
+                            {% else %}
+                                Just Now
                             {% endif %}
                         </span>
                     </div>
@@ -282,7 +294,7 @@
 
         ws.onopen = () => {
             statusText.innerText = "Online";
-            statusDot.className = "w-2 h-2 rounded-full bg-green-500";
+            statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
         };
 
         ws.onclose = () => {
@@ -296,16 +308,25 @@
                 const msg = data.data;
                 const senderId = data.user_id.toString();
 
+                // Update Sidebar Last Message & Notify
                 const lastMsgEl = document.getElementById(`last-msg-${senderId}`);
                 if (lastMsgEl) {
                     lastMsgEl.innerText = msg.message_type !== 'text' ? `Sent a ${msg.message_type}` : (msg.from_admin ? "You: " : "") + msg.message;
+                    
+                    // Show unread dot if this user is not the active one
+                    if (senderId !== currentUserId) {
+                        const unreadEl = document.getElementById(`unread-${senderId}`);
+                        if (unreadEl) unreadEl.classList.remove('hidden');
+                        
+                        // Optional: Highlight the user item in sidebar
+                        const userSide = document.getElementById(`user-side-${senderId}`);
+                        if (userSide) userSide.classList.add('bg-blue-50/30');
+                    }
                 }
 
+                // Append to chat window if currently talking to this user
                 if (senderId === currentUserId) {
                     appendMessage(msg);
-                } else {
-                    const unreadEl = document.getElementById(`unread-${senderId}`);
-                    if (unreadEl) unreadEl.classList.remove('hidden');
                 }
             }
         };
@@ -317,16 +338,22 @@
             msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-pop-in`;
             
             let contentHtml = '';
-            if (msg.message_type === 'photo') {
+            // Handle Media Types in Real-time
+            if (['photo', 'sticker', 'animation'].includes(msg.message_type)) {
                 contentHtml = `
-                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'photo.jpg')">
-                        <img src="${msg.message}" class="media-preview-img">
+                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'media')">
+                        <img src="${msg.message}" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
                     </div>`;
             } else if (msg.message_type === 'video') {
                 contentHtml = `
                     <div class="media-container" onclick="downloadMedia('${msg.message}', 'video.mp4')">
-                        <video class="media-preview-video"><source src="${msg.message}" type="video/mp4"></video>
-                        <div class="p-2 text-center text-xs font-bold text-slate-500 bg-white">Play / Download Video</div>
+                        <video class="media-preview-video" controls src="${msg.message}"></video>
+                    </div>`;
+            } else if (msg.message_type === 'document') {
+                contentHtml = `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('${msg.message}', 'document')">
+                        <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="fas fa-file-alt text-xl"></i></div>
+                        <div class="text-sm font-bold text-slate-700">Document Received</div>
                     </div>`;
             } else {
                 contentHtml = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
@@ -347,6 +374,11 @@
                 e.preventDefault();
                 const text = messageInput.value.trim();
                 if (!text || !currentUserId) return;
+                
+                // Optimistic UI update: show admin message immediately
+                const adminMsg = { message: text, message_type: 'text', from_admin: true };
+                appendMessage(adminMsg);
+                
                 messageInput.value = '';
                 try {
                     await fetch('/send_message', {
@@ -354,7 +386,7 @@
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ user_id: currentUserId, message: text })
                     });
-                } catch (err) { console.error(err); }
+                } catch (err) { console.error("Error sending message:", err); }
             };
         }
 
