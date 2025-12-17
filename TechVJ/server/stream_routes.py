@@ -26,6 +26,25 @@ routes = web.RouteTableDef()
 @routes.get("/", allow_head=True)
 @routes.get("/dashboard")
 async def admin_dashboard(request):
+    # Fetch last 50 chats per user from DB (example)
+    user_chats_cursor = db.chat_col.find({}).sort("chats.timestamp", -1)
+    users_chats = await user_chats_cursor.to_list(length=50)  # last 50 messages
+
+    # Transform chats for template
+    chats_for_template = []
+    for user_doc in users_chats:
+        user_name = user_doc.get("user_name")
+        for chat in user_doc.get("chats", []):
+            chats_for_template.append({
+                "user_name": user_name,
+                "message": chat.get("message"),
+                "message_type": chat.get("message_type"),
+                "timestamp": chat.get("timestamp")
+            })
+
+    # Sort by timestamp ascending
+    chats_for_template.sort(key=lambda x: x["timestamp"])
+
     context = {
         "page": "dashboard",
         "uptime": get_readable_time(time.time() - StartTime),
@@ -33,9 +52,11 @@ async def admin_dashboard(request):
         "connected_bots": len(multi_clients),
         "loads": work_loads,
         "version": __version__,
+        "chats": chats_for_template
     }
 
     return await render_page(request, "dashboard.html", context)
+
 
 
 
