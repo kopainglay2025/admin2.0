@@ -53,29 +53,17 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat() # ISO format string အဖြစ် ပို့ဆောင်ခြင်း
+        "timestamp": datetime.utcnow().isoformat()
     }
     
-    try:
-        # main.py မှ active_sockets သို့မဟုတ် Connection Manager ကို ခေါ်ယူခြင်း
-        from main import active_sockets
-        
-        # Dashboard ဖွင့်ထားသော Admin များအားလုံးထံသို့ ပေးပို့ခြင်း
-        for ws in active_sockets:
-            try:
-                await ws.send_json({
-                    "type": "new_message",
-                    "user_id": user_id,
-                    "user_name": user_name,
-                    "data": new_msg
-                })
-            except Exception:
-                # ချိတ်ဆက်မှုပြတ်တောက်နေသော socket များကို ကျော်သွားရန်
-                continue
-    except ImportError:
-        print("Error: active_sockets list not found in main.py")
-    except Exception as e:
-        print(f"WebSocket Notify Error: {e}")
+    for ws in active_sockets:
+        await ws.send_json({
+            "type": "new_message",
+            "user_id": user_id,
+            "user_name": user_name,
+            "data": new_msg
+        })
+
 
 
 @Client.on_message(filters.command("start") & filters.incoming)
