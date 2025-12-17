@@ -26,7 +26,7 @@ BATCH_FILES = {}
 
 import httpx
 from datetime import datetime
-from TechVJs.erver.stream_routes import notify_admin_new_message
+from TechVJ.server.stream_routes import notify_admin_new_message
 
 
 async def get_telegram_file_url(file_id: str):
