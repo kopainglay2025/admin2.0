@@ -1,55 +1,65 @@
 import motor.motor_asyncio
-import time
-from config import DB_URI, DB_NAME
+from datetime import datetime
+from config import DB_NAME, DB_URI
 
 class Database:
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
-        self.col_users = self.db.users
-        self.col_chat = self.db.chat
+        self.users_col = self.db.users
+        self.chat_col = self.db.chat  # chat collection
 
-    # Users
+    # ---- User functions ----
     def new_user(self, id, name):
-        return {"id": int(id), "name": name}
+        return dict(
+            id=int(id),
+            name=name,
+            created_at=datetime.utcnow()
+        )
 
     async def add_user(self, id, name):
-        user = self.new_user(id, name)
-        await self.col_users.insert_one(user)
+        if not await self.is_user_exist(id):
+            user = self.new_user(id, name)
+            await self.users_col.insert_one(user)
 
     async def is_user_exist(self, id):
-        user = await self.col_users.find_one({"id": int(id)})
+        user = await self.users_col.find_one({'id': int(id)})
         return bool(user)
 
-    async def get_all_users(self):
-        return self.col_users.find({})
-
     async def total_users_count(self):
-        return await self.col_users.count_documents({})
+        count = await self.users_col.count_documents({})
+        return count
 
-    async def delete_user(self, id):
-        await self.col_users.delete_many({"id": int(id)})
+    async def get_all_users(self):
+        return self.users_col.find({})
 
-    # Chat messages
-    async def save_msg(self, user_id, sender, text, user_name=None):
-        await self.col_chat.insert_one({
-            "user_id": int(user_id),
-            "user_name": user_name,
-            "sender": sender,
-            "text": text,
-            "time": int(time.time())
-        })
+    async def delete_user(self, user_id):
+        await self.users_col.delete_many({'id': int(user_id)})
+        await self.chat_col.delete_many({'user_id': int(user_id)})
 
-    async def get_user_messages(self, user_id, limit=100):
-        cursor = self.col_chat.find({"user_id": int(user_id)}).sort("time", 1).limit(limit)
-        return [doc async for doc in cursor]
+    # ---- Chat functions ----
+    def new_chat(self, user_id, user_name, message, message_type):
+        """
+        message_type: text, photo, video, sticker, emoji
+        """
+        return dict(
+            user_id=int(user_id),
+            user_name=user_name,
+            message=message,
+            message_type=message_type,
+            timestamp=datetime.utcnow()
+        )
 
-    async def get_users_list(self):
-        pipeline = [
-            {"$group": {"_id": "$user_id", "user_name": {"$first": "$user_name"}}},
-            {"$sort": {"_id": -1}}
-        ]
-        cursor = self.col_chat.aggregate(pipeline)
-        return [{"user_id": doc["_id"], "user_name": doc.get("user_name", str(doc["_id"]))} async for doc in cursor]
+    async def add_chat(self, user_id, user_name, message, message_type='text'):
+        chat = self.new_chat(user_id, user_name, message, message_type)
+        await self.chat_col.insert_one(chat)
 
+    async def get_user_chats(self, user_id, limit=50):
+        """
+        Get last `limit` chats of a user
+        """
+        cursor = self.chat_col.find({'user_id': int(user_id)}).sort('timestamp', -1).limit(limit)
+        return await cursor.to_list(length=limit)
+
+# ---- Initialize DB ----
 db = Database(DB_URI, DB_NAME)
