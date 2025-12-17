@@ -1,128 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Chat Dashboard</title>
-<style>
-body, html { margin:0; padding:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f2f3f5; height:100%; }
-.wrapper { display:flex; height:100vh; overflow:hidden; }
-
-/* Sidebar */
-.sidebar {
-    width:260px;
-    background: linear-gradient(180deg, #37474f 0%, #263238 100%);
-    color:white;
-    display:flex;
-    flex-direction:column;
-}
-.sidebar h2 {
-    text-align:center; padding:20px 0; margin:0; font-size:1.4em; letter-spacing:1px;
-    border-bottom:1px solid rgba(255,255,255,0.1);
-}
-.sidebar a {
-    padding:15px 25px; display:block; color:white; border-left:3px solid transparent; transition:0.3s; font-weight:500;
-}
-.sidebar a:hover, .sidebar a.active {
-    background: rgba(255,255,255,0.05); border-left:3px solid #4fc3f7; transform: translateX(5px);
-}
-.user-list { flex:1; overflow-y:auto; }
-.user-item { padding:12px 20px; cursor:pointer; display:flex; align-items:center; transition:0.2s; border-bottom:1px solid rgba(255,255,255,0.1); }
-.user-item:hover { background: rgba(255,255,255,0.08); }
-.user-avatar { width:40px; height:40px; border-radius:50%; background:#4fc3f7; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px; flex-shrink:0; }
-
-/* Chat Window */
-.chat-window { flex:1; display:flex; flex-direction:column; background:#f0f2f5; }
-.chat-header { padding:15px 20px; background:#fff; border-bottom:1px solid #ddd; font-weight:bold; font-size:1.1em; display:flex; align-items:center; justify-content:space-between; }
-.chat-container { flex:1; padding:20px; display:flex; flex-direction:column; overflow-y:auto; }
-.chat-wrapper { display:flex; flex-direction:column; margin-bottom:12px; }
-.chat-bubble { padding:12px 18px; border-radius:20px; max-width:65%; position:relative; word-wrap:break-word; transition:0.2s; }
-.chat-bubble:hover { box-shadow:0 3px 10px rgba(0,0,0,0.15); }
-.chat-user { background:#fff; align-self:flex-start; color:#333; border:1px solid #ddd; }
-.chat-bot { background:#4fc3f7; align-self:flex-end; color:#fff; text-align:right; }
-.chat-time { font-size:0.75em; color:#999; margin-top:4px; }
-
-/* Responsive */
-@media (max-width:768px){
-    .wrapper { flex-direction:column; }
-    .sidebar { width:100%; height:80px; flex-direction:row; overflow-x:auto; }
-    .sidebar a { flex:1; text-align:center; padding:12px; font-size:0.9em; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - {{ active_chat.user_name if active_chat else "No Chats" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .chat-container { height: calc(100vh - 160px); }
+        .sidebar-height { height: calc(100vh - 64px); }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
 
-<div class="wrapper">
+    <nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-robot text-xl"></i></div>
+            <h1 class="text-xl font-bold tracking-tight">Bot Admin</h1>
+        </div>
+    </nav>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>Admin Menu</h2>
-    <a href="/dashboard" class="active">Dashboard</a>
-    <a href="/users">Users</a>
-    <a href="/chat">Chat History</a>
-    <a href="/settings">Settings</a>
-    <a href="/logout">Logout</a>
-    <div class="user-list" id="user-list">
-      {% for user in users %}
-      <div class="user-item" onclick="loadUserChats('{{ user.id }}','{{ user.name }}')">
-        <div class="user-avatar">{{ user.name[0]|upper }}</div>
-        <div class="user-name">{{ user.name }}</div>
-      </div>
-      {% endfor %}
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-80 bg-white border-r border-slate-200 sidebar-height overflow-y-auto">
+            <div class="flex flex-col">
+                {% for user in users %}
+                <a href="/dashboard?user_id={{ user.user_id }}" 
+                   class="flex items-center gap-3 p-4 border-b border-slate-50 transition-colors {{ 'bg-blue-50 border-r-4 border-blue-600' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
+                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+                        {{ user.user_name[:2] | upper }}
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold truncate text-sm">{{ user.user_name }}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 truncate">
+                            {% if user.chats %} {{ user.chats[0].message[:30] }} {% endif %}
+                        </p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col bg-slate-100">
+            {% if active_chat %}
+            <div class="bg-white p-4 flex items-center justify-between border-b border-slate-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                        {{ active_chat.user_name[:2] | upper }}
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800">{{ active_chat.user_name }}</h2>
+                        <p class="text-xs text-slate-500">ID: {{ active_chat.user_id }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 chat-container" id="chatWindow">
+                {% for msg in active_chat.chats %}
+                    {% if msg.message_type == 'command' %}
+                        <div class="flex justify-center my-4">
+                            <div class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-4 py-2 rounded-lg text-xs font-medium italic">
+                                <i class="fas fa-info-circle mr-2"></i> {{ msg.message }}
+                            </div>
+                        </div>
+                    {% elif msg.message_type == 'text' %}
+                        <div class="flex flex-col items-start mb-4">
+                            <div class="max-w-[70%] bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-200">
+                                <p class="text-sm">{{ msg.message }}</p>
+                                <span class="text-[10px] text-slate-400 mt-1 block text-right">{{ msg.timestamp.strftime('%H:%M') }}</span>
+                            </div>
+                        </div>
+                    {% elif msg.message_type == 'photo' %}
+                        <div class="flex flex-col items-start mb-4">
+                            <div class="max-w-[70%] bg-white p-2 rounded-2xl rounded-tl-none shadow-sm border border-slate-200">
+                                <div class="bg-slate-100 rounded-lg p-4 text-center border border-dashed border-slate-300">
+                                    <i class="fas fa-image text-slate-400 text-2xl mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 break-all">{{ msg.message }}</p>
+                                </div>
+                                <span class="text-[10px] text-slate-400 mt-1 block text-right">{{ msg.timestamp.strftime('%H:%M') }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="flex-1 flex items-center justify-center text-slate-400">
+                <p>Select a user to view chat history</p>
+            </div>
+            {% endif %}
+        </main>
     </div>
-  </div>
 
-  <!-- Chat Window -->
-  <div class="chat-window">
-    <div class="chat-header" id="chat-header">Select a user to view chats</div>
-    <div class="chat-container" id="chat-container">
-      <!-- Chats will appear here dynamically -->
-      <p style="text-align:center;color:#888;">Select a user from the left panel</p>
-    </div>
-  </div>
-
-</div>
-
-<script>
-// Example JS AJAX to fetch chats
-async function loadUserChats(userId, userName){
-    document.getElementById('chat-header').innerText = "Chats with " + userName;
-    const container = document.getElementById('chat-container');
-    container.innerHTML = "<p style='text-align:center;color:#888;'>Loading chats...</p>";
-
-    try {
-        const response = await fetch(`/chat/user/${userId}`);
-        const data = await response.json();
-        container.innerHTML = '';
-        data.chats.forEach(chat => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'chat-wrapper';
-            wrapper.style.alignItems = chat.message_type=='command' ? 'flex-end' : 'flex-start';
-
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble ' + (chat.message_type=='command' ? 'chat-bot' : 'chat-user');
-
-            if(chat.message_type=='photo'){
-                bubble.innerHTML = `<strong>${chat.user_name}:</strong><br><img src="${chat.message}" style="max-width:200px;border-radius:10px;">`;
-            } else if(chat.message_type=='video'){
-                bubble.innerHTML = `<strong>${chat.user_name}:</strong><br><video src="${chat.message}" controls style="max-width:200px;border-radius:10px;"></video>`;
-            } else {
-                bubble.innerHTML = `<strong>${chat.user_name}:</strong> ${chat.message}`;
-            }
-
-            const timeDiv = document.createElement('div');
-            timeDiv.className = 'chat-time';
-            timeDiv.innerText = chat.timestamp;
-            bubble.appendChild(timeDiv);
-
-            wrapper.appendChild(bubble);
-            container.appendChild(wrapper);
-        });
-        container.scrollTop = container.scrollHeight; // auto scroll to bottom
-    } catch(e){
-        container.innerHTML = "<p style='text-align:center;color:red;'>Failed to load chats</p>";
-    }
-}
-</script>
-
+    <script>
+        const chatWindow = document.getElementById('chatWindow');
+        if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+    </script>
 </body>
 </html>
