@@ -351,12 +351,13 @@ async def save_user_message(client, message):
         content = "Unsupported type"
 
     # 1. Database ထဲသို့ သိမ်းဆည်းခြင်း
-    # db.add_chat သည် chat entry ကို ပြန်ပေးသည်ဟု ယူဆသည်
+    # error ရှောင်ရှားရန် timestamp ကို datetime object အတိုင်း db ထဲ ထည့်သွင်းပါ
     await db.add_chat(
         user_id=user_id, 
         user_name=user_name, 
         message=content, 
-        message_type=msg_type
+        message_type=msg_type,
+        timestamp=datetime.utcnow() # strftime error မတက်စေရန် object အတိုင်း သိမ်းပါ
     )
 
     # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
@@ -366,6 +367,8 @@ async def save_user_message(client, message):
         message_text=content, 
         msg_type=msg_type
     )
+
+
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
