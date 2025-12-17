@@ -5,53 +5,31 @@
 <title>Admin Chat Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* Reset & font */
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f0f2f5; color:#333; }
-
-/* Layout */
-.container { display:flex; height:100vh; overflow:hidden; }
-.user-list { width:250px; background:#fff; border-right:1px solid #ddd; overflow-y:auto; display:flex; flex-direction:column; }
-.user-list .user-item { padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:0.2s; border-bottom:1px solid #f0f0f0; }
-.user-list .user-item:hover { background:#f0f8ff; }
-.user-list .user-item.active { background:#e6f3ff; font-weight:bold; }
-
-.user-list .avatar { width:32px; height:32px; border-radius:50%; background:#bbb; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:14px; }
-
-.chat-panel { flex:1; display:flex; flex-direction:column; background:#e5ddd5; }
-
-/* Chat container */
-#chat-container { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
-
-/* Messages */
-.message { max-width:70%; display:flex; flex-direction:column; }
-.message.user { align-self:flex-start; }
-.message.admin { align-self:flex-end; }
-.bubble { padding:10px 14px; border-radius:18px; font-size:14px; line-height:1.4; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-.bubble.user { background:#fff; border:1px solid #ddd; border-top-left-radius:4px; border-top-right-radius:18px; border-bottom-right-radius:18px; border-bottom-left-radius:18px; }
-.bubble.admin { background:#dcf8c6; border-top-left-radius:18px; border-top-right-radius:4px; border-bottom-right-radius:18px; border-bottom-left-radius:18px; }
-
-/* Timestamp */
-.timestamp { font-size:11px; color:#555; margin-top:3px; }
-
-/* Reply box */
-#reply-box { display:flex; padding:10px 15px; border-top:1px solid #ddd; background:#fff; }
-#reply-text { flex:1; padding:10px; border-radius:20px; border:1px solid #ccc; font-size:14px; outline:none; }
-#send-btn { padding:10px 20px; margin-left:10px; border:none; border-radius:20px; background:#0084ff; color:#fff; font-weight:bold; cursor:pointer; transition:0.2s; }
-#send-btn:hover { background:#006fd6; }
-
-/* Scrollbar */
-#chat-container::-webkit-scrollbar { width:6px; }
-#chat-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius:3px; }
-#chat-container::-webkit-scrollbar-track { background: transparent; }
-
-/* Responsive */
-@media(max-width:768px){
-    .container { flex-direction:column; }
-    .user-list { width:100%; height:150px; flex-direction:row; overflow-x:auto; overflow-y:hidden; }
-    .user-list .user-item { flex:0 0 auto; }
-    .chat-panel { flex:1; }
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
+.container{display:flex;height:100vh;overflow:hidden}
+.user-list{width:250px;background:#fff;border-right:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column}
+.user-list .user-item{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.2s;border-bottom:1px solid #f0f0f0}
+.user-list .user-item:hover{background:#f0f8ff}
+.user-list .user-item.active{background:#e6f3ff;font-weight:bold}
+.user-list .avatar{width:32px;height:32px;border-radius:50%;background:#bbb;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:14px}
+.chat-panel{flex:1;display:flex;flex-direction:column;background:#e5ddd5}
+#chat-container{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.message{max-width:70%;display:flex;flex-direction:column}
+.message.user{align-self:flex-start}
+.message.admin{align-self:flex-end}
+.bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.bubble.user{background:#fff;border:1px solid #ddd;border-top-left-radius:4px;border-top-right-radius:18px;border-bottom-right-radius:18px;border-bottom-left-radius:18px}
+.bubble.admin{background:#dcf8c6;border-top-left-radius:18px;border-top-right-radius:4px;border-bottom-right-radius:18px;border-bottom-left-radius:18px}
+.timestamp{font-size:11px;color:#555;margin-top:3px}
+#reply-box{display:flex;padding:10px 15px;border-top:1px solid #ddd;background:#fff}
+#reply-text{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc;font-size:14px;outline:none}
+#send-btn{padding:10px 20px;margin-left:10px;border:none;border-radius:20px;background:#0084ff;color:#fff;font-weight:bold;cursor:pointer;transition:.2s}
+#send-btn:hover{background:#006fd6}
+#chat-container::-webkit-scrollbar{width:6px}
+#chat-container::-webkit-scrollbar-thumb{background: rgba(0,0,0,0.2);border-radius:3px}
+#chat-container::-webkit-scrollbar-track{background: transparent}
+@media(max-width:768px){.container{flex-direction:column}.user-list{width:100%;height:150px;flex-direction:row;overflow-x:auto;overflow-y:hidden}.user-list .user-item{flex:0 0 auto}.chat-panel{flex:1}}
 </style>
 </head>
 <body>
@@ -65,100 +43,20 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
         </div>
     </div>
 </div>
-
 <script>
-let ws = new WebSocket("wss://yourdomain.com/ws/chat"); // change to your WS URL
-const chatBox = document.getElementById("chat-container");
-const userListEl = document.getElementById("user-list");
-const replyInput = document.getElementById("reply-text");
-const sendBtn = document.getElementById("send-btn");
-
-let selectedUserId = null;
-let users = {};
-
-function formatTime(ts){
-    const d = new Date(ts*1000);
-    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-}
-
-function renderUsers(){
-    userListEl.innerHTML = '';
-    Object.values(users).forEach(user=>{
-        const div = document.createElement("div");
-        div.classList.add("user-item");
-        if(user.user_id===selectedUserId) div.classList.add("active");
-
-        // Avatar
-        const avatar = document.createElement("div");
-        avatar.classList.add("avatar");
-        avatar.textContent = user.user_name[0].toUpperCase();
-        div.appendChild(avatar);
-
-        const name = document.createElement("span");
-        name.textContent = user.user_name;
-        div.appendChild(name);
-
-        div.onclick = async ()=>{
-            selectedUserId = user.user_id;
-            renderUsers();
-            chatBox.innerHTML = '';
-            ws.send(JSON.stringify({type:"fetch_chat", user_id:selectedUserId}));
-        }
-
-        userListEl.appendChild(div);
-    });
-}
-
-function addMessage(user_id, sender, text, time){
-    if(selectedUserId && user_id!==selectedUserId) return;
-
-    const div = document.createElement("div");
-    div.classList.add("message", sender==="admin"?"admin":"user");
-
-    const bubble = document.createElement("div");
-    bubble.classList.add("bubble", sender==="admin"?"admin":"user");
-    bubble.textContent = text;
-    div.appendChild(bubble);
-
-    const ts = document.createElement("div");
-    ts.classList.add("timestamp");
-    ts.textContent = formatTime(time);
-    div.appendChild(ts);
-
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-ws.onmessage = function(event){
-    const data = JSON.parse(event.data);
-    if(data.type==="users_list"){
-        data.users.forEach(u=>users[u.user_id]=u);
-        renderUsers();
-    }
-    else if(data.type==="chat_history"){
-        data.messages.forEach(m=>addMessage(data.user_id, m.sender, m.text, m.time));
-    }
-    else if(data.type==="message"){
-        if(!users[data.user_id]){
-            users[data.user_id] = {user_id:data.user_id, user_name:data.sender==="user"?data.user_name:"Unknown"};
-            renderUsers();
-        }
-        addMessage(data.user_id, data.sender==="user"?data.user_name:"admin", data.text, data.time);
-    }
-}
-
-sendBtn.onclick = ()=>{
-    if(!selectedUserId){ alert("Select a user first"); return; }
-    const text = replyInput.value.trim();
-    if(!text) return;
-    ws.send(JSON.stringify({type:"reply", user_id:selectedUserId, text}));
-    addMessage(selectedUserId,"admin",text,Math.floor(Date.now()/1000));
-    replyInput.value='';
-}
-
-replyInput.addEventListener("keypress", e=>{
-    if(e.key==="Enter") sendBtn.click();
-});
+let ws = new WebSocket("wss://yourdomain.com/ws/chat");
+const chatBox=document.getElementById("chat-container");
+const userListEl=document.getElementById("user-list");
+const replyInput=document.getElementById("reply-text");
+const sendBtn=document.getElementById("send-btn");
+let selectedUserId=null;
+let users={};
+function formatTime(ts){const d=new Date(ts*1000);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function renderUsers(){userListEl.innerHTML='';Object.values(users).forEach(user=>{const div=document.createElement("div");div.classList.add("user-item");if(user.user_id===selectedUserId)div.classList.add("active");const avatar=document.createElement("div");avatar.classList.add("avatar");avatar.textContent=user.user_name[0].toUpperCase();div.appendChild(avatar);const name=document.createElement("span");name.textContent=user.user_name;div.appendChild(name);div.onclick=async()=>{selectedUserId=user.user_id;renderUsers();chatBox.innerHTML='';ws.send(JSON.stringify({type:"fetch_chat",user_id:selectedUserId}));};userListEl.appendChild(div);});}
+function addMessage(user_id,sender,text,time){if(selectedUserId&&user_id!==selectedUserId)return;const div=document.createElement("div");div.classList.add("message",sender==="admin"?"admin":"user");const bubble=document.createElement("div");bubble.classList.add("bubble",sender==="admin"?"admin":"user");bubble.textContent=text;div.appendChild(bubble);const ts=document.createElement("div");ts.classList.add("timestamp");ts.textContent=formatTime(time);div.appendChild(ts);chatBox.appendChild(div);chatBox.scrollTop=chatBox.scrollHeight;}
+ws.onmessage=function(event){const data=JSON.parse(event.data);if(data.type==="users_list"){data.users.forEach(u=>users[u.user_id]=u);renderUsers();}else if(data.type==="chat_history"){data.messages.forEach(m=>addMessage(data.user_id,m.sender,m.text,m.time));}else if(data.type==="message"){if(!users[data.user_id]){users[data.user_id]={user_id:data.user_id,user_name:data.sender==="user"?data.user_name:"Unknown"};renderUsers();}addMessage(data.user_id,data.sender==="user"?data.user_name:"admin",data.text,data.time);}}
+sendBtn.onclick=()=>{if(!selectedUserId){alert("Select a user first");return}const text=replyInput.value.trim();if(!text)return;ws.send(JSON.stringify({type:"reply",user_id:selectedUserId,text}));addMessage(selectedUserId,"admin",text,Math.floor(Date.now()/1000));replyInput.value='';}
+replyInput.addEventListener("keypress",e=>{if(e.key==="Enter")sendBtn.click();});
 </script>
 </body>
 </html>
