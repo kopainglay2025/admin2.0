@@ -1,86 +1,196 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Chat Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
 
-{% block header %}
-<div class="page-title">Dashboard</div>
-{% endblock %}
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-{% block content %}
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 600px;
+            margin: 0 auto 10px auto;
+            background: #e5ddd5;
+            border-radius: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
 
-<style>
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 22px;
-}
+        .message {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
 
-.card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px;
-    padding: 22px;
-    backdrop-filter: blur(12px);
-}
+        .message.user {
+            align-self: flex-start;
+        }
 
-.card h3 {
-    font-size: 14px;
-    color: #94a3b8;
-    margin: 0 0 10px;
-}
+        .message.admin {
+            align-self: flex-end;
+        }
 
-.card .value {
-    font-size: 26px;
-    font-weight: 600;
-}
+        .bubble {
+            padding: 8px 12px;
+            border-radius: 15px;
+            display: inline-block;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
 
-.load {
-    margin-top: 10px;
-}
+        .bubble.user {
+            background: #ffffff;
+            border: 1px solid #ccc;
+        }
 
-.load span {
-    display: block;
-    font-size: 13px;
-    color: #cbd5f5;
-}
-</style>
+        .bubble.admin {
+            background: #dcf8c6;
+        }
 
-<div class="cards">
+        .timestamp {
+            font-size: 11px;
+            color: #555;
+            margin-top: 2px;
+        }
 
-    <div class="card">
-        <h3>Server Status</h3>
-        <div class="value">🟢 Running</div>
+        button.reply-btn {
+            font-size: 11px;
+            margin-top: 2px;
+            cursor: pointer;
+            background: #0084ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        #reply-box {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        #reply-text {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        #send-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            background: #0084ff;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Chat Dashboard</h1>
+
+    <div id="chat-container"></div>
+
+    <div id="reply-box">
+        <input type="text" id="reply-text" placeholder="Type your message">
+        <button id="send-btn">Send</button>
     </div>
 
-    <div class="card">
-        <h3>Uptime</h3>
-        <div class="value">{{ uptime }}</div>
-    </div>
+    <script>
+        let ws = new WebSocket("wss://mkschannel.org/ws/chat"); // change to your WS URL
+        const chatBox = document.getElementById("chat-container");
+        const replyInput = document.getElementById("reply-text");
+        const sendBtn = document.getElementById("send-btn");
 
-    <div class="card">
-        <h3>Telegram Bot</h3>
-        <div class="value">@{{ bot_username }}</div>
-    </div>
+        let selectedUserId = null; // user admin is replying to
 
-    <div class="card">
-        <h3>Connected Bots</h3>
-        <div class="value">{{ connected_bots }}</div>
-    </div>
+        function formatTime(ts){
+            const d = new Date(ts*1000);
+            return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
 
-</div>
+        function addMessage(user_id, sender, text, time){
+            const div = document.createElement("div");
+            div.classList.add("message");
+            div.classList.add(sender === "admin" ? "admin" : "user");
 
-<br>
+            const bubble = document.createElement("div");
+            bubble.classList.add("bubble");
+            bubble.classList.add(sender === "admin" ? "admin" : "user");
+            bubble.textContent = text;
 
-<div class="card">
-    <h3>Bot Load</h3>
+            div.appendChild(bubble);
 
-    <div class="load">
-        {% for bot, load in loads.items() %}
-            <span>{{ bot }} : {{ load }}</span>
-        {% endfor %}
-    </div>
-</div>
+            const ts = document.createElement("div");
+            ts.classList.add("timestamp");
+            ts.textContent = formatTime(time);
+            div.appendChild(ts);
 
-<div style="margin-top:16px;color:#64748b;font-size:13px">
-    TechVJ v{{ version }}
-</div>
+            // Add reply button only for user messages
+            if(sender !== "admin"){
+                const replyBtn = document.createElement("button");
+                replyBtn.classList.add("reply-btn");
+                replyBtn.textContent = "Reply";
+                replyBtn.onclick = () => {
+                    selectedUserId = user_id;
+                    replyInput.focus();
+                }
+                div.appendChild(replyBtn);
+            }
 
-{% endblock %}
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        ws.onmessage = function(event){
+            const data = JSON.parse(event.data);
+            if(data.type === "message"){
+                addMessage(data.user_id, data.sender === "user" ? data.user_name : "admin", data.text, data.time);
+            }
+        }
+
+        sendBtn.onclick = () => {
+            if(!selectedUserId){
+                alert("Please select a user to reply.");
+                return;
+            }
+            const text = replyInput.value.trim();
+            if(!text) return;
+
+            ws.send(JSON.stringify({
+                type: "reply",
+                user_id: selectedUserId,
+                text: text
+            }));
+
+            addMessage(selectedUserId, "admin", text, Math.floor(Date.now()/1000));
+            replyInput.value = "";
+        }
+
+        replyInput.addEventListener("keypress", function(e){
+            if(e.key === "Enter"){
+                sendBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
