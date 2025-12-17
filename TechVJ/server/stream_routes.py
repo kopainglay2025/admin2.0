@@ -13,12 +13,9 @@ from ..utils.time_format import get_readable_time
 from ..utils.custom_dl import ByteStreamer
 from TechVJ.utils.render_template import render_page
 from config import MULTI_CLIENT
-from tg_chat_db import save_msg
+
 import json, time
 
-from plugins.commands import ws_clients
-
-from plugins.dbusers import db
 
 
 
@@ -43,49 +40,7 @@ async def admin_dashboard(request):
 
 
 
-@routes.get("/ws/chat")
-async def websocket_handler(request):
-    ws = web.WebSocketResponse()
-    await ws.prepare(request)
 
-    ws_clients.add(ws)
-
-    # Send users list initially
-    users = await db.get_users_list()
-    await ws.send_str(json.dumps({"type":"users_list","users":users}))
-
-    try:
-        async for msg in ws:
-            if msg.type == web.WSMsgType.TEXT:
-                data = json.loads(msg.data)
-
-                if data.get("type") == "reply":
-                    user_id = data.get("user_id")
-                    text = data.get("text")
-                    # Save admin message
-                    await db.save_msg(user_id, "admin", text)
-                    # Broadcast to all admin clients
-                    for client in ws_clients:
-                        await client.send_str(json.dumps({
-                            "type":"message",
-                            "user_id": user_id,
-                            "sender":"admin",
-                            "text": text,
-                            "time": int(time.time())
-                        }))
-
-                elif data.get("type") == "fetch_chat":
-                    user_id = data.get("user_id")
-                    messages = await db.get_user_messages(user_id)
-                    await ws.send_str(json.dumps({
-                        "type":"chat_history",
-                        "user_id": user_id,
-                        "messages": messages
-                    }))
-    finally:
-        ws_clients.remove(ws)
-
-    return ws
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
