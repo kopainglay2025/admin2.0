@@ -45,51 +45,40 @@ def formate_file_name(file_name):
 
 
 
-
-
-
-import time, json
-ws_clients = set()
-
-@Client.on_message(filters.private)
-async def handle_user_message(client, message):
-    user_id = message.from_user.id
-    text = message.text or message.caption or ""
-    user_name = message.from_user.first_name
-
-    # Save user message
-    await db.save_msg(user_id, "user", text, user_name=user_name)
-
-    # Send to all connected admin WS clients
-    data = {
-        "type":"message",
-        "user_id": user_id,
-        "sender":"user",
-        "user_name": user_name,
-        "text": text,
-        "time": int(time.time())
-    }
-    for ws in ws_clients:
-        await ws.send_str(json.dumps(data))
-
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     username = client.me.username
+    
+    # ---- Add user to DB if not exist ----
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
+        # Optional: log new user to LOG_CHANNEL
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
+    
+    # ---- Record the "start" command as chat ----
+    start_text = "User started the bot."
+    await db.add_chat(
+        user_id=message.from_user.id,
+        user_name=message.from_user.first_name,
+        message=start_text,
+        message_type="command"
+    )
+
+    # ---- Start reply with buttons ----
     if len(message.command) != 2:
         buttons = [[
             InlineKeyboardButton('⚜️ sᴜʙsᴄʀɪʙᴇ ᴍʏ ᴛᴇʟᴇɢʀᴀᴍ ᴄʜᴀɴɴᴇʟ', url='https://t.me/Mrn_Officialx')
-            ],[
+        ],[
             InlineKeyboardButton('👨‍💻 ᴄᴏɴᴛᴀᴄᴛ ᴜs', url='https://t.me/MRN_CONTACT_BOT'),
             InlineKeyboardButton('💝 ᴍᴏᴠɪᴇ sᴇᴀʀᴄʜ ɢʀᴏᴜᴘ', url='https://t.me/MRN_Chat_Group')
-            ],[
+        ],[
             InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
             InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
         ]]
-        if CLONE_MODE == True:
+        
+        if CLONE_MODE:
             buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
+        
         reply_markup = InlineKeyboardMarkup(buttons)
         me = client.me
         await message.reply_photo(
@@ -331,9 +320,36 @@ async def base_site_handler(client, m: Message):
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
+
+@Client.on_message(filters.incoming & ~filters.edited)
+async def save_user_message(client, message):
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+
+    if message.text:
+        msg_type = "text"
+        content = message.text
+    elif message.photo:
+        msg_type = "photo"
+        content = message.photo.file_id
+    elif message.video:
+        msg_type = "video"
+        content = message.video.file_id
+    elif message.sticker:
+        msg_type = "sticker"
+        content = message.sticker.file_id
+    elif message.animation:
+        msg_type = "animation"  # gif
+        content = message.animation.file_id
+    elif message.document:
+        msg_type = "document"
+        content = message.document.file_id
+    else:
+        msg_type = "other"
+        content = "unsupported type"
+
+    # ---- Save to DB ----
+    await db.add_chat(user_id=user_id, user_name=user_name, message=content, message_type=msg_type)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
