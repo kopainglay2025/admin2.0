@@ -1,334 +1,232 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard - {{ active_chat.user_name if active_chat else "No Chats" }}</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Chat History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .chat-container { height: calc(100vh - 160px); scroll-behavior: smooth; }
+        .sidebar-height { height: calc(100vh - 64px); }
+        
+        /* Media Box Style */
+        .media-box { 
+            max-width: 300px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            cursor: pointer; 
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            transition: opacity 0.2s;
+        }
+        .media-box:hover { opacity: 0.9; }
+        .media-img, .media-vid { width: 100%; display: block; }
 
-    body {
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .chat-container { 
-        height: calc(100vh - 150px); 
-        scroll-behavior: smooth;
-        overflow-y: auto;
-    }
-    
-    .sidebar-height { 
-        height: calc(100vh - 75px); 
-        overflow-y: auto;
-    }
-
-    .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: #e2e8f0 transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-
-    .msg-bubble {
-        max-width: 75%;
-        padding: 8px 14px;
-        border-radius: 18px;
-        font-size: 0.9375rem;
-        line-height: 1.4;
-        position: relative;
-    }
-
-    .msg-received {
-        background-color: #f0f0f0;
-        color: #050505;
-        border-bottom-left-radius: 4px;
-    }
-
-    .msg-sent {
-        background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
-
-    .msg-system {
-        background-color: #f8fafc;
-        color: #64748b;
-        border: 1px solid #e2e8f0;
-        font-size: 0.75rem;
-        border-radius: 10px;
-    }
-
-    .messenger-gradient {
-        background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
-    }
-</style>
-
-
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-white text-slate-900 overflow-hidden">
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
 
-<!-- Top Navigation -->
-<nav class="bg-white border-b border-slate-200 h-[75px] flex items-center justify-between px-6 sticky top-0 z-50">
-    <div class="flex items-center gap-4">
-        <div class="messenger-gradient p-2.5 rounded-2xl shadow-lg shadow-blue-200 text-white">
-            <i class="fas fa-comment-dots text-xl"></i>
+    <!-- Navigation Bar -->
+    <nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg text-white">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">Bot Admin Dashboard</h1>
         </div>
-        <div>
-            <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Messages</h1>
-            <p class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Admin Control Panel</p>
-        </div>
-    </div>
-    
-    <div class="flex items-center gap-3">
-        <div class="hidden md:flex flex-col items-end mr-2">
-            <span class="text-sm font-bold text-slate-700">System Status</span>
-            <span id="connectionStatus" class="text-[10px] text-amber-500 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span> Connecting
-            </span>
-        </div>
-    </div>
-</nav>
-
-<div class="flex h-[calc(100vh-75px)]">
-    <!-- Left Sidebar: Users -->
-    <aside class="w-[360px] bg-white border-r border-slate-100 sidebar-height custom-scrollbar flex flex-col">
-        <div class="p-4 flex-shrink-0">
-            <div class="relative mb-4">
-                <input type="text" placeholder="Search Messenger" class="w-full bg-slate-100 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-100 transition-all outline-none">
-                <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+        <div class="flex items-center gap-4 text-sm font-medium">
+            <div id="statusBadge" class="flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full">
+                <span id="statusDot" class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                <span id="statusText">Connecting...</span>
             </div>
         </div>
+    </nav>
 
-        <div class="flex flex-col px-2 flex-grow">
-            {% for user in users %}
-            <a href="/dashboard?user_id={{ user.user_id }}" 
-               class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 mb-1 {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
+    <div class="flex">
+        <!-- Sidebar: User List -->
+        <aside class="w-80 bg-white border-r border-slate-200 sidebar-height overflow-y-auto">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <div class="relative">
-                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-bold text-lg border border-slate-100 shadow-sm">
+                    <input type="text" id="userSearch" placeholder="Search users..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none">
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                </div>
+            </div>
+            <div class="flex flex-col" id="userList">
+                {% for user in users %}
+                <a href="/dashboard?user_id={{ user.user_id }}" 
+                   id="sidebar-user-{{ user.user_id }}"
+                   class="flex items-center gap-3 p-4 border-b border-slate-50 transition-colors {{ 'bg-blue-50 border-r-4 border-blue-600' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
+                    <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
                         {{ user.user_name[:1] | upper }}
                     </div>
-                    <div class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
-                </div>
-                <div class="flex-1 overflow-hidden">
-                    <div class="flex justify-between items-baseline mb-0.5">
-                        <span class="font-bold truncate text-[15px] {{ 'text-blue-700' if active_chat and active_chat.user_id == user.user_id else 'text-slate-800' }}">
-                            {{ user.user_name }}
-                        </span>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold truncate text-slate-800">{{ user.user_name }}</span>
+                        </div>
+                        <p id="sidebar-last-msg-{{ user.user_id }}" class="text-xs text-slate-500 truncate">
+                            {% if user.chats %}
+                                {{ "You: " if user.chats[-1].from_admin else "" }}
+                                {{ user.chats[-1].message if user.chats[-1].message_type == 'text' else 'Sent a ' + user.chats[-1].message_type }}
+                            {% endif %}
+                        </p>
                     </div>
-                    <p class="text-[13px] {{ 'text-blue-600 font-medium' if active_chat and active_chat.user_id == user.user_id else 'text-slate-500' }} truncate">
-                        {% if user.chats %} 
-                            {{ "You: " if user.chats[-1].from_admin }}{{ user.chats[-1].message[:35] }}
-                        {% else %}
-                            No messages yet
-                        {% endif %}
-                    </p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </aside>
-
-    <!-- Right Main: Chat Window -->
-    <main class="flex-1 flex flex-col bg-white overflow-hidden">
-        {% if active_chat %}
-        <!-- Chat User Header -->
-        <div class="h-[75px] px-6 flex items-center justify-between border-b border-slate-100 shadow-sm z-10 flex-shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold shadow-md shadow-blue-100">
-                    {{ active_chat.user_name[:1] | upper }}
-                </div>
-                <div>
-                    <h2 class="font-bold text-slate-800 leading-tight">{{ active_chat.user_name }}</h2>
-                    <p class="text-[11px] font-semibold text-green-500 uppercase">Active Now</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Messages Flow -->
-        <div class="flex-1 chat-container custom-scrollbar bg-white p-6" id="chatWindow">
-            <div class="flex flex-col items-center mb-8">
-                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-3xl mb-3">
-                    {{ active_chat.user_name[:1] | upper }}
-                </div>
-                <h3 class="font-bold text-xl text-slate-800">{{ active_chat.user_name }}</h3>
-                <p class="text-sm text-slate-500 mt-1">User ID: {{ active_chat.user_id }}</p>
-            </div>
-
-            <div class="flex flex-col" id="messageList">
-                {% for msg in active_chat.chats %}
-                    {% if msg.from_admin %}
-                        <div class="flex flex-col items-end mb-4 group">
-                            <div class="msg-bubble msg-sent shadow-sm">{{ msg.message }}</div>
-                            <span class="text-[10px] text-slate-400 mt-1 mr-2">
-                                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp }}
-                            </span>
-                        </div>
-                    {% else %}
-                        <div class="flex flex-col items-start mb-4 group">
-                            <div class="flex items-end gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                    {{ active_chat.user_name[:1] | upper }}
-                                </div>
-                                <div class="msg-bubble msg-received shadow-sm">{{ msg.message }}</div>
-                            </div>
-                            <span class="text-[10px] text-slate-400 mt-1 ml-9">
-                                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp }}
-                            </span>
-                        </div>
-                    {% endif %}
+                </a>
                 {% endfor %}
             </div>
-        </div>
+        </aside>
 
-        <!-- Footer Reply Area -->
-        <form id="replyForm" class="h-auto min-h-[75px] px-4 py-3 flex items-end gap-2 border-t border-slate-100 flex-shrink-0 bg-white">
-            <div class="flex-1 relative flex items-center">
-                <textarea 
-                    id="messageInput"
-                    rows="1"
-                    placeholder="Aa" 
-                    class="w-full bg-slate-100 rounded-2xl px-4 py-2.5 text-[15px] focus:outline-none resize-none max-h-32 custom-scrollbar"
-                ></textarea>
-            </div>
-            <div class="pb-1">
-                <button type="submit" id="sendBtn" class="p-2 text-blue-600 hover:scale-110 transition-transform">
-                    <i class="fas fa-paper-plane text-xl"></i>
-                </button>
-            </div>
-        </form>
-
-        {% else %}
-        <div class="flex-1 flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
-            <div class="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                <i class="fas fa-comments text-4xl"></i>
-            </div>
-            <p class="font-bold text-slate-400">စကားပြောရန် User တစ်ဦးကို ရွေးချယ်ပါ</p>
-        </div>
-        {% endif %}
-    </main>
-</div>
-
-<script>
-    const chatWindow = document.getElementById('chatWindow');
-    const messageInput = document.getElementById('messageInput');
-    const messageList = document.getElementById('messageList');
-    const replyForm = document.getElementById('replyForm');
-    const statusEl = document.getElementById('connectionStatus');
-    const currentUserId = new URLSearchParams(window.location.search).get('user_id');
-
-    // Scroll to bottom helper
-    const scrollToBottom = () => {
-        if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
-
-    window.onload = scrollToBottom;
-
-    // WebSocket Setup
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-
-    ws.onopen = () => {
-        statusEl.innerHTML = '<span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online';
-        statusEl.className = 'text-[10px] text-green-500 flex items-center gap-1';
-    };
-
-    ws.onclose = () => {
-        statusEl.innerHTML = '<span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> Offline';
-        statusEl.className = 'text-[10px] text-red-500 flex items-center gap-1';
-    };
-
-    ws.onmessage = (event) => {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "new_message") {
-            if (payload.user_id.toString() === currentUserId) {
-                appendMessage(payload.data);
-            } else {
-                // Update sidebar logic can be added here
-                console.log("Message from other user:", payload.user_id);
-            }
-        }
-    };
-
-    function appendMessage(msg) {
-        const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        let msgHtml = '';
-
-        if (msg.from_admin) {
-            msgHtml = `
-                <div class="flex flex-col items-end mb-4 group">
-                    <div class="msg-bubble msg-sent shadow-sm">${msg.message}</div>
-                    <span class="text-[10px] text-slate-400 mt-1 mr-2">${timeStr}</span>
-                </div>
-            `;
-        } else {
-            msgHtml = `
-                <div class="flex flex-col items-start mb-4 group">
-                    <div class="flex items-end gap-2">
-                        <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">U</div>
-                        <div class="msg-bubble msg-received shadow-sm">${msg.message}</div>
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col bg-slate-100">
+            {% if active_chat %}
+            <!-- Chat Header -->
+            <div class="bg-white p-4 flex items-center justify-between border-b border-slate-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                        {{ active_chat.user_name[:1] | upper }}
                     </div>
-                    <span class="text-[10px] text-slate-400 mt-1 ml-9">${timeStr}</span>
+                    <div>
+                        <h2 class="font-bold text-slate-800">{{ active_chat.user_name }}</h2>
+                        <p class="text-xs text-slate-500">ID: {{ active_chat.user_id }}</p>
+                    </div>
                 </div>
-            `;
+                <button onclick="location.reload()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500"><i class="fas fa-sync-alt"></i></button>
+            </div>
+
+            <!-- Messages Window -->
+            <div class="flex-1 overflow-y-auto p-6 chat-container" id="chatWindow">
+                <div class="flex flex-col gap-4" id="messageList">
+                    {% for msg in active_chat.chats %}
+                    <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }}">
+                        
+                        {% if msg.message_type in ['photo', 'sticker', 'animation'] %}
+                        <div class="media-box" onclick="window.open('{{ msg.message }}', '_blank')">
+                            <img src="{{ msg.message }}" class="media-img" onerror="this.src='https://via.placeholder.com/300?text=Expired+Link'">
+                        </div>
+                        {% elif msg.message_type == 'video' %}
+                        <div class="media-box">
+                            <video class="media-vid" controls src="{{ msg.message }}"></video>
+                        </div>
+                        {% else %}
+                        <div class="max-w-[70%] p-3 rounded-2xl shadow-sm border {{ 'bg-blue-600 text-white border-blue-600 rounded-tr-none' if msg.from_admin else 'bg-white text-slate-800 border-slate-200 rounded-tl-none' }}">
+                            <p class="text-sm">{{ msg.message }}</p>
+                        </div>
+                        {% endif %}
+
+                        <span class="text-[10px] text-slate-400 mt-1">
+                            {{ msg.timestamp.strftime('%H:%M') if msg.timestamp.strftime else msg.timestamp[:16] }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Reply Bar -->
+            <div class="bg-white p-4 border-t border-slate-200">
+                <form id="replyForm" class="flex gap-2 max-w-4xl mx-auto">
+                    <input type="text" id="messageInput" autocomplete="off" placeholder="Type a reply..." 
+                           class="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <i class="fas fa-comments text-6xl mb-4 opacity-20"></i>
+                <p>Select a user to view conversation</p>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chatWindow');
+        const messageList = document.getElementById('messageList');
+        const messageInput = document.getElementById('messageInput');
+        const replyForm = document.getElementById('replyForm');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const statusBadge = document.getElementById('statusBadge');
+        const currentUserId = new URLSearchParams(window.location.search).get('user_id');
+
+        // Scroll to bottom
+        function scrollToBottom() {
+            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
         }
-        messageList.insertAdjacentHTML('beforeend', msgHtml);
-        scrollToBottom();
-    }
 
-    // Textarea auto-resize
-    if (messageInput) {
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    }
+        // WebSocket for Real-time
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
-    // Send Message
-    if (replyForm) {
-        replyForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if (!text || !currentUserId) return;
+        ws.onopen = () => {
+            statusText.innerText = "Live System";
+            statusDot.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+            statusBadge.className = "flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full";
+        };
 
-            const originalText = text;
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "new_message") {
+                const msg = data.data;
+                const senderId = data.user_id.toString();
 
-            try {
-                const response = await fetch('/send_message', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        message: originalText
-                    })
-                });
-                
-                if (!response.ok) throw new Error("Failed to send");
-                
-            } catch (err) {
-                console.error("Error:", err);
-                messageInput.value = originalText; // Restore text on failure
+                // Update Sidebar Last Message
+                const lastMsgEl = document.getElementById(`sidebar-last-msg-${senderId}`);
+                if (lastMsgEl) {
+                    lastMsgEl.innerText = msg.message_type === 'text' ? (msg.from_admin ? "You: " : "") + msg.message : `Sent a ${msg.message_type}`;
+                }
+
+                // Append if currently viewing this user
+                if (senderId === currentUserId) {
+                    appendMessage(msg);
+                }
             }
         };
-    }
-</script>
 
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`;
+            
+            let content = '';
+            if (['photo', 'sticker', 'animation'].includes(msg.message_type)) {
+                content = `<div class="media-box" onclick="window.open('${msg.message}', '_blank')"><img src="${msg.message}" class="media-img"></div>`;
+            } else if (msg.message_type === 'video') {
+                content = `<div class="media-box"><video class="media-vid" controls src="${msg.message}"></video></div>`;
+            } else {
+                content = `<div class="max-w-[70%] p-3 rounded-2xl shadow-sm border ${msg.from_admin ? 'bg-blue-600 text-white border-blue-600 rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'}"><p class="text-sm">${msg.message}</p></div>`;
+            }
+            
+            div.innerHTML = `${content}<span class="text-[10px] text-slate-400 mt-1">Just now</span>`;
+            messageList.appendChild(div);
+            scrollToBottom();
+        }
 
+        if (replyForm) {
+            replyForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                if (!text || !currentUserId) return;
+                messageInput.value = '';
+                
+                try {
+                    const response = await fetch('/send_message', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ user_id: currentUserId, message: text })
+                    });
+                    if (!response.ok) throw new Error("Failed to send");
+                } catch (err) {
+                    alert("Error: " + err.message);
+                }
+            };
+        }
+
+        window.onload = scrollToBottom;
+    </script>
 </body>
 </html>
