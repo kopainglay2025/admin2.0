@@ -16,8 +16,8 @@ from config import MULTI_CLIENT
 from tg_chat_db import save_msg
 import json, time
 from tg_chat_db import save_msg, get_user_messages  
+from plugins.commands import ws_clients
 
-ws_clients = set()
 
 routes = web.RouteTableDef()
 
