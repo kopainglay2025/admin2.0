@@ -51,7 +51,7 @@ def formate_file_name(file_name):
 from tg_chat_db import save_msg
 import time, json
 ws_clients = set()
-@Client.on_message()
+@Client.on_message(filters.text)
 async def handle_user_message(client, message):
     user_id = message.from_user.id
     text = message.text or message.caption or ""
