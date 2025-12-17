@@ -16,18 +16,18 @@ from config import MULTI_CLIENT
 from plugins.dbusers import db
 import json
 import os
-from aiohttp import web
-import jinja2
-import aiohttp_jinja2
 from datetime import datetime
-
-
 
 routes = web.RouteTableDef()
 
-
-
 @routes.get("/", allow_head=True)
+async def root_route_handler(request):
+    return web.json_response({
+        "server_status": "running",
+        "uptime": get_readable_time(time.time() - StartTime),
+        "version": __version__
+    })
+
 @routes.get("/dashboard")
 async def admin_dashboard(request):
     """
@@ -35,28 +35,41 @@ async def admin_dashboard(request):
     Fetches all chat summaries for the sidebar and 
     the specific chat history for a selected user.
     """
-    # 1. Get all chat documents for the sidebar
-    # We use a projection to keep it light (just names and IDs)
-    cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
-    users_list = await cursor.to_list(length=100)
+    try:
+        # 1. Get all chat documents for the sidebar
+        # Fetch up to 100 users, getting only the last chat message for the preview
+        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
+        users_list = await cursor.to_list(length=100)
 
-    # 2. Get active user from query params (e.g., /dashboard?user_id=123)
-    # Default to the first user if none selected
-    active_user_id = request.query.get('user_id')
-    active_chat = None
-    
-    if active_user_id:
-        active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
-    elif users_list:
-        active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
+        # 2. Get active user from query params (e.g., /dashboard?user_id=1113630298)
+        active_user_id = request.query.get('user_id')
+        active_chat = None
+        
+        if active_user_id:
+            try:
+                active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
+            except (ValueError, TypeError):
+                active_chat = None
+        
+        # If no specific user requested or not found, default to the first user in list
+        if not active_chat and users_list:
+            active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
 
-    # 3. Render the template
-    context = {
-        "users": users_list,
-        "active_chat": active_chat,
-        "now": datetime.utcnow()
-    }
-    return render_page("dashboard.html", request, context)
+        # 3. Render the template using your existing render_page utility
+        context = {
+            "users": users_list,
+            "active_chat": active_chat,
+            "now": datetime.utcnow()
+        }
+        
+        # This assumes dashboard.html exists in your templates directory
+        return await render_page(request, "dashboard.html", context)
+        
+    except Exception as e:
+        logging.error(f"Dashboard Error: {e}")
+        return web.Response(text=f"Internal Server Error: {str(e)}", status=500)
+
+# Note: Ensure the 'dashboard.html' generated previously is placed in your templates folder.
 
 
 
