@@ -63,6 +63,13 @@
             border-bottom-left-radius: 4px;
         }
 
+        .msg-sent {
+            background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end;
+        }
+
         .msg-system {
             background-color: #f8fafc;
             color: #64748b;
@@ -73,6 +80,22 @@
 
         .messenger-gradient {
             background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
+        }
+
+        /* Tooltip styling */
+        .action-btn:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: #334155;
+            color: white;
+            font-size: 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            margin-bottom: 8px;
         }
     </style>
 </head>
@@ -129,7 +152,7 @@
                         </div>
                         <p class="text-[13px] {{ 'text-blue-600 font-medium' if active_chat and active_chat.user_id == user.user_id else 'text-slate-500' }} truncate">
                             {% if user.chats %} 
-                                {{ "You: " if user.chats[0].message_type == 'bot' }}{{ user.chats[0].message[:35] }}
+                                {{ "You: " if user.chats[0].message_type == 'bot' or user.chats[0].from_admin }}{{ user.chats[0].message[:35] }}
                             {% else %}
                                 No messages yet
                             {% endif %}
@@ -155,8 +178,8 @@
                     </div>
                 </div>
                 <div class="flex gap-1">
-                    <button class="p-2.5 hover:bg-slate-100 rounded-full text-blue-600 transition-colors"><i class="fas fa-phone-alt"></i></button>
-                    <button class="p-2.5 hover:bg-slate-100 rounded-full text-blue-600 transition-colors"><i class="fas fa-video"></i></button>
+                    <button class="p-2.5 hover:bg-slate-100 rounded-full text-blue-600 transition-colors" title="Audio Call"><i class="fas fa-phone-alt"></i></button>
+                    <button onclick="startVideoCall()" class="p-2.5 hover:bg-slate-100 rounded-full text-blue-600 transition-colors" title="Video Call"><i class="fas fa-video"></i></button>
                     <button class="p-2.5 hover:bg-slate-100 rounded-full text-blue-600 transition-colors"><i class="fas fa-info-circle"></i></button>
                 </div>
             </div>
@@ -168,84 +191,221 @@
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
                     <h3 class="font-bold text-xl text-slate-800">{{ active_chat.user_name }}</h3>
-                    <p class="text-sm text-slate-500 mt-1">Facebook User • ID: {{ active_chat.user_id }}</p>
+                    <p class="text-sm text-slate-500 mt-1">User ID: {{ active_chat.user_id }}</p>
                 </div>
 
-                {% for msg in active_chat.chats %}
-                    {% if msg.message_type == 'command' %}
-                        <div class="flex justify-center my-6">
-                            <div class="msg-system px-4 py-1.5">
-                                <i class="fas fa-magic mr-1.5 opacity-70"></i> {{ msg.message }}
-                            </div>
-                        </div>
-                    {% elif msg.message_type == 'text' %}
-                        <div class="flex flex-col items-start mb-4 group">
-                            <div class="flex items-end gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                    {{ active_chat.user_name[:1] | upper }}
+                <div class="flex flex-col" id="messageList">
+                    {% for msg in active_chat.chats %}
+                        {% if msg.message_type == 'command' %}
+                            <div class="flex justify-center my-6">
+                                <div class="msg-system px-4 py-1.5">
+                                    <i class="fas fa-magic mr-1.5 opacity-70"></i> {{ msg.message }}
                                 </div>
-                                <div class="msg-bubble msg-received shadow-sm">
+                            </div>
+                        {% elif msg.from_admin %}
+                            <!-- Admin Message (Sent) -->
+                            <div class="flex flex-col items-end mb-4 group">
+                                <div class="msg-bubble msg-sent shadow-sm">
                                     {{ msg.message }}
                                 </div>
+                                <span class="text-[10px] text-slate-400 mt-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {{ msg.timestamp.strftime('%I:%M %p') }}
+                                </span>
                             </div>
-                            <span class="text-[10px] text-slate-400 mt-1 ml-9 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {{ msg.timestamp.strftime('%I:%M %p') }}
-                            </span>
-                        </div>
-                    {% elif msg.message_type == 'photo' %}
-                        <div class="flex flex-col items-start mb-4 group">
-                            <div class="flex items-end gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                    {{ active_chat.user_name[:1] | upper }}
-                                </div>
-                                <div class="max-w-[280px] overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
-                                    <div class="bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
-                                        <i class="fas fa-image text-slate-300 text-3xl"></i>
-                                        <p class="text-[10px] text-slate-400 font-mono break-all text-center px-2">{{ msg.message[:20] }}...</p>
+                        {% else %}
+                            <!-- User Message (Received) -->
+                            <div class="flex flex-col items-start mb-4 group">
+                                <div class="flex items-end gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                        {{ active_chat.user_name[:1] | upper }}
                                     </div>
-                                    <div class="bg-slate-100 px-3 py-2 text-[11px] text-slate-600 font-medium flex justify-between items-center">
-                                        <span>Photo received</span>
-                                        <i class="fas fa-external-link-alt text-[9px]"></i>
+                                    <div class="msg-bubble msg-received shadow-sm">
+                                        {% if msg.message_type == 'photo' %}
+                                            <div class="max-w-[280px] overflow-hidden rounded-lg mb-1">
+                                                <div class="bg-slate-200 p-8 text-center">
+                                                    <i class="fas fa-image text-slate-400 text-3xl"></i>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {{ msg.message }}
                                     </div>
                                 </div>
+                                <span class="text-[10px] text-slate-400 mt-1 ml-9 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {{ msg.timestamp.strftime('%I:%M %p') }}
+                                </span>
                             </div>
-                            <span class="text-[10px] text-slate-400 mt-1 ml-9 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {{ msg.timestamp.strftime('%I:%M %p') }}
-                            </span>
-                        </div>
-                    {% endif %}
-                {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
 
-            <!-- Footer Reply (View Only) -->
-            <div class="h-[75px] px-6 flex items-center gap-4 border-t border-slate-100 flex-shrink-0">
-                <div class="flex gap-4 text-blue-600">
-                    <i class="fas fa-plus-circle text-xl cursor-not-allowed opacity-50"></i>
-                    <i class="fas fa-camera text-xl cursor-not-allowed opacity-50"></i>
-                    <i class="fas fa-image text-xl cursor-not-allowed opacity-50"></i>
+            <!-- Footer Reply (Action Area) -->
+            <form id="replyForm" class="h-auto min-h-[75px] px-4 py-3 flex items-end gap-2 border-t border-slate-100 flex-shrink-0 bg-white">
+                <div class="flex items-center gap-1 pb-1">
+                    <button type="button" onclick="triggerFileUpload('file')" class="action-btn relative p-2 hover:bg-slate-100 rounded-full text-blue-600 transition-colors" data-tip="Send File">
+                        <i class="fas fa-plus-circle text-xl"></i>
+                    </button>
+                    <button type="button" onclick="triggerFileUpload('photo')" class="action-btn relative p-2 hover:bg-slate-100 rounded-full text-blue-600 transition-colors" data-tip="Send Photo">
+                        <i class="fas fa-camera text-xl"></i>
+                    </button>
+                    <button type="button" onclick="triggerFileUpload('video')" class="action-btn relative p-2 hover:bg-slate-100 rounded-full text-blue-600 transition-colors" data-tip="Send Video">
+                        <i class="fas fa-image text-xl"></i>
+                    </button>
                 </div>
-                <div class="flex-1 bg-slate-100 rounded-full px-4 py-2 text-slate-500 text-[14px]">
-                    This is a read-only log history.
+                
+                <div class="flex-1 relative flex items-center">
+                    <textarea 
+                        id="messageInput"
+                        rows="1"
+                        placeholder="Aa" 
+                        class="w-full bg-slate-100 rounded-2xl px-4 py-2.5 text-[15px] focus:outline-none resize-none max-h-32 custom-scrollbar"
+                    ></textarea>
+                    <button type="button" onclick="toggleEmojiPicker()" class="absolute right-3 text-blue-600 hover:text-blue-700">
+                        <i class="far fa-smile text-xl"></i>
+                    </button>
                 </div>
-                <i class="fas fa-thumbs-up text-xl text-blue-600"></i>
-            </div>
+
+                <div class="pb-1">
+                    <button type="submit" id="sendBtn" class="p-2 text-blue-600 hover:scale-110 transition-transform">
+                        <i class="fas fa-paper-plane text-xl" id="sendIcon"></i>
+                        <i class="fas fa-thumbs-up text-xl hidden" id="likeIcon"></i>
+                    </button>
+                </div>
+
+                <!-- Hidden inputs for file uploads -->
+                <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(event)">
+            </form>
+
             {% else %}
             <!-- Empty State -->
             <div class="flex-1 flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
                 <div class="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                     <i class="fas fa-comments text-4xl"></i>
                 </div>
-                <p class="font-bold text-slate-400">Select a chat to start</p>
+                <p class="font-bold text-slate-400">စကားပြောရန် User တစ်ဦးကို ရွေးချယ်ပါ</p>
             </div>
             {% endif %}
         </main>
     </div>
 
+    <!-- Video Call Modal Mockup -->
+    <div id="videoCallModal" class="fixed inset-0 bg-black/80 z-[100] hidden flex items-center justify-center">
+        <div class="bg-slate-900 w-full max-w-2xl aspect-video rounded-3xl overflow-hidden relative shadow-2xl border border-slate-700">
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
+                <div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold animate-pulse">
+                    {{ active_chat.user_name[:1] | upper if active_chat else '?' }}
+                </div>
+                <h2 class="text-2xl font-bold">{{ active_chat.user_name if active_chat else 'User' }}</h2>
+                <p class="text-slate-400">Calling...</p>
+            </div>
+            <div class="absolute bottom-10 left-0 right-0 flex justify-center gap-6">
+                <button onclick="closeVideoCall()" class="w-14 h-14 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600">
+                    <i class="fas fa-phone-slash text-xl"></i>
+                </button>
+                <button class="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-600">
+                    <i class="fas fa-video text-xl"></i>
+                </button>
+                <button class="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-white hover:bg-slate-600">
+                    <i class="fas fa-microphone text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Auto scroll to latest message
         const chatWindow = document.getElementById('chatWindow');
-        if (chatWindow) {
-            chatWindow.scrollTop = chatWindow.scrollHeight;
+        const messageInput = document.getElementById('messageInput');
+        const replyForm = document.getElementById('replyForm');
+        const messageList = document.getElementById('messageList');
+
+        // Scroll to bottom
+        const scrollToBottom = () => {
+            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+
+        window.onload = scrollToBottom;
+
+        // Dynamic height for textarea
+        if (messageInput) {
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+        // Handle Form Submission
+        if (replyForm) {
+            replyForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                if (!text) return;
+
+                // local UI update (simulated)
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const msgHtml = `
+                    <div class="flex flex-col items-end mb-4 group">
+                        <div class="msg-bubble msg-sent shadow-sm">
+                            ${text}
+                        </div>
+                        <span class="text-[10px] text-slate-400 mt-1 mr-2 opacity-100">
+                            ${timeStr}
+                        </span>
+                    </div>
+                `;
+                
+                messageList.insertAdjacentHTML('beforeend', msgHtml);
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                scrollToBottom();
+
+                // API Call Logic
+                try {
+                    const userId = new URLSearchParams(window.location.search).get('user_id');
+                    await fetch('/send_message', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            user_id: userId,
+                            message: text,
+                            from_admin: true
+                        })
+                    });
+                } catch (err) {
+                    console.error("Failed to send message", err);
+                }
+            };
+        }
+
+        // File Upload Handlers
+        function triggerFileUpload(type) {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // အမှန်တကယ်တွင် ဤနေရာ၌ Backend သို့ Upload တင်ရမည်
+                console.log("Uploading file:", file.name);
+                alert(`${file.name} ကို ပို့လွှတ်နေပါသည်...`);
+            }
+        }
+
+        // Video Call Handlers
+        function startVideoCall() {
+            document.getElementById('videoCallModal').classList.remove('hidden');
+        }
+
+        function closeVideoCall() {
+            document.getElementById('videoCallModal').classList.add('hidden');
+        }
+
+        // Emoji Toggle Mockup
+        function toggleEmojiPicker() {
+            const emoji = "😊";
+            messageInput.value += emoji;
+            messageInput.dispatchEvent(new Event('input'));
         }
     </script>
 </body>
