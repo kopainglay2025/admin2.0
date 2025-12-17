@@ -19,6 +19,7 @@ import json
 import base64
 from urllib.parse import quote_plus
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
+from TechVJ.server.stream_routes import notify_admin_new_message
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -324,33 +325,47 @@ async def base_site_handler(client, m: Message):
 @Client.on_message(filters.incoming & filters.private)
 async def save_user_message(client, message):
     user_id = message.from_user.id
-    user_name = message.from_user.first_name
+    user_name = message.from_user.first_name or "Unknown"
 
+    # Message Type ခွဲခြားခြင်း
     if message.text:
         msg_type = "text"
         content = message.text
     elif message.photo:
         msg_type = "photo"
-        content = message.photo.file_id
+        content = "Sent a photo"
     elif message.video:
         msg_type = "video"
-        content = message.video.file_id
+        content = "Sent a video"
     elif message.sticker:
         msg_type = "sticker"
-        content = message.sticker.file_id
+        content = "Sent a sticker"
     elif message.animation:
-        msg_type = "animation"  # gif
-        content = message.animation.file_id
+        msg_type = "animation"
+        content = "Sent a GIF"
     elif message.document:
         msg_type = "document"
-        content = message.document.file_id
+        content = "Sent a document"
     else:
         msg_type = "other"
-        content = "unsupported type"
+        content = "Unsupported type"
 
-    # ---- Save to DB ----
-    await db.add_chat(user_id=user_id, user_name=user_name, message=content, message_type=msg_type)
+    # 1. Database ထဲသို့ သိမ်းဆည်းခြင်း
+    # db.add_chat သည် chat entry ကို ပြန်ပေးသည်ဟု ယူဆသည်
+    await db.add_chat(
+        user_id=user_id, 
+        user_name=user_name, 
+        message=content, 
+        message_type=msg_type
+    )
 
+    # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
+    await notify_admin_new_message(
+        user_id=user_id, 
+        user_name=user_name, 
+        message_text=content, 
+        msg_type=msg_type
+    )
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
