@@ -59,7 +59,26 @@ async def admin_dashboard(request):
 
 
 
+@routes.get("/user")
+async def show_user_chats(request):
+    """
+    Fetch all users and their last 50 messages
+    """
+    # Query all users who have chat
+    cursor = db.chat_col.find({})
+    users_chats = await cursor.to_list(length=100)  # 100 users max
 
+    # Prepare data for template
+    data = []
+    for user_doc in users_chats:
+        chats = user_doc.get('chats', [])[-50:]  # last 50 messages
+        data.append({
+            'user_name': user_doc.get('user_name'),
+            'user_id': user_doc.get('user_id'),
+            'chats': chats
+        })
+
+    return render_page("chats.html", users=data)
 
 
 
