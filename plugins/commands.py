@@ -24,7 +24,36 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 
+import httpx
+from datetime import datetime
+from TechVJs.erver.stream_routes import notify_admin_new_message
 
+
+async def get_telegram_file_url(file_id: str):
+    """
+    file_id ကိုပေးလျှင် တိုက်ရိုက်ကြည့်ရှု/Download ဆွဲနိုင်သော URL ကို ပြန်ပေးပါမည်။
+    """
+    try:
+        # 1. file_id ကိုသုံးပြီး file_path ကို Telegram server ထံမှ တောင်းဆိုခြင်း
+        get_file_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={file_id}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(get_file_url)
+            res_data = response.json()
+            
+            if res_data.get("ok"):
+                file_path = res_data["result"]["file_path"]
+                
+                # 2. တိုက်ရိုက်ကြည့်နိုင်သော Link ကို တည်ဆောက်ခြင်း
+                direct_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+                return direct_url
+            else:
+                print(f"Telegram API Error: {res_data.get('description')}")
+                return None
+                
+    except Exception as e:
+        print(f"Error getting file URL: {e}")
+        return None
 
 def get_size(size):
     """Get size in readable format"""
@@ -341,50 +370,67 @@ async def base_site_handler(client, m: Message):
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
+
+
 @Client.on_message(filters.incoming & filters.private)
 async def save_user_message(client, message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "Unknown"
+    
+    msg_type = "text"
+    content = ""
+    file_id = None
 
-    # Message Type ခွဲခြားခြင်း
+    # Message Type ခွဲခြားခြင်းနှင့် file_id ရယူခြင်း
     if message.text:
         msg_type = "text"
         content = message.text
     elif message.photo:
         msg_type = "photo"
-        content = "Sent a photo"
+        file_id = message.photo.file_id
     elif message.video:
         msg_type = "video"
-        content = "Sent a video"
+        file_id = message.video.file_id
     elif message.sticker:
         msg_type = "sticker"
-        content = "Sent a sticker"
+        file_id = message.sticker.file_id
     elif message.animation:
         msg_type = "animation"
-        content = "Sent a GIF"
+        file_id = message.animation.file_id
     elif message.document:
         msg_type = "document"
-        content = "Sent a document"
+        file_id = message.document.file_id
     else:
         msg_type = "other"
         content = "Unsupported type"
 
+    # Media ဖြစ်ပါက URL အဖြစ်ပြောင်းလဲခြင်း
+    if file_id:
+        direct_link = await get_telegram_file_url(file_id)
+        if direct_link:
+            content = direct_link
+        else:
+            content = f"Sent a {msg_type} (URL error)"
+
     # 1. Database ထဲသို့ သိမ်းဆည်းခြင်း
-    # error ရှောင်ရှားရန် timestamp ကို datetime object အတိုင်း db ထဲ ထည့်သွင်းပါ
     await db.add_chat(
         user_id=user_id, 
         user_name=user_name, 
         message=content, 
-        message_type=msg_type
+        message_type=msg_type,
+        timestamp=datetime.utcnow()
     )
 
     # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
+
     await notify_admin_new_message(
         user_id=user_id, 
         user_name=user_name, 
         message_text=content, 
         msg_type=msg_type
     )
+
+
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
