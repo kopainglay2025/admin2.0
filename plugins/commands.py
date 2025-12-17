@@ -46,11 +46,7 @@ def formate_file_name(file_name):
 
 
 
-# ----------------------
-# Incoming User Messages
-# ----------------------
 
-from plugins.bot import StreamBot
 from server.routes.stream_routes import ws_clients
 from tg_chat_db import save_msg
 import time, json
