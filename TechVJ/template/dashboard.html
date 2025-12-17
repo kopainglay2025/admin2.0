@@ -176,7 +176,13 @@
                             {{ msg.message }}
                         </div>
                         <span class="text-[10px] text-slate-400 mt-1 px-1">
-                            {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp and hasattr(msg.timestamp, 'strftime') else '' }}
+                            {% if msg.timestamp %}
+                                {% if msg.timestamp is string %}
+                                    {{ msg.timestamp[:16].replace('T', ' ') }}
+                                {% else %}
+                                    {{ msg.timestamp.strftime('%I:%M %p') }}
+                                {% endif %}
+                            {% endif %}
                         </span>
                     </div>
                     {% endfor %}
