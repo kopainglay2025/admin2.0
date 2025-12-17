@@ -52,7 +52,7 @@ async def admin_dashboard(request):
         "active_chat": active_chat,
         "now": datetime.utcnow()
     }
-    return render_page("dashboard.html", request, context))
+    return render_page("dashboard.html", request, context)
 
 
 
