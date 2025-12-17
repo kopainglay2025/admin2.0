@@ -387,8 +387,7 @@ async def save_user_message(client, message):
         user_id=user_id, 
         user_name=user_name, 
         message=content, 
-        message_type=msg_type,
-        timestamp=datetime.utcnow() # strftime error မတက်စေရန် object အတိုင်း သိမ်းပါ
+        message_type=msg_type
     )
 
     # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
