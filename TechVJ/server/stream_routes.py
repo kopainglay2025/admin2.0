@@ -81,43 +81,44 @@ async def websocket_handler(request):
 
 @routes.post("/send_message")
 async def send_message_handler(request):
-    """
-    Route to handle admin replies from the dashboard.
-    Saves the message to DB, sends via Telegram Bot, and notifies via WebSocket.
-    """
-    user_id = data.user_id
-    message_text = data.message
-
     try:
-        # 1. Save admin message to Database
-        await db.add_chat(
-            user_id=user_id,
-            user_name="Admin",
-            message=message_text,
-            message_type="text",
-            from_admin=True,
-            timestamp=datetime.datetime.utcnow()
+        data = await request.json()
+        user_id = int(data.get("user_id"))
+        text = data.get("message")
+
+        if not text or not user_id:
+            return web.json_response({"error": "Missing message or user_id"}, status=400)
+
+        client = multi_clients[0]
+        sent_msg = await client.send_message(chat_id=user_id, text=text)
+
+        chat_data = {
+            "message": text,
+            "message_type": "text",
+            "from_admin": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        await db.chat_col.update_one(
+            {'user_id': user_id},
+            {'$push': {'chats': chat_data}},
+            upsert=True
         )
 
-        # 2. Send the message to the user via Telegram Bot
-        # Using the bot instance from your handlers
-        await bot.send_message(chat_id=user_id, text=message_text)
+        # Websocket မှတစ်ဆင့် connected ဖြစ်နေသူအားလုံးကို update ပို့ပေးခြင်း
+        for ws in active_sockets:
+            await ws.send_json({
+                "type": "new_message",
+                "user_id": user_id,
+                "data": chat_data
+            })
 
-        # 3. Notify all connected admins via WebSocket for real-time UI update
-        # This ensures the message appears in the admin's own chat window immediately
-        from main import notify_admin_new_message
-        await notify_admin_new_message(
-            user_id=user_id,
-            user_name="Admin",
-            message_text=message_text,
-            msg_type="text"
-        )
-
-        return {"status": "success"}
+        return web.json_response({"status": "success", "message_id": sent_msg.id})
 
     except Exception as e:
-        print(f"Error sending message: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Send Message Error: {e}")
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
+
 # Bot က User ဆီက message လက်ခံရရှိတဲ့အခါ ဤ function ကို ခေါ်ပေးရန် လိုအပ်သည်
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
     """
@@ -127,7 +128,7 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.utcnow().isoformat()
     }
     
     for ws in active_sockets:
@@ -137,8 +138,6 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
             "user_name": user_name,
             "data": new_msg
         })
-
-
 @routes.get("/user")
 async def show_user_chats(request):
     """
