@@ -96,7 +96,7 @@ async def send_message_handler(request):
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow()
         }
 
         await db.chat_col.update_one(
