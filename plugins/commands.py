@@ -371,16 +371,11 @@ async def base_site_handler(client, m: Message):
         await m.reply("<b>Base Site updated successfully</b>")
 
 
-
 @Client.on_message(filters.incoming & filters.private)
 async def save_user_mevvssage(client, message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "Unknown"
     
-    msg_type = "text"
-    content = ""
-    file_id = None
-
     # Message Type ခွဲခြားခြင်းနှင့် file_id ရယူခြင်း
     if message.text:
         msg_type = "text"
@@ -426,8 +421,7 @@ async def save_user_mevvssage(client, message):
         user_id=user_id, 
         user_name=user_name, 
         message=content, 
-        message_type=msg_type,
-        timestamp=datetime.utcnow()
+        message_type=msg_type
     )
 
     # 2. Admin Dashboard သို့ Real-time Notification ပို့ခြင်း
