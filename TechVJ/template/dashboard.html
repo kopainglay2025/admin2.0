@@ -9,133 +9,48 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-    body {
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .chat-container { 
-        height: calc(100vh - 150px); 
-        scroll-behavior: smooth;
-        overflow-y: auto;
-    }
-    
-    .sidebar-height { 
-        height: calc(100vh - 75px); 
-        overflow-y: auto;
-    }
-
-    .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: #e2e8f0 transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-
-    .msg-bubble {
-        max-width: 75%;
-        padding: 8px 14px;
-        border-radius: 18px;
-        font-size: 0.9375rem;
-        line-height: 1.4;
-        position: relative;
-    }
-
-    .msg-received {
-        background-color: #f0f0f0;
-        color: #050505;
-        border-bottom-left-radius: 4px;
-    }
-
-    .msg-sent {
-        background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
-
-    .msg-system {
-        background-color: #f8fafc;
-        color: #64748b;
-        border: 1px solid #e2e8f0;
-        font-size: 0.75rem;
-        border-radius: 10px;
-    }
-
-    .messenger-gradient {
-        background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%);
-    }
+body { font-family: 'Inter', sans-serif; overflow: hidden; }
+.chat-container { height: calc(100vh - 150px); scroll-behavior: smooth; overflow-y: auto; }
+.sidebar-height { height: calc(100vh - 75px); overflow-y: auto; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.msg-bubble { max-width: 75%; padding: 8px 14px; border-radius: 18px; font-size: 0.9375rem; line-height: 1.4; }
+.msg-received { background-color: #f0f0f0; color: #050505; border-bottom-left-radius: 4px; }
+.msg-sent { background: linear-gradient(135deg, #0084ff 0%, #0078ff 100%); color: white; border-bottom-right-radius: 4px; }
 </style>
-
-
 </head>
-<body class="bg-white text-slate-900 overflow-hidden">
+<body class="bg-white text-slate-900">
 
 <!-- Top Navigation -->
 <nav class="bg-white border-b border-slate-200 h-[75px] flex items-center justify-between px-6 sticky top-0 z-50">
     <div class="flex items-center gap-4">
-        <div class="messenger-gradient p-2.5 rounded-2xl shadow-lg shadow-blue-200 text-white">
+        <div class="bg-blue-600 p-2.5 rounded-2xl text-white">
             <i class="fas fa-comment-dots text-xl"></i>
         </div>
         <div>
-            <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Messages</h1>
-            <p class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Admin Control Panel</p>
-        </div>
-    </div>
-    
-    <div class="flex items-center gap-3">
-        <div class="hidden md:flex flex-col items-end mr-2">
-            <span class="text-sm font-bold text-slate-700">System Status</span>
-            <span id="connectionStatus" class="text-[10px] text-amber-500 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span> Connecting
-            </span>
+            <h1 class="text-xl font-extrabold text-slate-800">Messages</h1>
+            <p id="statusText" class="text-[10px] font-semibold text-amber-500 uppercase tracking-wider">Connecting...</p>
         </div>
     </div>
 </nav>
 
 <div class="flex h-[calc(100vh-75px)]">
-    <!-- Left Sidebar: Users -->
+    <!-- Sidebar -->
     <aside class="w-[360px] bg-white border-r border-slate-100 sidebar-height custom-scrollbar flex flex-col">
-        <div class="p-4 flex-shrink-0">
-            <div class="relative mb-4">
-                <input type="text" placeholder="Search Messenger" class="w-full bg-slate-100 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-100 transition-all outline-none">
-                <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
-            </div>
-        </div>
-
-        <div class="flex flex-col px-2 flex-grow">
+        <div id="userList" class="flex flex-col px-2 py-4">
             {% for user in users %}
             <a href="/dashboard?user_id={{ user.user_id }}" 
-               class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 mb-1 {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
-                <div class="relative">
-                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-bold text-lg border border-slate-100 shadow-sm">
-                        {{ user.user_name[:1] | upper }}
-                    </div>
-                    <div class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+               id="user-side-{{ user.user_id }}"
+               class="user-item flex items-center gap-3 p-3 rounded-xl mb-1 {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
+                <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold">
+                    {{ user.user_name[:1] | upper }}
                 </div>
                 <div class="flex-1 overflow-hidden">
-                    <div class="flex justify-between items-baseline mb-0.5">
-                        <span class="font-bold truncate text-[15px] {{ 'text-blue-700' if active_chat and active_chat.user_id == user.user_id else 'text-slate-800' }}">
-                            {{ user.user_name }}
-                        </span>
+                    <div class="flex justify-between items-baseline">
+                        <span class="font-bold text-slate-800 truncate">{{ user.user_name }}</span>
                     </div>
-                    <p class="text-[13px] {{ 'text-blue-600 font-medium' if active_chat and active_chat.user_id == user.user_id else 'text-slate-500' }} truncate">
-                        {% if user.chats %} 
-                            {{ "You: " if user.chats[-1].from_admin }}{{ user.chats[-1].message[:35] }}
-                        {% else %}
-                            No messages yet
-                        {% endif %}
+                    <p id="last-msg-{{ user.user_id }}" class="text-[13px] text-slate-500 truncate">
+                        {% if user.chats %}{{ user.chats[-1].message }}{% else %}No messages{% endif %}
                     </p>
                 </div>
             </a>
@@ -143,190 +58,96 @@
         </div>
     </aside>
 
-    <!-- Right Main: Chat Window -->
-    <main class="flex-1 flex flex-col bg-white overflow-hidden">
+    <!-- Main Chat -->
+    <main class="flex-1 flex flex-col bg-white">
         {% if active_chat %}
-        <!-- Chat User Header -->
-        <div class="h-[75px] px-6 flex items-center justify-between border-b border-slate-100 shadow-sm z-10 flex-shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold shadow-md shadow-blue-100">
-                    {{ active_chat.user_name[:1] | upper }}
-                </div>
-                <div>
-                    <h2 class="font-bold text-slate-800 leading-tight">{{ active_chat.user_name }}</h2>
-                    <p class="text-[11px] font-semibold text-green-500 uppercase">Active Now</p>
-                </div>
-            </div>
+        <div class="h-[75px] px-6 flex items-center border-b border-slate-100">
+            <h2 class="font-bold text-slate-800">{{ active_chat.user_name }}</h2>
         </div>
 
-        <!-- Messages Flow -->
-        <div class="flex-1 chat-container custom-scrollbar bg-white p-6" id="chatWindow">
-            <div class="flex flex-col items-center mb-8">
-                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-3xl mb-3">
-                    {{ active_chat.user_name[:1] | upper }}
-                </div>
-                <h3 class="font-bold text-xl text-slate-800">{{ active_chat.user_name }}</h3>
-                <p class="text-sm text-slate-500 mt-1">User ID: {{ active_chat.user_id }}</p>
-            </div>
-
+        <div class="flex-1 chat-container p-6" id="chatWindow">
             <div class="flex flex-col" id="messageList">
                 {% for msg in active_chat.chats %}
-                    {% if msg.from_admin %}
-                        <div class="flex flex-col items-end mb-4 group">
-                            <div class="msg-bubble msg-sent shadow-sm">{{ msg.message }}</div>
-                            <span class="text-[10px] text-slate-400 mt-1 mr-2">
-                                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp }}
-                            </span>
-                        </div>
-                    {% else %}
-                        <div class="flex flex-col items-start mb-4 group">
-                            <div class="flex items-end gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                    {{ active_chat.user_name[:1] | upper }}
-                                </div>
-                                <div class="msg-bubble msg-received shadow-sm">{{ msg.message }}</div>
-                            </div>
-                            <span class="text-[10px] text-slate-400 mt-1 ml-9">
-                                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp }}
-                            </span>
-                        </div>
-                    {% endif %}
+                <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }} mb-4">
+                    <div class="msg-bubble {{ 'msg-sent' if msg.from_admin else 'msg-received' }}">
+                        {{ msg.message }}
+                    </div>
+                </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- Footer Reply Area -->
-        <form id="replyForm" class="h-auto min-h-[75px] px-4 py-3 flex items-end gap-2 border-t border-slate-100 flex-shrink-0 bg-white">
-            <div class="flex-1 relative flex items-center">
-                <textarea 
-                    id="messageInput"
-                    rows="1"
-                    placeholder="Aa" 
-                    class="w-full bg-slate-100 rounded-2xl px-4 py-2.5 text-[15px] focus:outline-none resize-none max-h-32 custom-scrollbar"
-                ></textarea>
-            </div>
-            <div class="pb-1">
-                <button type="submit" id="sendBtn" class="p-2 text-blue-600 hover:scale-110 transition-transform">
-                    <i class="fas fa-paper-plane text-xl"></i>
-                </button>
-            </div>
+        <form id="replyForm" class="p-4 border-t flex gap-2">
+            <input type="text" id="messageInput" placeholder="Aa" class="flex-1 bg-slate-100 rounded-full px-4 py-2 outline-none">
+            <button type="submit" class="text-blue-600 px-2"><i class="fas fa-paper-plane"></i></button>
         </form>
-
         {% else %}
-        <div class="flex-1 flex flex-col items-center justify-center text-slate-300 bg-slate-50/30">
-            <div class="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                <i class="fas fa-comments text-4xl"></i>
-            </div>
-            <p class="font-bold text-slate-400">စကားပြောရန် User တစ်ဦးကို ရွေးချယ်ပါ</p>
-        </div>
+        <div class="flex-1 flex items-center justify-center text-slate-400">စကားပြောရန် User ရွေးချယ်ပါ</div>
         {% endif %}
     </main>
 </div>
 
 <script>
     const chatWindow = document.getElementById('chatWindow');
-    const messageInput = document.getElementById('messageInput');
     const messageList = document.getElementById('messageList');
-    const replyForm = document.getElementById('replyForm');
-    const statusEl = document.getElementById('connectionStatus');
+    const messageInput = document.getElementById('messageInput');
     const currentUserId = new URLSearchParams(window.location.search).get('user_id');
+    const statusText = document.getElementById('statusText');
 
-    // Scroll to bottom helper
-    const scrollToBottom = () => {
-        if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
-
-    window.onload = scrollToBottom;
-
-    // WebSocket Setup
+    // WebSocket ချိတ်ဆက်ခြင်း
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
     ws.onopen = () => {
-        statusEl.innerHTML = '<span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online';
-        statusEl.className = 'text-[10px] text-green-500 flex items-center gap-1';
-    };
-
-    ws.onclose = () => {
-        statusEl.innerHTML = '<span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> Offline';
-        statusEl.className = 'text-[10px] text-red-500 flex items-center gap-1';
+        statusText.innerText = "Online";
+        statusText.classList.replace('text-amber-500', 'text-green-500');
     };
 
     ws.onmessage = (event) => {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "new_message") {
-            if (payload.user_id.toString() === currentUserId) {
-                appendMessage(payload.data);
+        const data = JSON.parse(event.data);
+        
+        if (data.type === "new_message") {
+            const msg = data.data;
+            const senderId = data.user_id.toString();
+
+            // 1. Sidebar က နောက်ဆုံးစာကို Update လုပ်မယ်
+            const lastMsgEl = document.getElementById(`last-msg-${senderId}`);
+            if (lastMsgEl) {
+                lastMsgEl.innerText = (msg.from_admin ? "You: " : "") + msg.message;
+            }
+
+            // 2. လက်ရှိဖွင့်ထားတဲ့ Chat ဖြစ်ရင် စာရင်းထဲချက်ချင်းထည့်မယ်
+            if (senderId === currentUserId) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} mb-4 animate-fade-in`;
+                msgDiv.innerHTML = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
+                messageList.appendChild(msgDiv);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
             } else {
-                // Update sidebar logic can be added here
-                console.log("Message from other user:", payload.user_id);
+                // တခြား User ဆီကစာဆိုရင် Sidebar မှာ အရောင်ပြောင်းတာမျိုး လုပ်လို့ရတယ်
+                const userSideEl = document.getElementById(`user-side-${senderId}`);
+                if (userSideEl) userSideEl.classList.add('border-l-4', 'border-blue-500');
             }
         }
     };
 
-    function appendMessage(msg) {
-        const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        let msgHtml = '';
-
-        if (msg.from_admin) {
-            msgHtml = `
-                <div class="flex flex-col items-end mb-4 group">
-                    <div class="msg-bubble msg-sent shadow-sm">${msg.message}</div>
-                    <span class="text-[10px] text-slate-400 mt-1 mr-2">${timeStr}</span>
-                </div>
-            `;
-        } else {
-            msgHtml = `
-                <div class="flex flex-col items-start mb-4 group">
-                    <div class="flex items-end gap-2">
-                        <div class="w-7 h-7 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500">U</div>
-                        <div class="msg-bubble msg-received shadow-sm">${msg.message}</div>
-                    </div>
-                    <span class="text-[10px] text-slate-400 mt-1 ml-9">${timeStr}</span>
-                </div>
-            `;
-        }
-        messageList.insertAdjacentHTML('beforeend', msgHtml);
-        scrollToBottom();
-    }
-
-    // Textarea auto-resize
-    if (messageInput) {
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    }
-
-    // Send Message
-    if (replyForm) {
-        replyForm.onsubmit = async (e) => {
+    // စာပို့တဲ့အပိုင်း
+    if (document.getElementById('replyForm')) {
+        document.getElementById('replyForm').onsubmit = async (e) => {
             e.preventDefault();
             const text = messageInput.value.trim();
             if (!text || !currentUserId) return;
 
-            const originalText = text;
             messageInput.value = '';
-            messageInput.style.height = 'auto';
-
-            try {
-                const response = await fetch('/send_message', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        message: originalText
-                    })
-                });
-                
-                if (!response.ok) throw new Error("Failed to send");
-                
-            } catch (err) {
-                console.error("Error:", err);
-                messageInput.value = originalText; // Restore text on failure
-            }
+            await fetch('/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentUserId, message: text })
+            });
         };
     }
+
+    if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
 </script>
 
 
