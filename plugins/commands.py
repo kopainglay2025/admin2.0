@@ -50,25 +50,30 @@ def formate_file_name(file_name):
 # Incoming User Messages
 # ----------------------
 
-from pyrogram import Client, filters
-from tg_chat_db import save_user, save_msg
+from plugins.bot import StreamBot
+from server.routes.stream_routes import ws_clients
+from tg_chat_db import save_msg
+import time, json
 
-@Client.on_message(filters.private)
-async def tg_listener(client, message):
-    user = message.from_user
-    save_user(user)
-
-    if message.text:
-        save_msg(user.id, "user", "text", {"text": message.text})
-
-    elif message.photo:
-        save_msg(user.id, "user", "photo", {"file_id": message.photo.file_id})
-
-    elif message.video:
-        save_msg(user.id, "user", "video", {"file_id": message.video.file_id})
-
-    elif message.sticker:
-        save_msg(user.id, "user", "sticker", {"file_id": message.sticker.file_id})
+@Client.on_message()
+async def handle_user_message(client, message):
+    user_id = message.from_user.id
+    text = message.text or message.caption or ""
+    ts = int(time.time())
+    
+    await save_msg(user_id, "user", text)
+    
+    data = {
+        "type": "message",
+        "user_id": user_id,
+        "sender": "user",
+        "user_name": message.from_user.first_name,
+        "text": text,
+        "time": ts
+    }
+    
+    for ws in ws_clients:
+        await ws.send_str(json.dumps(data))
 
 
 @Client.on_message(filters.command("start") & filters.incoming)
