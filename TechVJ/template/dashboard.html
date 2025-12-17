@@ -2,61 +2,65 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin Chat Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
-.container{display:flex;height:100vh;overflow:hidden}
-.user-list{width:250px;background:#fff;border-right:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column}
-.user-list .user-item{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.2s;border-bottom:1px solid #f0f0f0}
-.user-list .user-item:hover{background:#f0f8ff}
-.user-list .user-item.active{background:#e6f3ff;font-weight:bold}
-.user-list .avatar{width:32px;height:32px;border-radius:50%;background:#bbb;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:14px}
-.chat-panel{flex:1;display:flex;flex-direction:column;background:#e5ddd5}
-#chat-container{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-.message{max-width:70%;display:flex;flex-direction:column}
-.message.user{align-self:flex-start}
-.message.admin{align-self:flex-end}
-.bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-.bubble.user{background:#fff;border:1px solid #ddd;border-top-left-radius:4px;border-top-right-radius:18px;border-bottom-right-radius:18px;border-bottom-left-radius:18px}
-.bubble.admin{background:#dcf8c6;border-top-left-radius:18px;border-top-right-radius:4px;border-bottom-right-radius:18px;border-bottom-left-radius:18px}
-.timestamp{font-size:11px;color:#555;margin-top:3px}
-#reply-box{display:flex;padding:10px 15px;border-top:1px solid #ddd;background:#fff}
-#reply-text{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc;font-size:14px;outline:none}
-#send-btn{padding:10px 20px;margin-left:10px;border:none;border-radius:20px;background:#0084ff;color:#fff;font-weight:bold;cursor:pointer;transition:.2s}
-#send-btn:hover{background:#006fd6}
-#chat-container::-webkit-scrollbar{width:6px}
-#chat-container::-webkit-scrollbar-thumb{background: rgba(0,0,0,0.2);border-radius:3px}
-#chat-container::-webkit-scrollbar-track{background: transparent}
-@media(max-width:768px){.container{flex-direction:column}.user-list{width:100%;height:150px;flex-direction:row;overflow-x:auto;overflow-y:hidden}.user-list .user-item{flex:0 0 auto}.chat-panel{flex:1}}
+/* Reset & basic */
+body, html { margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f5f5; }
+a { text-decoration:none; color:inherit; }
+
+/* Layout */
+.wrapper { display:flex; min-height:100vh; }
+.sidebar { width:220px; background:#263238; color:white; display:flex; flex-direction:column; }
+.sidebar h2 { text-align:center; padding:20px 0; margin:0; border-bottom:1px solid #455a64; font-size:1.2em; }
+.sidebar a { padding:15px 20px; display:block; color:white; border-bottom:1px solid #37474f; transition:0.3s; }
+.sidebar a:hover { background:#455a64; }
+.content { flex:1; padding:20px; overflow-y:auto; }
+
+/* Chat container */
+.chat-container { max-width:700px; margin:0 auto; display:flex; flex-direction:column; }
+.chat-wrapper { display:flex; flex-direction:column; margin-bottom:10px; }
+.chat-bubble { padding:10px 15px; border-radius:15px; max-width:70%; position:relative; transition:0.2s; }
+.chat-bubble:hover { box-shadow:0 2px 10px rgba(0,0,0,0.15); transform:scale(1.02); }
+.chat-user { background:#e0f7fa; align-self:flex-start; }
+.chat-bot { background:#c8e6c9; align-self:flex-end; text-align:right; }
+.chat-time { font-size:0.8em; color:#888; margin-top:3px; }
+
+/* Responsive */
+@media (max-width:768px){
+  .wrapper { flex-direction:column; }
+  .sidebar { width:100%; flex-direction:row; overflow-x:auto; }
+  .sidebar a { flex:1; text-align:center; }
+}
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="user-list" id="user-list"></div>
-    <div class="chat-panel">
-        <div id="chat-container"></div>
-        <div id="reply-box">
-            <input type="text" id="reply-text" placeholder="Type your message...">
-            <button id="send-btn">Send</button>
+
+<div class="wrapper">
+  <!-- Sidebar menu -->
+  <div class="sidebar">
+    <h2>Admin Menu</h2>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/users">Users</a>
+    <a href="/chat">Chat History</a>
+    <a href="/settings">Settings</a>
+    <a href="/logout">Logout</a>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+    <h2 style="text-align:center;">Chat History</h2>
+    <div class="chat-container">
+      {% for chat in chats %}
+        <div class="chat-wrapper" style="align-items: {% if chat.message_type=='command' %}flex-end{% else %}flex-start{% endif %};">
+            <div class="chat-bubble {% if chat.message_type=='command' %}chat-bot{% else %}chat-user{% endif %}">
+                <strong>{{ chat.user_name }}:</strong> {{ chat.message }}
+                <div class="chat-time">{{ chat.timestamp }}</div>
+            </div>
         </div>
+      {% endfor %}
     </div>
+  </div>
 </div>
-<script>
-let ws = new WebSocket("wss://mkschannel.org/ws/chat");
-const chatBox=document.getElementById("chat-container");
-const userListEl=document.getElementById("user-list");
-const replyInput=document.getElementById("reply-text");
-const sendBtn=document.getElementById("send-btn");
-let selectedUserId=null;
-let users={};
-function formatTime(ts){const d=new Date(ts*1000);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
-function renderUsers(){userListEl.innerHTML='';Object.values(users).forEach(user=>{const div=document.createElement("div");div.classList.add("user-item");if(user.user_id===selectedUserId)div.classList.add("active");const avatar=document.createElement("div");avatar.classList.add("avatar");avatar.textContent=user.user_name[0].toUpperCase();div.appendChild(avatar);const name=document.createElement("span");name.textContent=user.user_name;div.appendChild(name);div.onclick=async()=>{selectedUserId=user.user_id;renderUsers();chatBox.innerHTML='';ws.send(JSON.stringify({type:"fetch_chat",user_id:selectedUserId}));};userListEl.appendChild(div);});}
-function addMessage(user_id,sender,text,time){if(selectedUserId&&user_id!==selectedUserId)return;const div=document.createElement("div");div.classList.add("message",sender==="admin"?"admin":"user");const bubble=document.createElement("div");bubble.classList.add("bubble",sender==="admin"?"admin":"user");bubble.textContent=text;div.appendChild(bubble);const ts=document.createElement("div");ts.classList.add("timestamp");ts.textContent=formatTime(time);div.appendChild(ts);chatBox.appendChild(div);chatBox.scrollTop=chatBox.scrollHeight;}
-ws.onmessage=function(event){const data=JSON.parse(event.data);if(data.type==="users_list"){data.users.forEach(u=>users[u.user_id]=u);renderUsers();}else if(data.type==="chat_history"){data.messages.forEach(m=>addMessage(data.user_id,m.sender,m.text,m.time));}else if(data.type==="message"){if(!users[data.user_id]){users[data.user_id]={user_id:data.user_id,user_name:data.sender==="user"?data.user_name:"Unknown"};renderUsers();}addMessage(data.user_id,data.sender==="user"?data.user_name:"admin",data.text,data.time);}}
-sendBtn.onclick=()=>{if(!selectedUserId){alert("Select a user first");return}const text=replyInput.value.trim();if(!text)return;ws.send(JSON.stringify({type:"reply",user_id:selectedUserId,text}));addMessage(selectedUserId,"admin",text,Math.floor(Date.now()/1000));replyInput.value='';}
-replyInput.addEventListener("keypress",e=>{if(e.key==="Enter")sendBtn.click();});
-</script>
+
 </body>
 </html>
