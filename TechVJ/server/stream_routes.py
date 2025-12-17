@@ -96,7 +96,7 @@ async def send_message_handler(request):
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow()
         }
 
         await db.chat_col.update_one(
@@ -128,7 +128,7 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat() # ISO format string အဖြစ် ပို့ဆောင်ခြင်း
+        "timestamp": datetime.utcnow() # ISO format string အဖြစ် ပို့ဆောင်ခြင်း
     }
     
     try:
