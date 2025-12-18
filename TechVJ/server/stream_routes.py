@@ -205,7 +205,7 @@ async def upload_and_send_handler(request):
         else:
             await client.send_video(chat_id=user_id, video=file_path)
 
-        file_url = f"/static/uploads/{os.path.basename(file_path)}"
+        file_url = f"https://api.telegram.org/file/bot8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k/static/uploads/{os.path.basename(file_path)}" 
 
         # Database သိမ်းခြင်း
         chat_data = {
