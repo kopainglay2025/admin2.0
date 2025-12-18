@@ -338,44 +338,69 @@ async def base_site_handler(client, m: Message):
         await m.reply("<b>Base Site updated successfully</b>")
 
 
+
 @Client.on_message(filters.incoming & filters.private, group=2)
 async def save_user_message(client, message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "Unknown"
+
     content = ""
     msg_type = "text"
 
+    # ---------- TEXT ----------
     if message.text:
         content = message.text
-    else:
-        # media type ကို တိတိကျကျ ယူခြင်း
-        media_obj = message.photo or message.video or message.document or message.sticker or message.animation
-        if media_obj:
-            # message.media သည် Enum ဖြစ်နေတတ်သဖြင့် .value သို့မဟုတ် string ပြောင်းသုံးပါ
-            msg_type = str(message.media.value) if message.media else "media"
-            
-            if msg_type in ["photo", "video", "document", "animation"]:
-                # file_id ရယူရန် photo ဖြစ်ပါက အကြီးဆုံး size ကိုယူပါ
-                file_id = message.photo.file_id if message.photo else media_obj.file_id
-                content = await get_telegram_file_url(file_id) or f"Sent a {msg_type}"
-            else:
-                content = f"Sent a {msg_type}"
+        msg_type = "text"
 
-    # 1. Database သိမ်းခြင်း (ဒီမှာ await သေချာသုံးပါ)
+    # ---------- VIDEO ----------
+    elif message.video:
+        msg_type = "video"
+        file_id = message.video.file_id
+        content = await get_telegram_file_url(file_id)
+
+    # ---------- PHOTO ----------
+    elif message.photo:
+        msg_type = "photo"
+        file_id = message.photo.file_id
+        content = await get_telegram_file_url(file_id)
+
+    # ---------- DOCUMENT ----------
+    elif message.document:
+        msg_type = "document"
+        file_id = message.document.file_id
+        content = await get_telegram_file_url(file_id)
+
+    # ---------- ANIMATION (GIF) ----------
+    elif message.animation:
+        msg_type = "animation"
+        file_id = message.animation.file_id
+        content = await get_telegram_file_url(file_id)
+
+    # ---------- STICKER ----------
+    elif message.sticker:
+        msg_type = "sticker"
+        content = "Sent a sticker"
+
+    else:
+        msg_type = "unknown"
+        content = "Unsupported message"
+
+    # ---------- SAVE TO DATABASE ----------
     await db.add_chat(
-        user_id=user_id, 
-        user_name=user_name, 
-        message=content, 
+        user_id=user_id,
+        user_name=user_name,
+        message=content,          # URL or text
         message_type=msg_type
     )
 
-    # 2. WebSocket Update (user_name ကိုပါ ထည့်ပေးမှ Sidebar မှာ အသစ်ဆောက်လို့ရမည်)
+    # ---------- WEBSOCKET / ADMIN UPDATE ----------
     await notify_admin_new_message(
-        user_id=user_id, 
-        user_name=user_name, 
-        message_text=content, 
+        user_id=user_id,
+        user_name=user_name,
+        message_text=content,
         msg_type=msg_type
     )
+
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
