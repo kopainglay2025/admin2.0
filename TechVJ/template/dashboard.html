@@ -13,15 +13,28 @@
         .chat-container { height: calc(100vh - 165px); overflow-y: auto; scroll-behavior: smooth; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; }
+        .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; position: relative; }
         .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
         .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
         .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
-        .media-preview { max-width: 280px; height: auto; border-radius: 12px; cursor: pointer; transition: transform 0.2s; border: 2px solid #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); display: block; margin: 4px 0; }
-        .media-preview:hover { transform: scale(1.02); }
+        
+        /* Image Preview Style */
+        .media-preview { 
+            max-width: 250px; 
+            max-height: 350px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            border: 2px solid #fff; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: cover;
+            display: block;
+            background: #e2e8f0; /* Loading state background */
+        }
+        .media-preview:hover { transform: scale(1.02); filter: brightness(0.9); }
     </style>
 </head>
 <body class="text-slate-900">
@@ -61,12 +74,6 @@
                 <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-users w-5"></i> TG User List
                 </a>
-                <a href="/tg-broadcast" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fas fa-bullhorn w-5"></i> TG Broadcast
-                </a>
-                <a href="/settings" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all mt-auto">
-                    <i class="fas fa-cog w-5"></i> Settings
-                </a>
             </nav>
         </aside>
 
@@ -77,8 +84,8 @@
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
                 {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative transition-all duration-300">
-                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id }}">
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
                         <div class="relative shrink-0">
                             <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
                                 {{ user.user_name[:1] | upper }}
@@ -88,7 +95,9 @@
                         <div class="flex-1 min-w-0">
                             <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
-                                {% if user.chats %} {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} {% endif %}
+                                {% if user.chats %} 
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
+                                {% endif %}
                             </p>
                         </div>
                     </a>
@@ -112,8 +121,12 @@
                 <div class="flex flex-col gap-4 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
+                        
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" onclick="openLightbox('img', '{{ chat.message }}')" class="media-preview">
+                            <img src="{{ chat.message }}" 
+                                 onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'"
+                                 onclick="openLightbox('img', this.src)" 
+                                 class="media-preview">
                         {% elif chat.message_type == 'video' %}
                             <div class="relative group max-w-[280px]">
                                 <video src="{{ chat.message }}" class="media-preview bg-black"></video>
@@ -126,7 +139,10 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
-                        <span class="text-[9px] text-slate-400 mt-1">{{ chat.timestamp }}</span>
+                        
+                        <span class="text-[9px] text-slate-400 mt-1">
+                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
+                        </span>
                     </div>
                     {% endfor %}
                 </div>
@@ -162,19 +178,18 @@
     </div>
 
     <script>
-        const currentUserId = String("{{ active_chat.user_id if active_chat else '' }}");
+        const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
 
+        // Helper: Format Time
         function getMyanmarTime() {
             return new Intl.DateTimeFormat('en-GB', {
-                timeZone: 'Asia/Yangon',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
+                timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true
             }).format(new Date());
         }
 
+        // WebSocket Setup
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
@@ -191,7 +206,7 @@
                 const lastMsgEl = document.getElementById(`last-msg-${userId}`);
                 if (lastMsgEl) lastMsgEl.innerText = lastMsg;
             }
-            if (String(userId) === currentUserId) {
+            if (String(userId) === String(currentUserId)) {
                 appendMessage(data);
             } else if (!data.from_admin) {
                 unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
@@ -200,37 +215,35 @@
             }
         }
 
-        // ပြင်ဆင်လိုက်သော Append Message Function
+        // Append Message with Preview Support
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
-            const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2`;
             
-            let html = '';
-            // data.message_type ကို အရင်စစ်မယ်၊ မပါလာခဲ့ရင် filename ကို ကြည့်ပြီး ခွဲခြားမယ်
-            const isPhoto = data.message_type === 'photo' || (typeof data.message === 'string' && (data.message.match(/\.(jpg|jpeg|png|webp)$/i)));
-            const isVideo = data.message_type === 'video' || (typeof data.message === 'string' && (data.message.match(/\.(mp4|webm|mov)$/i)));
-
-            if (isPhoto) {
-                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="media-preview" onerror="this.src='https://via.placeholder.com/150?text=Error+Loading+Image'">`;
-            } else if (isVideo) {
-                html = `<div class="relative group max-w-[280px]">
-                            <video src="${data.message}" class="media-preview bg-black"></video>
-                            <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
-                                <i class="fas fa-play-circle text-white text-5xl"></i>
-                            </div>
-                        </div>`;
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
+            
+            let contentHtml = '';
+            if (data.message_type === 'photo') {
+                // Image path ကို သေချာစစ်ဆေးပါ
+                const imgSrc = data.message.startsWith('http') ? data.message : data.message;
+                contentHtml = `<img src="${imgSrc}" onerror="this.src='https://placehold.co/200x200?text=Image+Loading'" onclick="openLightbox('img', this.src)" class="media-preview">`;
+            } else if (data.message_type === 'video') {
+                contentHtml = `<div class="relative group max-w-[280px]">
+                                    <video src="${data.message}" class="media-preview bg-black"></video>
+                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                        <i class="fas fa-play-circle text-white text-5xl"></i>
+                                    </div>
+                                </div>`;
             } else {
-                html = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
+                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
             
-            const time = data.timestamp && typeof data.timestamp === 'string' ? data.timestamp : getMyanmarTime();
-            div.innerHTML = `${html}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
-            msgList.appendChild(div);
+            const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
+            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
             
-            const chatWin = document.getElementById('chatWindow');
-            chatWin.scrollTop = chatWin.scrollHeight;
+            msgList.appendChild(div);
+            scrollChat();
         }
 
         async function handleFileUpload() {
@@ -240,43 +253,45 @@
 
             const isVideo = file.type.startsWith('video');
             const type = isVideo ? 'video' : 'photo';
-            
-            // Client ဘက်မှာ အရင်ပြဖို့ Temp URL ဖန်တီးပါ
-            const tempUrl = URL.createObjectURL(file);
-            
+
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
-            formData.append('message_type', type);
 
             try {
+                // Upload တင်နေစဉ် Loading ပြနိုင်သည်
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 
                 if (res.ok) {
+                    // Telegram ကနေ ပို့ပြီးသားဖြစ်လို့ WebSocket ကနေ Message ပြန်လာပါလိမ့်မယ်။ 
+                    // ဒါပေမဲ့ UI မှာ ချက်ချင်းမြင်ရအောင် appendMessage တစ်ခါလုပ်ပေးထားပါတယ်။
                     appendMessage({
                         from_admin: true,
-                        message: result.url || tempUrl, 
+                        message: result.url,
                         message_type: type,
                         timestamp: getMyanmarTime()
                     });
                     fileInput.value = '';
                 } else {
-                    alert("Upload failed: " + (result.error || "Unknown error"));
+                    alert("Upload Error: " + result.error);
                 }
             } catch (err) {
                 console.error("Upload Error:", err);
             }
         }
 
+        function scrollChat() {
+            const chatWin = document.getElementById('chatWindow');
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+        }
+
         function openLightbox(type, url) {
             const content = document.getElementById('lightbox-content');
             const downloadBtn = document.getElementById('download-btn');
-            if (type === 'video') {
-                content.innerHTML = `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>`;
-            } else {
-                content.innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
-            }
+            content.innerHTML = type === 'video' 
+                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>`
+                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
             downloadBtn.href = url;
             document.getElementById('lightbox').style.display = 'flex';
         }
@@ -290,9 +305,7 @@
             const container = document.getElementById('emoji-picker-container');
             if (container.innerHTML === '') {
                 const picker = new EmojiMart.Picker({
-                    onEmojiSelect: (emoji) => { 
-                        document.getElementById('messageInput').value += emoji.native; 
-                    },
+                    onEmojiSelect: (emoji) => { document.getElementById('messageInput').value += emoji.native; },
                     theme: 'light'
                 });
                 container.appendChild(picker);
@@ -312,15 +325,14 @@
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ user_id: currentUserId, message: text })
+                body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
             });
             input.value = '';
             document.getElementById('emoji-picker-container').style.display = 'none';
         });
 
-        // Auto Scroll on Load
-        const cw = document.getElementById('chatWindow');
-        if (cw) cw.scrollTop = cw.scrollHeight;
+        // Initial scroll
+        window.onload = scrollChat;
     </script>
 </body>
 </html>
