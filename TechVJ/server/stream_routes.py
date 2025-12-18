@@ -146,38 +146,99 @@ async def send_message_handler(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
+
+import os
+import aiofiles
+from aiohttp import web
+from datetime import datetime
+
+# ဖိုင်တွေ သိမ်းမယ့် folder ကို ကြေညာထားပါ (မရှိရင် ဆောက်ပေးမယ်)
+UPLOAD_DIR = "static/uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
 @routes.post("/upload_and_send")
-async def upload_and_send():
-    file = request.files.get("file")
-    user_id = request.form.get("user_id")
+async def upload_and_send_handler(request):
+    try:
+        # FormData ကို ဖတ်ခြင်း
+        reader = await request.multipart()
+        
+        file_field = None
+        user_id = None
+        
+        # multipart data ထဲက file နဲ့ user_id ကို ခွဲထုတ်ခြင်း
+        while True:
+            part = await reader.next()
+            if part is None: break
+            
+            if part.name == 'file':
+                file_field = part
+                filename = part.filename
+                # ဖိုင်အမည် မတူအောင် timestamp ထည့်ခြင်း
+                ext = os.path.splitext(filename)[1]
+                new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
+                file_path = os.path.join(UPLOAD_DIR, new_filename)
+                
+                # Server ပေါ်မှာ ဖိုင်ကို သိမ်းခြင်း
+                async with aiofiles.open(file_path, mode='wb') as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk: break
+                        await f.write(chunk)
+            
+            elif part.name == 'user_id':
+                user_id = int(await part.text())
 
-    if not file or not user_id:
-        return jsonify({"error": "Invalid"}), 400
+        if not file_field or not user_id:
+            return web.json_response({"error": "ဖိုင် သို့မဟုတ် User ID မပါရှိပါ"}, status=400)
 
-    filename = secure_filename(file.filename)
-    save_path = os.path.join("static/uploads", filename)
-    file.save(save_path)
+        # Telegram ဆီ ဖိုင်ပို့ခြင်း (ပုံလား ဗီဒီယိုလား ခွဲပို့မယ်)
+        client = multi_clients[0]
+        file_type = "photo" if file_field.content_type.startswith('image') else "video"
+        
+        if file_type == "photo":
+            await client.send_photo(chat_id=user_id, photo=file_path)
+        else:
+            await client.send_video(chat_id=user_id, video=file_path)
 
-    file_url = f"/static/uploads/{filename}"
-    client = multi_clients[0]
-    # Telegram Bot ကို ပို့
-    if file.content_type.startswith("image"):
-        await client.send_photo(chat_id=user_id, photo=file_url)
-        msg_type = "photo"
-    else:
-        await client.send_video(chat_id=user_id, video=file_url)
-        msg_type = "video"
+        # UI မှာ ပြန်ပြဖို့ URL (ဒါက static folder ထဲက ဖိုင်လမ်းကြောင်းဖြစ်ရမယ်)
+        file_url = f"/static/uploads/{os.path.basename(file_path)}"
 
-    # MongoDB Save
-    await db.chat.insert_one({
-        "user_id": user_id,
-        "from_admin": True,
-        "message": file_url,
-        "message_type": msg_type,
-        "timestamp": datetime.now(MYANMAR_TZ)
-    })
+        # Database ထဲမှာ သိမ်းခြင်း
+        chat_data = {
+            "message": file_url,
+            "message_type": file_type,
+            "from_admin": True,
+            "timestamp": datetime.utcnow()
+        }
+        await db.chat_col.update_one(
+            {'user_id': user_id},
+            {'$push': {'chats': chat_data}},
+            upsert=True
+        )
 
-    return jsonify({"url": file_url})
+        # WebSocket ကနေ Dashboard ဆီ Update ပို့ခြင်း
+        ws_payload = {
+            "type": "new_message",
+            "user_id": str(user_id),
+            "data": {
+                "message": file_url,
+                "message_type": file_type,
+                "from_admin": True,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+        for ws in list(active_sockets):
+            try:
+                await ws.send_json(ws_payload)
+            except: continue
+
+        return web.json_response({"status": "success", "url": file_url})
+
+    except Exception as e:
+        logging.error(f"Upload Error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
      
 @routes.get("/user")
 async def show_user_chats(request):
