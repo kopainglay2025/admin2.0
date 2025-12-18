@@ -1,176 +1,120 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" class="transition-colors duration-500">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRN Admin - Next Gen Control</title>
+    <title>MRN Admin - Ultimate Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: '#0f172a',
-                        darkLighter: '#1e293b',
-                        accent: '#3b82f6'
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-        
-        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease; }
-        
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+
+        .chat-container { height: calc(100vh - 165px); overflow-y: auto; scroll-behavior: smooth; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 
-        .chat-container { height: calc(100vh - 180px); overflow-y: auto; scroll-behavior: smooth; }
-        
-        /* Message Bubbles */
-        .msg-bubble { 
-            max-width: 75%; 
-            padding: 12px 18px; 
-            border-radius: 1.25rem; 
-            font-size: 0.95rem; 
-            line-height: 1.5;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease;
-        }
-        .msg-bubble:hover { transform: scale(1.01); }
-        
-        .msg-received { 
-            background: white; 
-            color: #1e293b; 
-            border-bottom-left-radius: 4px; 
-        }
-        .dark .msg-received { background: #334155; color: #f1f5f9; }
+        .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; position: relative; transition: all 0.2s; }
+        .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
 
-        .msg-sent { 
-            background: linear-gradient(135deg, #2563eb, #3b82f6); 
-            color: white; 
-            border-bottom-right-radius: 4px; 
-        }
-
-        /* Status Animations */
-        .badge-pulse { 
-            background: #ef4444; 
-            animation: pulse-red 2s infinite; 
-            box-shadow: 0 0 0 2px white;
-        }
-        .dark .badge-pulse { box-shadow: 0 0 0 2px #1e293b; }
-
+        .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
         @keyframes pulse-red {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
-        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; backdrop-filter: blur(8px); }
-        
-        .nav-link.active { 
-            background: linear-gradient(to right, #eff6ff, transparent); 
-            color: #2563eb; 
-            border-right: 4px solid #2563eb; 
-        }
-        .dark .nav-link.active { background: linear-gradient(to right, rgba(37,99,235,0.1), transparent); color: #60a5fa; }
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.3s; }
 
+        .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+
+        /* Media Preview */
         .media-preview { 
-            border-radius: 1rem; 
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
+            max-width: 250px; max-height: 350px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 2px solid #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); object-fit: cover; display: block; background: #e2e8f0;
         }
-        .media-preview:hover { transform: translateY(-3px); border-color: #3b82f6; }
+        .media-preview:hover { transform: scale(1.03); filter: brightness(0.9); }
+
+        /* Dark Mode Support */
+        body.dark { background-color: #1e293b; color: #cbd5e1; }
+        body.dark .msg-received { background-color: #334155; color: #e2e8f0; }
+        body.dark .msg-sent { background-color: #3b82f6; color: #f1f5f9; }
+        body.dark .bg-white { background-color: #1e293b !important; }
+        body.dark .border-slate-200 { border-color: #334155 !important; }
+        body.dark .text-slate-800 { color: #f1f5f9 !important; }
+        body.dark .text-slate-400 { color: #94a3b8 !important; }
+        body.dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+        body.dark .bg-slate-50\/50 { background-color: rgba(100,116,139,0.5) !important; }
     </style>
 </head>
+<body class="text-slate-900 transition-colors duration-500">
 
-<body class="bg-slate-50 dark:bg-dark text-slate-900 dark:text-slate-100">
+    <!-- Light/Dark Toggle Button -->
+    <button id="darkToggle" class="fixed top-4 right-4 z-50 bg-gray-200 dark:bg-gray-700 p-3 rounded-full shadow-lg hover:scale-110 transition-transform">
+        <i class="fas fa-moon dark:hidden"></i>
+        <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+    </button>
 
-    <div id="lightbox" class="flex flex-col items-center justify-center animate__animated animate__fadeIn">
-        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white/50 hover:text-white text-3xl transition-all">
-            <i class="fas fa-times"></i>
-        </button>
-        <div id="lightbox-content" class="max-w-[90%] max-h-[80vh] flex items-center justify-center animate__animated animate__zoomIn"></div>
-        <div class="flex gap-4 mt-8">
-            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition-all flex items-center gap-2">
+    <!-- Lightbox -->
+    <div id="lightbox">
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+        <div id="lightbox-content" class="max-w-[90%] max-h-[80vh] flex items-center justify-center"></div>
+        <div class="flex gap-4 mt-6">
+            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2">
                 <i class="fas fa-download"></i> Download
             </a>
         </div>
     </div>
 
     <div class="flex h-screen overflow-hidden">
-        <aside class="w-20 lg:w-64 bg-white dark:bg-darkLighter border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 transition-all">
-            <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-500/30">
-                    <i class="fas fa-rocket text-xl"></i>
-                </div>
-                <span class="font-bold text-lg hidden lg:block tracking-tight">MRN Admin</span>
-            </div>
-            
-            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <div class="px-6 mb-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden lg:block">Main Menu</div>
-                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-4 text-slate-500 hover:text-blue-600 transition-all">
-                    <i class="fas fa-th-large w-5 text-lg"></i> <span class="hidden lg:block">Dashboard</span>
-                </a>
-                
-                <div class="px-6 mt-6 mb-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden lg:block">Channels</div>
-                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-4 transition-all">
-                    <i class="fab fa-telegram-plane w-5 text-lg"></i> <span class="hidden lg:block">Telegram Chat</span>
-                </a>
-                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-4 text-slate-500 hover:text-blue-700 transition-all">
-                    <i class="fab fa-facebook w-5 text-lg"></i> <span class="hidden lg:block">FB Messenger</span>
-                </a>
 
-                <div class="mt-auto px-6 py-4">
-                    <button onclick="toggleDarkMode()" class="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all">
-                        <i class="fas fa-moon dark:hidden"></i>
-                        <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
-                        <span class="hidden lg:block">Appearance</span>
-                    </button>
-                </div>
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 transition-colors duration-500">
+            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
+                <span class="font-bold text-lg">MRN Panel</span>
+            </div>
+            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
+                <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
+                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-chart-line w-5"></i> Dashboard
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+                </a>
+                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
+                </a>
+                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+                </a>
             </nav>
         </aside>
 
-        <aside class="w-80 bg-white dark:bg-darkLighter border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 hidden md:flex">
-            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-transparent">
-                <h2 class="font-bold text-slate-700 dark:text-slate-200">Conversations</h2>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">Online</span>
-                </div>
+        <!-- Users List -->
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 transition-colors duration-500">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 class="font-bold text-slate-700">Conversations</h2>
+                <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
             </div>
-            
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-2" id="userList">
+            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
                 {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="mb-1">
-                    <a href="?user_id={{ user.user_id }}" 
-                       class="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 
-                       {{ 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 active-user' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400' }}">
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
                         <div class="relative shrink-0">
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-blue-600 dark:text-blue-400">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
                                 {{ user.user_name[:1] | upper }}
                             </div>
                             <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-start">
-                                <span class="font-bold text-sm truncate {{ 'text-white' if active_chat and active_chat.user_id == user.user_id else 'text-slate-800 dark:text-slate-200' }}">
-                                    {{ user.user_name }}
-                                </span>
-                            </div>
-                            <p id="last-msg-{{ user.user_id }}" class="text-xs truncate opacity-70">
-                                {% if user.chats %} 
-                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
+                            <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                                {% if user.chats %}
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }}
                                 {% endif %}
                             </p>
                         </div>
@@ -180,41 +124,32 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-dark">
+        <!-- Main Chat Window -->
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 transition-colors duration-500">
             {% if active_chat %}
-            <header class="h-[80px] px-8 flex items-center justify-between bg-white dark:bg-darkLighter border-b border-slate-200 dark:border-slate-800 shadow-sm z-10 transition-colors">
-                <div class="flex items-center gap-4">
-                    <div class="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
+            <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10 transition-colors duration-500">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
-                    <div>
-                        <h2 class="font-bold text-slate-800 dark:text-white text-base">{{ active_chat.user_name }}</h2>
-                        <span class="text-xs text-green-500 flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active Now
-                        </span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-all"><i class="fas fa-phone-alt"></i></button>
-                    <button class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-all"><i class="fas fa-ellipsis-v"></i></button>
+                    <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
                 </div>
             </header>
 
-            <div class="flex-1 chat-container p-6 custom-scrollbar dark:bg-dark/50" id="chatWindow">
-                <div class="flex flex-col gap-6 max-w-4xl mx-auto" id="messageList">
+            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+                <div class="flex flex-col gap-4 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
-                    <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} animate__animated animate__fadeInUp animate__faster">
-                        
+                    <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2 animate-in fade-in duration-300">
                         {% if chat.message_type == 'photo' %}
                             <img src="{{ chat.message }}" 
-                                 onerror="this.src='https://placehold.co/400x300?text=Image+Not+Found'"
+                                 onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'"
                                  onclick="openLightbox('img', this.src)" 
-                                 class="media-preview max-w-[300px] shadow-lg">
+                                 class="media-preview">
                         {% elif chat.message_type == 'video' %}
-                            <div class="relative group max-w-[320px] rounded-2xl overflow-hidden shadow-lg">
-                                <video src="{{ chat.message }}" class="w-full bg-black"></video>
-                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 cursor-pointer transition-all">
-                                    <i class="fas fa-play-circle text-white text-6xl drop-shadow-lg"></i>
+                            <div class="relative group max-w-[280px]">
+                                <video src="{{ chat.message }}" class="media-preview bg-black"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                    <i class="fas fa-play-circle text-white text-5xl"></i>
                                 </div>
                             </div>
                         {% else %}
@@ -222,74 +157,52 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
-                        
-                        <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-2 flex items-center gap-1">
+                        <span class="text-[9px] text-slate-400 mt-1">
                             {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
-                            {% if chat.from_admin %} <i class="fas fa-check-double text-blue-500"></i> {% endif %}
                         </span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="p-6 bg-white dark:bg-darkLighter border-t border-slate-200 dark:border-slate-800 transition-colors">
-                <div id="emoji-picker-container" class="absolute bottom-28 left-6 z-50 shadow-2xl rounded-2xl overflow-hidden animate__animated animate__zoomIn"></div>
-                
+            <!-- Reply Box -->
+            <div class="p-4 bg-white border-t border-slate-200 transition-colors duration-500">
+                <div id="emoji-picker-container" class="absolute bottom-24 left-4 z-50"></div>
                 <form id="replyForm" class="max-w-4xl mx-auto">
-                    <div class="flex items-center gap-4 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-[2rem] ring-2 ring-transparent focus-within:ring-blue-500/20 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all shadow-inner">
-                        <div class="flex gap-1 pl-2">
-                            <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
-                            <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 transition-all">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-700 hover:text-yellow-500 transition-all">
-                                <i class="far fa-smile-beam text-lg"></i>
-                            </button>
-                        </div>
-                        
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Write your message..." 
-                               class="flex-1 bg-transparent border-none py-3 px-2 text-sm focus:ring-0 outline-none dark:text-white placeholder-slate-400">
-                        
-                        <button type="submit" class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-500/40">
-                            <i class="fas fa-paper-plane"></i>
+                    <div class="flex items-center gap-3 mb-2">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors">
+                            <i class="fas fa-paperclip text-lg"></i>
+                        </button>
+                        <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500 transition-colors">
+                            <i class="far fa-smile text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400 transition-colors duration-300">
+                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-4 text-sm focus:ring-0 outline-none">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
+                            <i class="fas fa-paper-plane text-xl"></i>
                         </button>
                     </div>
                 </form>
             </div>
 
             {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
-                <div class="w-24 h-24 bg-slate-200/50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                    <i class="fas fa-comments text-4xl opacity-20"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-1">Your Inbox</h3>
-                <p class="text-sm">Select a conversation to start messaging</p>
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-300 dark:text-slate-500 transition-colors duration-500">
+                <i class="fas fa-comments text-6xl mb-4 opacity-10"></i>
+                <p>Select a chat to start</p>
             </div>
             {% endif %}
         </main>
     </div>
 
     <script>
-        // --- Dark Mode Logic ---
-        function toggleDarkMode() {
-            const html = document.documentElement;
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                localStorage.theme = 'light';
-            } else {
-                html.classList.add('dark');
-                localStorage.theme = 'dark';
-            }
-        }
+        // Dark Mode Toggle
+        const darkToggle = document.getElementById('darkToggle');
+        darkToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+        });
 
-        // Apply theme on load
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-
-        // --- Core Logic (လွှဲပြောင်းယူရန်မလိုသော မူရင်း Logic များ) ---
         const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
@@ -300,6 +213,7 @@
             }).format(new Date());
         }
 
+        // WebSocket Setup
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
@@ -328,27 +242,26 @@
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
-            
             const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} animate__animated animate__fadeInUp animate__faster`;
-            
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
+
             let contentHtml = '';
             if (data.message_type === 'photo') {
-                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview max-w-[300px] shadow-lg">`;
+                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview" onerror="this.src='https://placehold.co/200x200?text=Image+Loading'">`;
             } else if (data.message_type === 'video') {
-                contentHtml = `<div class="relative group max-w-[320px] rounded-2xl overflow-hidden shadow-lg">
-                                    <video src="${data.message}" class="w-full bg-black"></video>
-                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer">
+                contentHtml = `<div class="relative group max-w-[280px]">
+                                    <video src="${data.message}" class="media-preview bg-black"></video>
+                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
                                         <i class="fas fa-play-circle text-white text-5xl"></i>
                                     </div>
                                 </div>`;
             } else {
                 contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
-            
-            const time = data.timestamp || getMyanmarTime();
-            div.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-2">${time}</span>`;
-            
+
+            const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
+            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
+
             msgList.appendChild(div);
             scrollChat();
         }
@@ -357,7 +270,10 @@
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file || !currentUserId) return;
-            const type = file.type.startsWith('video') ? 'video' : 'photo';
+
+            const isVideo = file.type.startsWith('video');
+            const type = isVideo ? 'video' : 'photo';
+
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
@@ -366,10 +282,12 @@
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 if (res.ok) {
-                    appendMessage({ from_admin: true, message: result.url, message_type: type });
+                    appendMessage({ from_admin: true, message: result.url, message_type: type, timestamp: getMyanmarTime() });
                     fileInput.value = '';
+                } else {
+                    alert("Upload Error: " + result.error);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Upload Error:", err); }
         }
 
         function scrollChat() {
@@ -379,15 +297,17 @@
 
         function openLightbox(type, url) {
             const content = document.getElementById('lightbox-content');
-            content.innerHTML = type === 'video' 
-                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl"></video>`
-                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl object-contain">`;
-            document.getElementById('download-btn').href = url;
+            const downloadBtn = document.getElementById('download-btn');
+            content.innerHTML = type === 'video' ? 
+                `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>` :
+                `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
+            downloadBtn.href = url;
             document.getElementById('lightbox').style.display = 'flex';
         }
 
         function closeLightbox() {
             document.getElementById('lightbox').style.display = 'none';
+            document.getElementById('lightbox-content').innerHTML = '';
         }
 
         function toggleEmojiPicker() {
@@ -395,11 +315,11 @@
             if (container.innerHTML === '') {
                 const picker = new EmojiMart.Picker({
                     onEmojiSelect: (emoji) => { document.getElementById('messageInput').value += emoji.native; },
-                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    theme: 'light'
                 });
                 container.appendChild(picker);
             } else {
-                container.classList.toggle('hidden');
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
             }
         }
 
@@ -408,16 +328,17 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
-            
-            appendMessage({ from_admin: true, message: text, message_type: 'text' });
-            input.value = '';
-            document.getElementById('emoji-picker-container').classList.add('hidden');
-            
+
+            appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
+
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
             });
+
+            input.value = '';
+            document.getElementById('emoji-picker-container').style.display = 'none';
         });
 
         window.onload = scrollChat;
