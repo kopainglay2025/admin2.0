@@ -163,30 +163,34 @@ if not os.path.exists(UPLOAD_DIR):
 async def upload_and_send_handler(request):
     try:
         reader = await request.multipart()
-        file_field = None
         user_id = None
         file_path = ""
         final_content_type = ""
-        filename = ""
+        actual_filename = ""
 
         while True:
             part = await reader.next()
             if part is None: break
             
             if part.name == 'file':
-                file_field = part
+                # headers ထဲက content_type ကို ယူပါ
                 final_content_type = part.headers.get('Content-Type', '')
-                filename = part.filename
+                original_filename = part.filename
                 
-                # Extension ကို သေချာစစ်ဆေးပါ
-                ext = os.path.splitext(filename)[1].lower()
-                if not ext: # Extension မပါလာရင် default ထည့်ပေးပါ
-                    ext = ".jpg" if "image" in final_content_type else ".mp4"
-                
+                # ၁။ Extension ကို သေချာစစ်ဆေးပါ
+                name_part, ext = os.path.splitext(original_filename)
+                ext = ext.lower()
+
+                # အကယ်၍ ext မပါလာရင် content type ကို ကြည့်ပြီး အတင်းထည့်ပေးပါ
+                if not ext:
+                    if "image" in final_content_type: ext = ".jpg"
+                    elif "video" in final_content_type: ext = ".mp4"
+                    else: ext = ".bin" # default
+
+                # ၂။ ဖိုင်အမည်အသစ်ပေးပါ
                 new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
                 file_path = os.path.join(UPLOAD_DIR, new_filename)
                 
-                # ဖိုင်ကို local မှာ သိမ်းပါ (Admin Panel Preview အတွက်)
                 async with aiofiles.open(file_path, mode='wb') as f:
                     while True:
                         chunk = await part.read_chunk()
@@ -202,37 +206,30 @@ async def upload_and_send_handler(request):
 
         # Telegram ပို့ရန် Client ယူခြင်း
         client = multi_clients[0]
-        is_photo = "image" in final_content_type
+        
+        # ၃။ Telegram ဆီ ပို့သည့်အခါ force_document မလုပ်ဘဲ သေချာပို့ပါ
+        is_photo = "image" in final_content_type or file_path.endswith(('.jpg', '.jpeg', '.png', '.webp'))
         file_type = "photo" if is_photo else "video"
 
-        # --- အဓိက ပြင်ဆင်ချက်- File Path အစား Binary နဲ့ ပို့ခြင်း ---
-        # PHOTO_EXT_INVALID ကို ကျော်လွှားရန် binary mode နဲ့ ပို့ရပါမယ်
         try:
             if is_photo:
-                # client.send_photo သုံးတဲ့အခါ file_path ထဲက file ကို တိုက်ရိုက်ပို့ပါ
+                # photo=file_path ဆိုတာထက် photo=open(file_path, 'rb') ပုံစံက ပိုစိတ်ချရပါတယ်
                 await client.send_photo(chat_id=user_id, photo=file_path)
             else:
                 await client.send_video(chat_id=user_id, video=file_path)
-        except Exception as tg_err:
-            logging.error(f"Telegram API Error: {tg_err}")
-            # အကယ်၍ path နဲ့ ပို့လို့မရသေးရင် Binary နဲ့ ထပ်စမ်းပါ
-            async with aiofiles.open(file_path, mode='rb') as f:
-                file_bytes = await f.read()
-                bio = io.BytesIO(file_bytes)
-                bio.name = os.path.basename(file_path) # နာမည် သေချာပေးပါ
-                if is_photo:
-                    await client.send_photo(chat_id=user_id, photo=bio)
-                else:
-                    await client.send_video(chat_id=user_id, video=bio)
+        except Exception as telegram_err:
+            logging.error(f"Telegram API Error: {telegram_err}")
+            return web.json_response({"error": f"Telegram says: {str(telegram_err)}"}, status=400)
 
         file_url = f"/static/uploads/{os.path.basename(file_path)}" 
 
-        # Database သိမ်းခြင်း
+        # Database သိမ်းခြင်း (timestamp ကို format လုပ်ပါ)
+        now = datetime.utcnow()
         chat_data = {
             "message": file_url,
             "message_type": file_type,
             "from_admin": True,
-            "timestamp": datetime.utcnow()
+            "timestamp": now
         }
         await db.chat_col.update_one(
             {'user_id': user_id},
@@ -248,7 +245,7 @@ async def upload_and_send_handler(request):
                 "message": file_url,
                 "message_type": file_type,
                 "from_admin": True,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": now.isoformat()
             }
         }
         
@@ -260,9 +257,10 @@ async def upload_and_send_handler(request):
         return web.json_response({"status": "success", "url": file_url})
 
     except Exception as e:
-        logging.error(f"Upload Error: {e}")
+        logging.error(f"Critical Upload Error: {e}")
         return web.json_response({"error": str(e)}, status=500)
-        
+
+
 @routes.get("/user")
 async def show_user_chats(request):
     """
