@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Admin Chat - Advanced Real Time</title>
+    <title>Advanced TG Admin - Real Time</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -15,66 +15,62 @@
         
         .msg-bubble { max-width: 75%; padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; }
         .msg-received { background: white; color: #1e293b; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
-        .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+        .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); }
 
-        /* Sidebar Item Animation */
-        .user-item { transition: all 0.3s ease; }
-        .animate-pop { animation: pop 0.25s ease-out; }
-        @keyframes pop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Unread Badge Style */
+        .user-item { transition: transform 0.3s ease, background 0.2s; }
         .badge-new {
-            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-            box-shadow: 0 2px 5px rgba(255, 65, 108, 0.4);
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            animation: pulse-red 2s infinite;
         }
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .animate-pop { animation: pop 0.2s ease-out; }
+        @keyframes pop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="text-slate-900">
 
     <div class="flex h-screen overflow-hidden">
         
-        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
-            <div class="p-6 border-b border-slate-50">
-                <div class="flex items-center gap-3 text-blue-600">
-                    <i class="fas fa-bolt text-2xl"></i>
-                    <span class="font-bold text-xl tracking-tight text-slate-800">MRN Bot</span>
-                </div>
+        <aside class="w-20 lg:w-64 bg-white border-r border-slate-200 flex flex-col transition-all">
+            <div class="p-6 border-b border-slate-50 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-robot text-xl"></i></div>
+                <span class="font-bold text-xl hidden lg:block">MRN Admin</span>
             </div>
-            <nav class="flex-1 px-4 py-4 space-y-1">
-                <a href="/tgchat" class="flex items-center gap-3 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg font-bold">
-                    <i class="fab fa-telegram-plane w-5"></i> Telegram Chat
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="/tgchat" class="flex items-center justify-center lg:justify-start gap-3 px-3 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold">
+                    <i class="fab fa-telegram-plane text-xl"></i> <span class="hidden lg:block">TG Chat</span>
                 </a>
-                <a href="/broadcast" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg">
-                    <i class="fas fa-bullhorn w-5"></i> Broadcast
+                <a href="#" class="flex items-center justify-center lg:justify-start gap-3 px-3 py-3 text-slate-400 hover:bg-slate-50 rounded-xl">
+                    <i class="fas fa-bullhorn text-xl"></i> <span class="hidden lg:block">Broadcast</span>
                 </a>
             </nav>
         </aside>
 
         <aside class="w-80 bg-white border-r border-slate-200 flex flex-col">
-            <div class="h-[70px] border-b border-slate-100 flex items-center px-4 justify-between">
-                <h2 class="font-bold text-lg">Active Chats</h2>
-                <span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-full font-bold uppercase">Live</span>
+            <div class="h-[70px] border-b border-slate-100 flex items-center px-4 justify-between bg-slate-50/50">
+                <h2 class="font-bold text-slate-700">Recent Chats</h2>
+                <div class="flex items-center gap-1 text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">
+                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> LIVE
+                </div>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
                 {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="user-item border-b border-slate-50">
+                <div id="user-card-{{ user.user_id }}" class="user-item border-b border-slate-50 relative">
                     <a href="?user_id={{ user.user_id }}" 
-                       class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-all block {{ 'bg-blue-50 border-l-4 border-blue-600' if active_chat and active_chat.user_id == user.user_id }}">
+                       class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-all {{ 'bg-blue-50 border-l-4 border-blue-600' if active_chat and active_chat.user_id == user.user_id }}">
                         <div class="relative">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-200 to-slate-100 flex items-center justify-center font-bold text-slate-500 border border-white shadow-sm text-lg">
+                            <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-lg border border-white shadow-sm">
                                 {{ user.user_name[:1] | upper }}
                             </div>
-                            <div id="badge-{{ user.user_id }}" class="badge-new absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white hidden">
-                                0
-                            </div>
+                            <div id="badge-{{ user.user_id }}" class="badge-new absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 rounded-full flex items-center justify-center text-[10px] text-white font-black border-2 border-white hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-0.5">
                                 <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
-                                <span class="text-[9px] text-slate-400 uppercase font-medium">Just now</span>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase">Now</span>
                             </div>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-500 truncate">
-                                {% if user.chats %} {{ user.chats[-1].message }} {% else %} Start conversation... {% endif %}
+                                {% if user.chats %} {{ user.chats[-1].message }} {% else %} New conversation {% endif %}
                             </p>
                         </div>
                     </a>
@@ -83,7 +79,7 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col">
+        <main class="flex-1 flex flex-col bg-[#f0f2f5]">
             {% if active_chat %}
             <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
                 <div class="flex items-center gap-3">
@@ -92,15 +88,12 @@
                     </div>
                     <div>
                         <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
-                        <div class="flex items-center gap-1">
-                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <span class="text-[10px] text-slate-400 font-bold uppercase">Online</span>
-                        </div>
+                        <span class="text-[10px] text-green-500 font-bold tracking-tighter uppercase">ID: {{ active_chat.user_id }}</span>
                     </div>
                 </div>
             </header>
 
-            <div class="flex-1 chat-container p-6 custom-scrollbar bg-slate-50/50" id="chatWindow">
+            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
                 <div class="flex flex-col gap-4 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} animate-pop">
@@ -108,95 +101,94 @@
                             {{ chat.message }}
                         </div>
                         <span class="text-[10px] text-slate-400 mt-1 px-1">
-                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp }}
+                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else 'Sent' }}
                         </span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-slate-200">
+            <div class="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
                 <form id="replyForm" class="max-w-4xl mx-auto flex items-center gap-3">
-                    <input type="text" id="messageInput" autocomplete="off" placeholder="Write a message..." 
-                           class="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all focus:bg-white">
-                    <button type="submit" class="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg hover:bg-blue-700 active:scale-90 transition-all">
-                        <i class="fas fa-paper-plane"></i>
+                    <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." 
+                           class="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    <button type="submit" class="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
+                        <i class="fas fa-paper-plane text-lg"></i>
                     </button>
                 </form>
             </div>
             {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-300">
-                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <i class="far fa-comments text-4xl"></i>
-                </div>
-                <p class="font-medium">Select a conversation to start</p>
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-4"><i class="far fa-comments text-5xl text-slate-200"></i></div>
+                <h3 class="font-bold text-slate-600">Please select a chat</h3>
+                <p class="text-sm">Real-time updates are active</p>
             </div>
             {% endif %}
         </main>
     </div>
 
     <script>
+        // Backend ကလာတဲ့ user_id ကို String အဖြစ်ပြောင်းသိမ်းမယ်
+        const currentUserId = String("{{ active_chat.user_id if active_chat else '' }}");
         const chatWindow = document.getElementById('chatWindow');
         const messageList = document.getElementById('messageList');
         const userList = document.getElementById('userList');
         const messageInput = document.getElementById('messageInput');
-        const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
 
-        // WebSocket Setup
+        // Unread state handling
+        let unreadCounts = {};
+
+        // WebSocket initialization
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
-        // Unread Counts Storage
-        let unreadCounts = {};
-
+        ws.onopen = () => console.log("✅ WebSocket Connected");
+        
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
             if (response.type === "new_message") {
-                const senderId = response.user_id.toString();
+                const incomingId = String(response.user_id);
                 const msgData = response.data;
 
-                // 1. Sidebar ကို Update လုပ်ပြီး အပေါ်ဆုံးရွှေ့ခြင်း
-                updateUserCard(senderId, msgData, response.user_name);
+                // ၁။ Sidebar Update & Re-order (အပေါ်ဆုံးပို့မယ်)
+                updateSidebar(incomingId, msgData, response.user_name || "User");
 
-                // 2. လက်ရှိ Chat ဖြစ်ရင် စာထည့်မယ်၊ မဟုတ်ရင် Badge တိုးမယ်
-                if (senderId === currentUserId) {
+                // ၂။ Message Display Logic
+                if (incomingId === currentUserId) {
                     appendMessage(msgData);
                 } else {
-                    incrementBadge(senderId);
+                    // Admin ကိုယ်တိုင်ပို့တာမဟုတ်ရင် Badge တိုးမယ်
+                    if (!msgData.from_admin) incrementBadge(incomingId);
                 }
             }
         };
 
-        function updateUserCard(userId, msg, userName) {
+        function updateSidebar(userId, msg, userName) {
             let card = document.getElementById(`user-card-${userId}`);
             
-            // ကဒ်မရှိသေးရင် အသစ်ဆောက်မယ် (User အသစ်အတွက်)
             if (!card) {
-                const newCardHtml = `
-                <div id="user-card-${userId}" class="user-item border-b border-slate-50">
-                    <a href="?user_id=${userId}" class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-all block">
+                // User အသစ်ဆိုရင် ကဒ်အသစ်ဆောက်ပြီး အပေါ်ဆုံးထည့်မယ်
+                const newCard = `
+                <div id="user-card-${userId}" class="user-item border-b border-slate-50 relative">
+                    <a href="?user_id=${userId}" class="flex items-center gap-3 p-4 hover:bg-slate-50 block">
                         <div class="relative">
-                            <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 border border-white shadow-sm text-lg">
-                                ${userName.charAt(0).toUpperCase()}
-                            </div>
-                            <div id="badge-${userId}" class="badge-new absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white hidden">0</div>
+                            <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-lg border border-white shadow-sm">${userName[0].toUpperCase()}</div>
+                            <div id="badge-${userId}" class="badge-new absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 rounded-full flex items-center justify-center text-[10px] text-white font-black border-2 border-white hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-0.5">
                                 <span class="font-bold text-sm text-slate-800 truncate">${userName}</span>
-                                <span class="text-[9px] text-slate-400 uppercase font-medium">New</span>
+                                <span class="text-[9px] text-slate-400 font-bold">NEW</span>
                             </div>
                             <p id="last-msg-${userId}" class="text-xs text-slate-500 truncate">${msg.message}</p>
                         </div>
                     </a>
                 </div>`;
-                userList.insertAdjacentHTML('afterbegin', newCardHtml);
-                card = document.getElementById(`user-card-${userId}`);
+                userList.insertAdjacentHTML('afterbegin', newCard);
             } else {
-                // ရှိပြီးသားကဒ်ဆိုရင် စာသားပြင်ပြီး အပေါ်ဆုံးပို့မယ်
-                const lastMsg = document.getElementById(`last-msg-${userId}`);
-                if (lastMsg) lastMsg.innerText = msg.message_type === 'text' ? msg.message : `Sent a ${msg.message_type}`;
-                userList.prepend(card); // အပေါ်ဆုံးသို့ ရွှေ့ခြင်း
+                // ရှိပြီးသား user ဆိုရင် စာသားပြင်ပြီး အပေါ်ဆုံးပို့မယ်
+                document.getElementById(`last-msg-${userId}`).innerText = msg.message;
+                userList.prepend(card);
             }
         }
 
@@ -206,13 +198,11 @@
                 unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
                 badge.innerText = unreadCounts[userId];
                 badge.classList.remove('hidden');
-                // Animation လေးထည့်မယ်
-                badge.classList.add('animate-bounce');
-                setTimeout(() => badge.classList.remove('animate-bounce'), 1000);
             }
         }
 
         function appendMessage(data) {
+            if (!messageList) return;
             const div = document.createElement('div');
             div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} animate-pop`;
             div.innerHTML = `
@@ -228,18 +218,13 @@
             const text = messageInput.value.trim();
             if (!text || !currentUserId) return;
 
-            const res = await fetch('/send_message', {
+            // Optimistic Update (Optionally append here or wait for WS)
+            await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ user_id: currentUserId, message: text })
             });
-
-            if (res.ok) {
-                messageInput.value = '';
-                // Admin ပို့လိုက်ရင်လည်း ကိုယ့်ကဒ်ကို အပေါ်ဆုံးပို့မယ်
-                const myCard = document.getElementById(`user-card-${currentUserId}`);
-                if (myCard) userList.prepend(myCard);
-            }
+            messageInput.value = '';
         });
 
         if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
