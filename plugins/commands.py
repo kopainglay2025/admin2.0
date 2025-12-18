@@ -61,26 +61,6 @@ def formate_file_name(file_name):
     return file_name
 
 
-async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
-    """
-    Bot က message အသစ်ရရင် ဤ function ကို ခေါ်ပြီး Dashboard ကို update လုပ်ပေးပါ
-    """
-    new_msg = {
-        "message": message_text,
-        "message_type": msg_type,
-        "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    
-    for ws in active_sockets:
-        await ws.send_json({
-            "type": "new_message",
-            "user_id": user_id,
-            "user_name": user_name,
-            "data": new_msg
-        })
-
-
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
