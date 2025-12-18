@@ -190,20 +190,96 @@
         </div>
     </div>
 
-    <script>
-        const chatWindow = document.getElementById('chatWindow');
-        if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
 
-        // Form Submit Logic
-        document.getElementById('replyForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const input = document.getElementById('messageInput');
-            if(!input.value.trim()) return;
+<script>
+    const chatWindow = document.getElementById('chatWindow');
+    const messageList = document.getElementById('messageList');
+    const messageInput = document.getElementById('messageInput');
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentUserId = urlParams.get('user_id');
+
+    // 1. WebSocket ချိတ်ဆက်ခြင်း
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === "new_message") {
+            const msg = data.data; // {message, message_type, from_admin, timestamp}
+            const senderId = data.user_id.toString();
+
+            // A. Sidebar ကို Update လုပ်ခြင်း (နောက်ဆုံးစာသားပြရန်)
+            updateSidebar(senderId, msg);
+
+            // B. လက်ရှိ Chat Window ဖွင့်ထားတဲ့ User ဖြစ်ရင် စာကို တန်းပြရန်
+            if (senderId === currentUserId) {
+                appendMessage(msg);
+            } else {
+                // တခြား user ဆီကစာဆိုရင် Notification Dot ပြရန်
+                showNotificationBadge(senderId);
+            }
+        }
+    };
+
+    // Message အသစ်ကို Window ထဲသို့ ထည့်ပေးသည့် Function
+    function appendMessage(msg) {
+        if (!messageList) return;
+        
+        const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-pop`;
+        
+        let contentHtml = '';
+        if (msg.message_type === 'photo' || msg.message_type === 'sticker') {
+            contentHtml = `<div class="media-container"><img src="${msg.message}" class="rounded-lg max-w-[250px]"></div>`;
+        } else {
+            contentHtml = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
+        }
+
+        msgDiv.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>`;
+        messageList.appendChild(msgDiv);
+        
+        // အောက်ဆုံးသို့ Scroll ဆွဲချခြင်း
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Sidebar မှာ နောက်ဆုံးစာသားပြောင်းပေးသည့် Function
+    function updateSidebar(userId, msg) {
+        const lastMsgEl = document.querySelector(`#last-msg-${userId}`);
+        if (lastMsgEl) {
+            lastMsgEl.innerText = msg.message_type === 'text' ? msg.message : `Sent a ${msg.message_type}`;
+        }
+    }
+
+    function showNotificationBadge(userId) {
+        const badge = document.querySelector(`#unread-${userId}`);
+        if (badge) badge.classList.remove('hidden');
+    }
+
+    // Admin မှ စာပြန်ပို့သည့်အခါ
+    document.getElementById('replyForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (!text || !currentUserId) return;
+
+        try {
+            const response = await fetch('/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentUserId, message: text })
+            });
             
-            // UI အနေနဲ့ ချက်ချင်းပြရန် (Backend Logic ကတော့ သင့် API အပေါ်မူတည်ပါတယ်)
-            console.log("Sending:", input.value);
-            input.value = '';
-        });
-    </script>
+            if (response.ok) {
+                messageInput.value = '';
+                // မှတ်ချက်: send_message API ကနေ WebSocket ကနေတစ်ဆင့် UI ကို update ပြန်လုပ်ပေးပါလိမ့်မယ်
+            }
+        } catch (err) {
+            console.error("Error sending message:", err);
+        }
+    };
+
+    window.onload = () => { if(chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight; };
+</script>
 </body>
 </html>
