@@ -1,373 +1,340 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MKS Admin - Ultimate Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        
-        :root {
-            --primary: #2563eb;
-            --sidebar-width: 280px;
-        }
-
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            overflow: hidden; 
-            transition: background-color 0.3s ease;
-        }
-
-        /* Dark Mode Colors */
-        .dark body { background-color: #0f172a; color: #f1f5f9; }
-        .dark .bg-white { background-color: #1e293b !important; border-color: #334155 !important; }
-        .dark .text-slate-900 { color: #f8fafc !important; }
-        .dark .text-slate-500 { color: #94a3b8 !important; }
-        .dark .bg-slate-50 { background-color: #0f172a !important; }
-        .dark .msg-received { background: #334155 !important; color: #f1f5f9 !important; }
-        .dark .border-slate-200 { border-color: #334155 !important; }
-
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
-
-        /* Chat Container & Animations */
-        .chat-container { height: calc(100vh - 180px); }
-        
-        .message-appear {
-            animation: slideUp 0.3s ease-out forwards;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .msg-bubble { 
-            max-width: 75%; 
-            padding: 10px 16px; 
-            border-radius: 18px; 
-            font-size: 0.95rem; 
-            line-height: 1.5;
-            transition: all 0.2s;
-        }
-        
-        .msg-sent { 
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white; 
-            border-bottom-right-radius: 4px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
-
-        .msg-received { 
-            background: #ffffff; 
-            color: #1e293b; 
-            border-bottom-left-radius: 4px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        /* Hover Effects */
-        .nav-link { position: relative; transition: all 0.3s; }
-        .nav-link::after {
-            content: ''; position: absolute; left: 0; width: 0; height: 100%;
-            background: rgba(37, 99, 235, 0.1); transition: width 0.3s;
-        }
-        .nav-link:hover::after { width: 100%; }
-
-        .media-preview { 
-            border-radius: 16px; 
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: zoom-in;
-        }
-        .media-preview:hover { transform: scale(1.03); }
-
-        #lightbox { 
-            backdrop-filter: blur(10px);
-            transition: all 0.4s ease;
-        }
-        
-        /* Dark Mode Toggle Switch */
-        .toggle-checkbox:checked { right: 0; border-color: #4ade80; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #4ade80; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MKS Admin - Ultimate Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: #f1f5f9; }
+        .chat-container { height: calc(100vh - 165px); overflow-y: auto; scroll-behavior: smooth; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; position: relative; }
+        .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+        .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
+        .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        
+        /* Image Preview Style */
+        .media-preview { 
+            max-width: 250px; 
+            max-height: 350px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            border: 2px solid #fff; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: cover;
+            display: block;
+            background: #e2e8f0; /* Loading state background */
+        }
+        .media-preview:hover { transform: scale(1.02); filter: brightness(0.9); }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 transition-colors duration-300">
+<body class="text-slate-900">
 
-    <div id="lightbox" class="hidden fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center p-4">
-        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl transition-transform hover:rotate-90">
-            <i class="fas fa-times"></i>
-        </button>
-        <div id="lightbox-content" class="max-w-full max-h-[85vh] flex items-center justify-center"></div>
-        <div class="mt-6 flex gap-4">
-            <a id="download-btn" href="#" download class="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-xl backdrop-blur-md flex items-center gap-2 transition-all">
-                <i class="fas fa-download"></i> Download
-            </a>
-        </div>
-    </div>
+    <div id="lightbox">
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+        <div id="lightbox-content" class="max-w-[90%] max-h-[80vh] flex items-center justify-center"></div>
+        <div class="flex gap-4 mt-6">
+            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2">
+                <i class="fas fa-download"></i> Download
+            </a>
+        </div>
+    </div>
 
-    <div class="flex h-screen overflow-hidden">
-        
-        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-30">
-            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><i class="fas fa-rocket text-lg"></i></div>
-                    <span class="font-bold text-xl tracking-tight">MKS Panel</span>
-                </div>
-                <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <i id="theme-icon" class="fas fa-moon text-slate-500"></i>
-                </button>
-            </div>
-            
-            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <div class="px-6 mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Main Menu</div>
-                <a href="#" class="flex items-center gap-3 px-6 py-3.5 text-slate-500 hover:text-blue-600 nav-link">
-                    <i class="fas fa-chart-pie w-5"></i> <span class="text-sm font-semibold">Dashboard</span>
-                </a>
-                
-                <div class="px-6 mt-6 mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
-                <a href="#" class="flex items-center gap-3 px-6 py-3.5 text-slate-500 hover:text-purple-500 nav-link">
-                    <i class="fab fa-viber w-5"></i> <span class="text-sm font-semibold">Viber Bot</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-6 py-3.5 text-blue-600 bg-blue-50/50 border-r-4 border-blue-600 font-semibold">
-                    <i class="fab fa-telegram-plane w-5"></i> <span class="text-sm">TG Chat</span>
-                </a>
-                <a href="#" class="flex items-center gap-3 px-6 py-3.5 text-slate-500 hover:text-blue-800 nav-link">
-                    <i class="fab fa-facebook w-5"></i> <span class="text-sm font-semibold">FB Page</span>
-                </a>
-            </nav>
-            
-            <div class="p-4 border-t border-slate-100">
-                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">A</div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold truncate">Admin User</p>
-                        <p class="text-[10px] text-green-500 font-medium">Online</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
+                <span class="font-bold text-lg">Admin Panel</span>
+            </div>
+            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
+                <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
+                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-chart-line w-5"></i> Dashboard
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+                </a>
+                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
+                </a>
+                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
+                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-users w-5"></i> TG User List
+                </a>
+            </nav>
+        </aside>
 
-        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20">
-            <div class="p-5 border-b border-slate-100 bg-slate-50/30">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Search conversations..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-                {% for user in users %}
-                <a href="?user_id={{ user.user_id }}" class="group flex items-center gap-4 p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all {{ 'bg-blue-50/50 dark:bg-blue-900/20' if active_chat and active_chat.user_id == user.user_id }}">
-                    <div class="relative">
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center font-bold text-blue-600 text-lg border-2 border-white dark:border-slate-700 shadow-sm">
-                            {{ user.user_name[:1] | upper }}
-                        </div>
-                        <div id="badge-{{ user.user_id }}" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 hidden scale-up">0</div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-baseline mb-0.5">
-                            <h3 class="font-bold text-sm truncate group-hover:text-blue-600 transition-colors">{{ user.user_name }}</h3>
-                            <span class="text-[10px] text-slate-400">12:45 PM</span>
-                        </div>
-                        <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
-                            {% if user.chats %} 
-                                {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
-                            {% endif %}
-                        </p>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </aside>
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 class="font-bold text-slate-700">Conversations</h2>
+                <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
+                {% for user in users %}
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
+                        <div class="relative shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
+                                {{ user.user_name[:1] | upper }}
+                            </div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                                {% if user.chats %} 
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
+                                {% endif %}
+                            </p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </aside>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900/50">
-            {% if active_chat %}
-            <header class="h-[75px] px-8 flex items-center justify-between bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 z-10">
-                <div class="flex items-center gap-4">
-                    <div class="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-200 dark:shadow-none">
-                        {{ active_chat.user_name[:1] | upper }}
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-slate-800 dark:text-white leading-tight">{{ active_chat.user_name }}</h2>
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                            <span class="text-[11px] text-slate-400 font-medium">Active Now</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button class="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
-                        <i class="fas fa-phone-alt"></i>
-                    </button>
-                    <button class="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </header>
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
+            {% if active_chat %}
+            <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
+                        {{ active_chat.user_name[:1] | upper }}
+                    </div>
+                    <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
+                </div>
+            </header>
 
-            <div class="flex-1 chat-container p-6 overflow-y-auto custom-scrollbar" id="chatWindow">
-                <div class="flex flex-col gap-4 max-w-4xl mx-auto" id="messageList">
-                    {% for chat in active_chat.chats %}
-                    <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} message-appear">
-                        
-                        {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" 
-                                 onclick="openLightbox('img', this.src)" 
-                                 class="media-preview max-w-[300px] border-4 border-white dark:border-slate-800 shadow-md">
-                        {% elif chat.message_type == 'video' %}
-                            <div class="relative group max-w-[300px]">
-                                <video src="{{ chat.message }}" class="media-preview bg-black"></video>
-                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-2xl cursor-pointer">
-                                    <i class="fas fa-play-circle text-white text-5xl"></i>
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="msg-bubble {{ 'msg-sent' if chat.from_admin else 'msg-received' }}">
-                                {{ chat.message }}
-                            </div>
-                        {% endif %}
-                        
-                        <span class="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
-                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
-                            {% if chat.from_admin %} <i class="fas fa-check-double text-blue-400"></i> {% endif %}
-                        </span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+                <div class="flex flex-col gap-4 max-w-4xl mx-auto" id="messageList">
+                    {% for chat in active_chat.chats %}
+                    <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
+                        
+                        {% if chat.message_type == 'photo' %}
+                            <img src="{{ chat.message }}" 
+                                 onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'"
+                                 onclick="openLightbox('img', this.src)" 
+                                 class="media-preview">
+                        {% elif chat.message_type == 'video' %}
+                            <div class="relative group max-w-[280px]">
+                                <video src="{{ chat.message }}" class="media-preview bg-black"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                    <i class="fas fa-play-circle text-white text-5xl"></i>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="msg-bubble {{ 'msg-sent' if chat.from_admin else 'msg-received' }}">
+                                {{ chat.message }}
+                            </div>
+                        {% endif %}
+                        
+                        <span class="text-[9px] text-slate-400 mt-1">
+                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
-            <div class="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
-                <div id="emoji-picker-container" class="absolute bottom-28 left-6 z-50 hidden shadow-2xl animate-in slide-in-from-bottom-2 duration-300"></div>
-                
-                <form id="replyForm" class="max-w-4xl mx-auto flex items-center gap-4">
-                    <div class="flex gap-2">
-                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
-                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-blue-600 hover:text-white transition-all">
-                            <i class="fas fa-paperclip text-lg"></i>
-                        </button>
-                        <button type="button" onclick="toggleEmojiPicker()" class="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-yellow-500 hover:text-white transition-all">
-                            <i class="far fa-smile text-lg"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="flex-1 relative flex items-center">
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Write your message here..." 
-                               class="w-full bg-slate-100 dark:bg-slate-700/50 border-none py-4 px-6 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white transition-all">
-                        <button type="submit" class="absolute right-2 bg-blue-600 text-white w-10 h-10 rounded-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
-            {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-400 gap-6">
-                <div class="w-24 h-24 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-xl">
-                    <i class="fas fa-comments text-4xl opacity-20"></i>
-                </div>
-                <div class="text-center">
-                    <h3 class="font-bold text-slate-800 dark:text-white text-xl">Select a conversation</h3>
-                    <p class="text-sm">Choose a chat from the left to start messaging</p>
-                </div>
-            </div>
-            {% endif %}
-        </main>
-    </div>
+            <div class="p-4 bg-white border-t border-slate-200">
+                <div id="emoji-picker-container" class="absolute bottom-24 left-4 z-50"></div>
+                <form id="replyForm" class="max-w-4xl mx-auto">
+                    <div class="flex items-center gap-3 mb-2">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600">
+                            <i class="fas fa-paperclip text-lg"></i>
+                        </button>
+                        <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500">
+                            <i class="far fa-smile text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400">
+                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-4 text-sm focus:ring-0 outline-none">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110">
+                            <i class="fas fa-paper-plane text-xl"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-300">
+                <i class="fas fa-comments text-6xl mb-4 opacity-10"></i>
+                <p>Select a chat to start</p>
+            </div>
+            {% endif %}
+        </main>
+    </div>
 
-    <script>
-        const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
-        const userListContainer = document.getElementById('userList');
-        
-        // --- Theme Management ---
-        function toggleDarkMode() {
-            const html = document.documentElement;
-            const icon = document.getElementById('theme-icon');
-            if (html.classList.contains('light')) {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                icon.className = 'fas fa-sun text-yellow-400';
-                localStorage.setItem('theme', 'dark');
-            } else {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                icon.className = 'fas fa-moon text-slate-500';
-                localStorage.setItem('theme', 'light');
-            }
-        }
+    <script>
+        const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
+        const userListContainer = document.getElementById('userList');
+        let unreadCounts = {};
 
-        // --- WebSocket & Messages (Same logic, improved UI handling) ---
-        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-        
-        function appendMessage(data) {
-            const msgList = document.getElementById('messageList');
-            if (!msgList) return;
-            
-            const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} message-appear mb-4`;
-            
-            let contentHtml = '';
-            if (data.message_type === 'photo') {
-                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview max-w-[300px] border-4 border-white dark:border-slate-800 shadow-md">`;
-            } else if (data.message_type === 'video') {
-                contentHtml = `<div class="relative group max-w-[300px]"><video src="${data.message}" class="media-preview bg-black"></video><div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-2xl cursor-pointer"><i class="fas fa-play-circle text-white text-5xl"></i></div></div>`;
-            } else {
-                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
-            }
-            
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            div.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-1.5">${time}</span>`;
-            
-            msgList.appendChild(div);
-            scrollChat();
-        }
+        // Helper: Format Time
+        function getMyanmarTime() {
+            return new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true
+            }).format(new Date());
+        }
 
-        function scrollChat() {
-            const chatWin = document.getElementById('chatWindow');
-            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
-        }
+        // WebSocket Setup
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+        ws.onmessage = (event) => {
+            const response = JSON.parse(event.data);
+            if (response.type === "new_message") {
+                handleIncomingMessage(response.user_id, response.data);
+            }
+        };
 
-        function openLightbox(type, url) {
-            const content = document.getElementById('lightbox-content');
-            const lb = document.getElementById('lightbox');
-            content.innerHTML = type === 'video' 
-                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-2xl"></video>`
-                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-2xl object-contain">`;
-            document.getElementById('download-btn').href = url;
-            lb.classList.remove('hidden');
-            lb.classList.add('flex');
-        }
+        function handleIncomingMessage(userId, data) {
+            const card = document.getElementById(`user-card-${userId}`);
+            if (card) {
+                userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
+            }
+            if (String(userId) === String(currentUserId)) {
+                appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { badge.innerText = unreadCounts[userId]; badge.classList.remove('hidden'); }
+            }
+        }
 
-        function closeLightbox() {
-            const lb = document.getElementById('lightbox');
-            lb.classList.add('hidden');
-            lb.classList.remove('flex');
-            document.getElementById('lightbox-content').innerHTML = '';
-        }
+        // Append Message with Preview Support
+        function appendMessage(data) {
+            const msgList = document.getElementById('messageList');
+            if (!msgList) return;
+            
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
+            
+            let contentHtml = '';
+            if (data.message_type === 'photo') {
+                // Image path ကို သေချာစစ်ဆေးပါ
+                const imgSrc = data.message.startsWith('http') ? data.message : data.message;
+                contentHtml = `<img src="${imgSrc}" onerror="this.src='https://placehold.co/200x200?text=Image+Loading'" onclick="openLightbox('img', this.src)" class="media-preview">`;
+            } else if (data.message_type === 'video') {
+                contentHtml = `<div class="relative group max-w-[280px]">
+                                    <video src="${data.message}" class="media-preview bg-black"></video>
+                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                        <i class="fas fa-play-circle text-white text-5xl"></i>
+                                    </div>
+                                </div>`;
+            } else {
+                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
+            }
+            
+            const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
+            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
+            
+            msgList.appendChild(div);
+            scrollChat();
+        }
 
-        function toggleEmojiPicker() {
-            const container = document.getElementById('emoji-picker-container');
-            container.classList.toggle('hidden');
-            if (container.innerHTML === '') {
-                const picker = new EmojiMart.Picker({
-                    onEmojiSelect: (emoji) => { 
-                        document.getElementById('messageInput').value += emoji.native;
-                    },
-                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-                });
-                container.appendChild(picker);
-            }
-        }
+        async function handleFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file || !currentUserId) return;
 
-        // Initialize theme from local storage
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.className = 'dark';
-            document.getElementById('theme-icon').className = 'fas fa-sun text-yellow-400';
-        }
+            const isVideo = file.type.startsWith('video');
+            const type = isVideo ? 'video' : 'photo';
 
-        window.onload = scrollChat;
-    </script>
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('user_id', currentUserId);
+
+            try {
+                // Upload တင်နေစဉ် Loading ပြနိုင်သည်
+                const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    // Telegram ကနေ ပို့ပြီးသားဖြစ်လို့ WebSocket ကနေ Message ပြန်လာပါလိမ့်မယ်။ 
+                    // ဒါပေမဲ့ UI မှာ ချက်ချင်းမြင်ရအောင် appendMessage တစ်ခါလုပ်ပေးထားပါတယ်။
+                    appendMessage({
+                        from_admin: true,
+                        message: result.url,
+                        message_type: type,
+                        timestamp: getMyanmarTime()
+                    });
+                    fileInput.value = '';
+                } else {
+                    alert("Upload Error: " + result.error);
+                }
+            } catch (err) {
+                console.error("Upload Error:", err);
+            }
+        }
+
+        function scrollChat() {
+            const chatWin = document.getElementById('chatWindow');
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+        }
+
+        function openLightbox(type, url) {
+            const content = document.getElementById('lightbox-content');
+            const downloadBtn = document.getElementById('download-btn');
+            content.innerHTML = type === 'video' 
+                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>`
+                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
+            downloadBtn.href = url;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.getElementById('lightbox-content').innerHTML = '';
+        }
+
+        function toggleEmojiPicker() {
+            const container = document.getElementById('emoji-picker-container');
+            if (container.innerHTML === '') {
+                const picker = new EmojiMart.Picker({
+                    onEmojiSelect: (emoji) => { document.getElementById('messageInput').value += emoji.native; },
+                    theme: 'light'
+                });
+                container.appendChild(picker);
+            } else {
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text || !currentUserId) return;
+            
+            appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
+            
+            await fetch('/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
+            });
+            input.value = '';
+            document.getElementById('emoji-picker-container').style.display = 'none';
+        });
+
+        // Initial scroll
+        window.onload = scrollChat;
+    </script>
 </body>
 </html>
+
+
