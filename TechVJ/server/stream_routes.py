@@ -90,56 +90,51 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
 
 @routes.post("/send_message")
 async def send_message_handler(request):
-    """
-    Admin မှ User ဆီသို့ စာပြန်သည့်အခါ ခေါ်ဆိုသည့် API
-    """
     try:
         data = await request.json()
         user_id = int(data.get("user_id"))
         text = data.get("message")
 
         if not text or not user_id:
-            return web.json_response({"error": "Missing message or user_id"}, status=400)
+            return web.json_response({"error": "Missing info"}, status=400)
 
-        # Multi-client setup ရှိပါက ပထမဆုံး client ကို သုံး၍ စာပို့ခြင်း
+        # Telegram ဆီ စာပို့ခြင်း
         client = multi_clients[0]
         sent_msg = await client.send_message(chat_id=user_id, text=text)
 
-        # Database ထဲတွင် သိမ်းဆည်းရန် Data
-        # dashboard.html ရှိ strftime နှင့် ကိုက်ညီစေရန် datetime object သုံးပါ
+        # Database ထဲ သိမ်းခြင်း
         chat_data = {
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow() # ISO string အစား object အတိုင်းသိမ်းခြင်း
+            "timestamp": datetime.utcnow()
         }
-
         await db.chat_col.update_one(
             {'user_id': user_id},
             {'$push': {'chats': chat_data}},
             upsert=True
         )
 
-        # WebSocket မှတစ်ဆင့် UI update လုပ်ရန်အတွက်မူ string သာပို့ရမည်
-        ws_data = chat_data.copy()
-        ws_data["timestamp"] = ws_data["timestamp"].isoformat()
-
-        for ws in active_sockets:
+        # --- အရေးကြီးသည်- WebSocket မှတစ်ဆင့် UI ကို Update လုပ်ခိုင်းခြင်း ---
+        ws_payload = {
+            "type": "new_message",
+            "user_id": user_id,
+            "data": {
+                "message": text,
+                "message_type": "text",
+                "from_admin": True,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+        for ws in list(active_sockets):
             try:
-                await ws.send_json({
-                    "type": "new_message",
-                    "user_id": user_id,
-                    "data": ws_data
-                })
-            except:
-                continue
+                await ws.send_json(ws_payload)
+            except: continue
 
-        return web.json_response({"status": "success", "message_id": sent_msg.id})
-
+        return web.json_response({"status": "success"})
     except Exception as e:
-        logging.error(f"Send Message Error: {e}")
-        return web.json_response({"status": "error", "message": str(e)}, status=500)
-
+        return web.json_response({"error": str(e)}, status=500)
 
             
 @routes.get("/user")
