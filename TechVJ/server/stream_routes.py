@@ -71,22 +71,32 @@ async def websocket_handler(request):
     return ws
 
 # Bot ဆီမှ message အသစ်ရောက်လာလျှင် Dashboard သို့လှမ်းပို့ပေးမည့် function
+# --- server/stream_routes.py ---
+
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
+    # WebSocket payload ကို ပိုမိုစုံလင်စွာ ပြင်ဆင်ခြင်း
     new_msg = {
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat() # ISO format သည် JS အတွက် ပိုကောင်းသည်
     }
-    for ws in list(active_sockets): # list() သုံးခြင်းဖြင့် runtime error ကာကွယ်သည်
+    
+    payload = {
+        "type": "new_message",
+        "user_id": str(user_id), # user_id ကို string ပြောင်းပို့ပါ (အရေးကြီးသည်)
+        "user_name": user_name,
+        "data": new_msg
+    }
+    
+    # Active ဖြစ်နေသော Dashboard window အားလုံးသို့ ပို့ခြင်း
+    for ws in list(active_sockets):
         try:
-            await ws.send_json({
-                "type": "new_message",
-                "user_id": user_id,
-                "user_name": user_name,
-                "data": new_msg
-            })
-        except: continue
+            await ws.send_json(payload)
+            logging.info(f"Real-time update sent to dashboard for user: {user_id}")
+        except Exception as e:
+            logging.error(f"WS Error: {e}")
+            continue
 
 @routes.post("/send_message")
 async def send_message_handler(request):
