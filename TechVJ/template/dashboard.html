@@ -38,7 +38,7 @@
 
     <div class="flex h-screen overflow-hidden">
         <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
                 <span class="font-bold text-lg">MRN Panel</span>
             </div>
@@ -166,7 +166,7 @@
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
 
-        // Myanmar Time Formatter
+        // မြန်မာစံတော်ချိန်အတွက် Function
         function getMyanmarTime() {
             return new Intl.DateTimeFormat('en-GB', {
                 timeZone: 'Asia/Yangon',
@@ -201,6 +201,7 @@
             }
         }
 
+        // Admin Preview အတွက် ပြင်ဆင်ထားသော Append Function
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
@@ -208,6 +209,7 @@
             div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2`;
             
             let html = '';
+            // Media Type ပေါ်မူတည်ပြီး HTML ပြောင်းလဲခြင်း
             if (data.message_type === 'photo') {
                 html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="media-preview">`;
             } else if (data.message_type === 'video') {
@@ -221,8 +223,9 @@
                 html = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
             
-            const time = data.timestamp || getMyanmarTime();
-            div.innerHTML = `${html}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
+            const timeStr = data.timestamp && data.timestamp.$date ? new Date(data.timestamp.$date).toLocaleTimeString('en-GB', {timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true}) : getMyanmarTime();
+            
+            div.innerHTML = `${html}<span class="text-[9px] text-slate-400 mt-1">${timeStr}</span>`;
             msgList.appendChild(div);
             
             const chatWin = document.getElementById('chatWindow');
@@ -236,25 +239,20 @@
 
             const isVideo = file.type.startsWith('video');
             const type = isVideo ? 'video' : 'photo';
-            const tempUrl = URL.createObjectURL(file);
-
+            
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
-            formData.append('message_type', type); // Backend ဘက်မှာ စစ်နိုင်ဖို့ အမျိုးအစားပါ ထည့်ပေးလိုက်ပါ
 
             try {
-                // Upload မတင်ခင် User ဘက်မှာ Preview အရင်ပြပါ (Optional - ပိုမြန်ဆန်သယောင်ရှိစေရန်)
-                // appendMessage({ from_admin: true, message: tempUrl, message_type: type, timestamp: getMyanmarTime() });
-
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 
                 if (res.ok) {
-                    // Upload အောင်မြင်လျှင် အမှန်တကယ် URL ဖြင့် ပြန်ပြပါ
+                    // Upload အောင်မြင်လျှင် Admin preview ပြရန် appendMessage ခေါ်ပါမည်
                     appendMessage({
                         from_admin: true,
-                        message: result.url || tempUrl, 
+                        message: result.url, // Server မှ ပြန်ပေးသော URL
                         message_type: type,
                         timestamp: getMyanmarTime()
                     });
