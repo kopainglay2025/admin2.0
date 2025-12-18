@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MKS Admin - Ultimate Control</title>
+    <title>MRN Admin - Ultimate Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
@@ -13,90 +13,60 @@
         .chat-container { height: calc(100vh - 165px); overflow-y: auto; scroll-behavior: smooth; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
         .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; }
         .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
-        
-        /* New Message Badge Animation */
-        .badge-pulse {
-            background: #ef4444;
-            box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
-            animation: pulse-red 2s infinite;
-        }
-        @keyframes pulse-red {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
-        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
+        .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body class="text-slate-900">
 
     <div id="lightbox">
-        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl"><i class="fas fa-times"></i></button>
-        <div id="lightbox-content" class="max-w-[90%] max-h-[80%]"></div>
-        <a id="download-btn" href="#" download class="mt-6 bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Download</a>
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500"><i class="fas fa-times"></i></button>
+        <div id="lightbox-content" class="max-w-[90%] max-h-[80vh] flex items-center justify-center"></div>
+        <div class="flex gap-4 mt-6">
+            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2">
+                <i class="fas fa-download"></i> Download
+            </a>
+        </div>
     </div>
 
     <div class="flex h-screen overflow-hidden">
-        
         <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
                 <span class="font-bold text-lg">MRN Panel</span>
             </div>
             <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
-                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fas fa-chart-line w-5"></i> Dashboard
+                <a href="/tgchat" class="flex items-center gap-3 px-6 py-3 bg-blue-50 text-blue-600 border-r-4 border-blue-600 font-medium">
+                    <i class="fab fa-telegram-plane w-5"></i> TG Chat
                 </a>
-                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
-                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
-                </a>
-                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
-                </a>
-                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
-                </a>
-                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Users</div>
-                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fas fa-users w-5"></i> TG User List
-                </a>
-                <a href="/tg-broadcast" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fas fa-bullhorn w-5"></i> TG Broadcast
-                </a>
-            </nav>
+                </nav>
         </aside>
 
         <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 class="font-bold text-slate-700">Direct Messages</h2>
-                <span class="bg-green-100 text-green-600 text-[10px] px-2 py-1 rounded-full font-bold tracking-tighter">LIVE</span>
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 class="font-bold text-slate-700">Conversations</h2>
+                <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
                 {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative group transition-all duration-300">
-                    <a href="?user_id={{ user.user_id }}" 
-                       class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-all {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id }}">
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative transition-all duration-300">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50' if active_chat and active_chat.user_id == user.user_id }}">
                         <div class="relative shrink-0">
-                            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border border-slate-200">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
                                 {{ user.user_name[:1] | upper }}
                             </div>
-                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black border-2 border-white hidden">0</div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-0.5">
                                 <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
-                                <span id="time-{{ user.user_id }}" class="text-[9px] text-slate-400 font-medium">{% if user.chats %}{{ user.chats[-1].timestamp }}{% endif %}</span>
                             </div>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
-                                {% if user.chats %} {{ user.chats[-1].message }} {% else %} New Chat {% endif %}
+                                {% if user.chats %} {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} {% endif %}
                             </p>
                         </div>
                     </a>
@@ -121,7 +91,14 @@
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }}">
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" onclick="openLightbox('img', '{{ chat.message }}')" class="max-w-[300px] rounded-xl cursor-pointer border-2 border-white shadow-sm mb-1">
+                            <img src="{{ chat.message }}" onclick="openLightbox('img', '{{ chat.message }}')" class="max-w-[300px] rounded-xl cursor-pointer border-2 border-white shadow-md hover:scale-[1.02] transition-transform">
+                        {% elif chat.message_type == 'video' %}
+                            <div class="relative group max-w-[300px]">
+                                <video src="{{ chat.message }}" class="rounded-xl shadow-md"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer transition-all">
+                                    <i class="fas fa-play-circle text-white text-5xl"></i>
+                                </div>
+                            </div>
                         {% else %}
                             <div class="msg-bubble {{ 'msg-sent' if chat.from_admin else 'msg-received' }}">
                                 {{ chat.message }}
@@ -133,21 +110,21 @@
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-slate-200 relative">
+            <div class="p-4 bg-white border-t border-slate-200">
                 <div id="emoji-picker-container" class="absolute bottom-24 left-4 z-50"></div>
                 <form id="replyForm" class="max-w-4xl mx-auto">
                     <div class="flex items-center gap-3 mb-2">
-                        <input type="file" id="fileInput" class="hidden" onchange="handleFileUpload()">
-                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600">
-                            <i class="fas fa-paperclip text-lg"></i>
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                            <i class="fas fa-image text-lg"></i>
                         </button>
                         <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500">
                             <i class="far fa-smile text-lg"></i>
                         </button>
                     </div>
-                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4">
+                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400 transition-all">
                         <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-4 text-sm focus:ring-0 outline-none">
-                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-all">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
                             <i class="fas fa-paper-plane text-xl"></i>
                         </button>
                     </div>
@@ -155,7 +132,7 @@
             </div>
             {% else %}
             <div class="flex-1 flex flex-col items-center justify-center text-slate-300">
-                <i class="fas fa-comments text-6xl mb-4 opacity-20"></i>
+                <i class="fas fa-comments text-6xl mb-4 opacity-10"></i>
                 <p>Select a chat to start</p>
             </div>
             {% endif %}
@@ -164,88 +141,111 @@
 
     <script>
         const currentUserId = String("{{ active_chat.user_id if active_chat else '' }}");
-        const messageInput = document.getElementById('messageInput');
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
 
-        // --- Badge & Re-ordering Logic ---
-        function updateBadgeAndMoveToTop(userId, message, isAdmin = false) {
-            const card = document.getElementById(`user-card-${userId}`);
-            if (!card) return;
-
-            // Update Last Message Text
-            const lastMsgLabel = document.getElementById(`last-msg-${userId}`);
-            if (lastMsgLabel) lastMsgLabel.innerText = message;
-
-            // Re-order: Move to top
-            userListContainer.prepend(card);
-
-            // If not active chat and not from admin, increment badge
-            if (userId !== currentUserId && !isAdmin) {
-                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
-                const badge = document.getElementById(`badge-${userId}`);
-                if (badge) {
-                    badge.innerText = unreadCounts[userId];
-                    badge.classList.remove('hidden');
-                }
-            }
-        }
-
-        // --- WebSocket ---
+        // --- WebSocket Logic ---
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-        
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
             if (response.type === "new_message") {
-                const msgUserId = String(response.user_id);
-                
-                // ၁။ စာရင်းကို အပေါ်ဆုံးပို့ပြီး Badge ပြမယ်
-                updateBadgeAndMoveToTop(msgUserId, response.data.message, response.data.from_admin);
-
-                // ၂။ Active Chat ဖြစ်နေရင် မက်ဆေ့ကို ချက်ချင်းပြမယ်
-                if (msgUserId === currentUserId) {
-                    appendMessage(response.data);
-                }
+                handleIncomingMessage(response.user_id, response.data);
             }
         };
 
-        // --- Messaging ---
+        function handleIncomingMessage(userId, data) {
+            const card = document.getElementById(`user-card-${userId}`);
+            if (card) {
+                userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                document.getElementById(`last-msg-${userId}`).innerText = lastMsg;
+            }
+
+            if (String(userId) === currentUserId) {
+                appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { badge.innerText = unreadCounts[userId]; badge.classList.remove('hidden'); }
+            }
+        }
+
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} animate-pop mb-2`;
-            let content = data.message_type === 'photo' ? 
-                `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="max-w-[300px] rounded-xl cursor-pointer">` :
-                `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} animate-fade-in mb-2`;
             
-            div.innerHTML = `${content}<span class="text-[9px] text-slate-400 mt-1">Just now</span>`;
+            let html = '';
+            if (data.message_type === 'photo') {
+                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="max-w-[300px] rounded-xl cursor-pointer border-2 border-white shadow-md hover:scale-[1.02] transition-transform">`;
+            } else if (data.message_type === 'video') {
+                html = `<div class="relative group max-w-[300px]">
+                            <video src="${data.message}" class="rounded-xl shadow-md"></video>
+                            <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                <i class="fas fa-play-circle text-white text-5xl"></i>
+                            </div>
+                        </div>`;
+            } else {
+                html = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
+            }
+            
+            div.innerHTML = `${html}<span class="text-[9px] text-slate-400 mt-1">Just now</span>`;
             msgList.appendChild(div);
             document.getElementById('chatWindow').scrollTo({ top: document.getElementById('chatWindow').scrollHeight, behavior: 'smooth' });
         }
 
-        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if (!text || !currentUserId) return;
+        // --- Admin Upload Logic ---
+        async function handleFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file || !currentUserId) return;
 
-            // Admin က ပို့လိုက်ရင်လည်း ကိုယ့် card ကို အပေါ်ဆုံးပို့မယ်
-            updateBadgeAndMoveToTop(currentUserId, text, true);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('user_id', currentUserId);
 
-            await fetch('/send_message', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ user_id: currentUserId, message: text })
-            });
-            messageInput.value = '';
-            document.getElementById('emoji-picker-container').style.display = 'none';
-        });
+            try {
+                const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) {
+                    // Admin က ပို့လိုက်တဲ့ media ကို Chat box ထဲ ချက်ချင်းထည့်ပြခြင်း
+                    appendMessage({
+                        from_admin: true,
+                        message: result.url, // Backend က ပြန်ပေးတဲ့ URL
+                        message_type: file.type.startsWith('image') ? 'photo' : 'video',
+                        timestamp: 'Just now'
+                    });
+                    fileInput.value = '';
+                }
+            } catch (err) { console.error("Upload failed", err); }
+        }
 
-        // --- Helper UIs (Emoji, Lightbox, File) ---
+        // --- Lightbox Functions ---
+        function openLightbox(type, url) {
+            const content = document.getElementById('lightbox-content');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            if (type === 'video') {
+                content.innerHTML = `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg shadow-2xl"></video>`;
+            } else {
+                content.innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain">`;
+            }
+            
+            downloadBtn.href = url;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.getElementById('lightbox-content').innerHTML = '';
+        }
+
+        // --- Emoji & Form ---
         function toggleEmojiPicker() {
             const container = document.getElementById('emoji-picker-container');
             if (container.innerHTML === '') {
                 const picker = new EmojiMart.Picker({
-                    onEmojiSelect: (emoji) => { messageInput.value += emoji.native; },
+                    onEmojiSelect: (emoji) => { document.getElementById('messageInput').value += emoji.native; },
                     theme: 'light'
                 });
                 container.appendChild(picker);
@@ -254,28 +254,27 @@
             }
         }
 
-        async function handleFileUpload() {
-            const file = document.getElementById('fileInput').files[0];
-            if (!file || !currentUserId) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('user_id', currentUserId);
-            await fetch('/upload_and_send', { method: 'POST', body: formData });
-            document.getElementById('fileInput').value = '';
-        }
+        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text || !currentUserId) return;
 
-        function openLightbox(type, url) {
-            document.getElementById('lightbox-content').innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg">`;
-            document.getElementById('download-btn').href = url;
-            document.getElementById('lightbox').style.display = 'flex';
-        }
-
-        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+            const msgData = { from_admin: true, message: text, message_type: 'text', timestamp: 'Just now' };
+            appendMessage(msgData);
+            
+            await fetch('/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentUserId, message: text })
+            });
+            input.value = '';
+            document.getElementById('emoji-picker-container').style.display = 'none';
+        });
 
         // Initial scroll
-        if (document.getElementById('chatWindow')) {
-            document.getElementById('chatWindow').scrollTop = document.getElementById('chatWindow').scrollHeight;
-        }
+        const cw = document.getElementById('chatWindow');
+        if (cw) cw.scrollTop = cw.scrollHeight;
     </script>
 </body>
 </html>
