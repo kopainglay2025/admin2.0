@@ -20,6 +20,10 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
         .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        
+        /* Media Preview Styling */
+        .media-preview { max-width: 280px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; border: 2px solid #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .media-preview:hover { transform: scale(1.02); }
     </style>
 </head>
 <body class="text-slate-900">
@@ -45,7 +49,6 @@
                 <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-chart-line w-5"></i> Dashboard
                 </a>
-                
                 <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
                 <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
@@ -56,7 +59,6 @@
                 <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
                 </a>
-
                 <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
                 <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-users w-5"></i> TG User List
@@ -86,9 +88,7 @@
                             <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-0.5">
-                                <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
-                            </div>
+                            <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
                                 {% if user.chats %} {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} {% endif %}
                             </p>
@@ -103,7 +103,7 @@
             {% if active_chat %}
             <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-200">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
                     <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
@@ -115,11 +115,11 @@
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }}">
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" onclick="openLightbox('img', '{{ chat.message }}')" class="max-w-[300px] rounded-xl cursor-pointer border-2 border-white shadow-md hover:scale-[1.02] transition-transform">
+                            <img src="{{ chat.message }}" onclick="openLightbox('img', '{{ chat.message }}')" class="media-preview">
                         {% elif chat.message_type == 'video' %}
-                            <div class="relative group max-w-[300px]">
-                                <video src="{{ chat.message }}" class="rounded-xl shadow-md bg-black"></video>
-                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer transition-all">
+                            <div class="relative group max-w-[280px]">
+                                <video src="{{ chat.message }}" class="media-preview bg-black"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
                                     <i class="fas fa-play-circle text-white text-5xl"></i>
                                 </div>
                             </div>
@@ -139,16 +139,16 @@
                 <form id="replyForm" class="max-w-4xl mx-auto">
                     <div class="flex items-center gap-3 mb-2">
                         <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
-                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600">
                             <i class="fas fa-paperclip text-lg"></i>
                         </button>
                         <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500">
                             <i class="far fa-smile text-lg"></i>
                         </button>
                     </div>
-                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400 transition-all">
+                    <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400">
                         <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-4 text-sm focus:ring-0 outline-none">
-                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110">
                             <i class="fas fa-paper-plane text-xl"></i>
                         </button>
                     </div>
@@ -168,7 +168,7 @@
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
 
-        // --- WebSocket ---
+        // WebSocket (မပြောင်းလဲပါ)
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
@@ -185,7 +185,6 @@
                 const lastMsgEl = document.getElementById(`last-msg-${userId}`);
                 if (lastMsgEl) lastMsgEl.innerText = lastMsg;
             }
-
             if (String(userId) === currentUserId) {
                 appendMessage(data);
             } else if (!data.from_admin) {
@@ -195,6 +194,7 @@
             }
         }
 
+        // --- ပြင်ဆင်လိုက်သည့် APPEND MESSAGE FUNCTION ---
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
@@ -203,11 +203,11 @@
             
             let html = '';
             if (data.message_type === 'photo') {
-                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="max-w-[300px] rounded-xl cursor-pointer border-2 border-white shadow-md">`;
+                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="media-preview">`;
             } else if (data.message_type === 'video') {
-                html = `<div class="relative group max-w-[300px]">
-                            <video src="${data.message}" class="rounded-xl shadow-md bg-black"></video>
-                            <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl cursor-pointer">
+                html = `<div class="relative group max-w-[280px]">
+                            <video src="${data.message}" class="media-preview bg-black"></video>
+                            <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
                                 <i class="fas fa-play-circle text-white text-5xl"></i>
                             </div>
                         </div>`;
@@ -221,7 +221,7 @@
             chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
         }
 
-        // --- ADMIN FILE UPLOAD FIX ---
+        // --- ပြင်ဆင်လိုက်သည့် FILE UPLOAD LOGIC ---
         async function handleFileUpload() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
@@ -231,15 +231,17 @@
             formData.append('file', file);
             formData.append('user_id', currentUserId);
 
-            // UI မှာအရင်ပြထားဖို့ (Optional)
+            // UI မှာ Preview အရင်ပြဖို့ (User ပို့သလိုမျိုး)
             const tempUrl = URL.createObjectURL(file);
-            const type = file.type.startsWith('image') ? 'photo' : 'video';
+            const isVideo = file.type.startsWith('video');
+            const type = isVideo ? 'video' : 'photo';
 
             try {
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 
                 if (res.ok) {
+                    // Upload အောင်မြင်လျှင် appendMessage ခေါ်ပြီး Media ကို Preview ပြမည်
                     appendMessage({
                         from_admin: true,
                         message: result.url || tempUrl, 
@@ -252,21 +254,17 @@
                 }
             } catch (err) {
                 console.error("Upload Error:", err);
-                alert("ဖိုင်ပို့လို့မရပါဘူး။ Server Error ဖြစ်နေပါတယ်။");
             }
         }
 
-        // --- Lightbox Functions ---
         function openLightbox(type, url) {
             const content = document.getElementById('lightbox-content');
             const downloadBtn = document.getElementById('download-btn');
-            
             if (type === 'video') {
-                content.innerHTML = `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg shadow-2xl"></video>`;
+                content.innerHTML = `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>`;
             } else {
-                content.innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain">`;
+                content.innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
             }
-            
             downloadBtn.href = url;
             document.getElementById('lightbox').style.display = 'flex';
         }
@@ -276,7 +274,6 @@
             document.getElementById('lightbox-content').innerHTML = '';
         }
 
-        // --- Emoji & Form ---
         function toggleEmojiPicker() {
             const container = document.getElementById('emoji-picker-container');
             if (container.innerHTML === '') {
@@ -295,9 +292,7 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
-
             appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: 'Just now' });
-            
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -307,7 +302,6 @@
             document.getElementById('emoji-picker-container').style.display = 'none';
         });
 
-        // Auto Scroll on Load
         const cw = document.getElementById('chatWindow');
         if (cw) cw.scrollTop = cw.scrollHeight;
     </script>
