@@ -251,7 +251,7 @@ async def upload_and_send_handler(request):
                 "message": file_url,
                 "message_type": file_type,
                 "from_admin": True,
-                "timestamp": now.strftime('%I:%M %p') # UI အတွက် format လုပ်ပြီးပို့ပါ
+                "timestamp": now # UI အတွက် format လုပ်ပြီးပို့ပါ
             }
         }
         
