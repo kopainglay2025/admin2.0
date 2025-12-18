@@ -151,7 +151,7 @@ async def send_message_handler(request):
 
 
 
-@import os
+import os
 import aiofiles
 from aiohttp import web
 from datetime import datetime
