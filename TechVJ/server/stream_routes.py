@@ -146,7 +146,39 @@ async def send_message_handler(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
-            
+@app.route("/upload_and_send", methods=["POST"])
+async def upload_and_send():
+    file = request.files.get("file")
+    user_id = request.form.get("user_id")
+
+    if not file or not user_id:
+        return jsonify({"error": "Invalid"}), 400
+
+    filename = secure_filename(file.filename)
+    save_path = os.path.join("static/uploads", filename)
+    file.save(save_path)
+
+    file_url = f"/static/uploads/{filename}"
+    client = multi_clients[0]
+    # Telegram Bot ကို ပို့
+    if file.content_type.startswith("image"):
+        await client.send_photo(chat_id=user_id, photo=file_url)
+        msg_type = "photo"
+    else:
+        await client.send_video(chat_id=user_id, video=file_url)
+        msg_type = "video"
+
+    # MongoDB Save
+    await db.chat.insert_one({
+        "user_id": user_id,
+        "from_admin": True,
+        "message": file_url,
+        "message_type": msg_type,
+        "timestamp": datetime.now(MYANMAR_TZ)
+    })
+
+    return jsonify({"url": file_url})
+     
 @routes.get("/user")
 async def show_user_chats(request):
     """
