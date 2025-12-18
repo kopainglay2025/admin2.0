@@ -3,394 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Live Chat</title>
+    <title>Admin Multi-Channel Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
-        body { 
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden; 
-            background-color: #f8fafc;
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
-        .chat-container { 
-            height: calc(100vh - 160px); 
-            scroll-behavior: smooth; 
-            overflow-y: auto; 
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-        .sidebar-height { 
-            height: calc(100vh - 75px); 
-            overflow-y: auto; 
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { 
-            width: 5px; 
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #cbd5e1; 
-            border-radius: 10px; 
-        }
-
-        /* Message Bubbles */
-        .msg-bubble { 
-            max-width: 70%; 
-            padding: 10px 16px; 
-            border-radius: 20px; 
-            font-size: 0.95rem; 
-            position: relative;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .msg-received { 
-            background-color: #ffffff; 
-            color: #1e293b; 
-            border-bottom-left-radius: 4px; 
-            border: 1px solid #e2e8f0;
-        }
-
-        .msg-sent { 
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); 
-            color: white; 
-            border-bottom-right-radius: 4px; 
-        }
-
-        /* Media Preview Styles */
-        .media-container {
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 4px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            max-width: 300px;
-            background: #eee;
-            border: 1px solid #e2e8f0;
-        }
-
-        .media-container:hover {
-            opacity: 0.9;
-        }
-
-        .media-preview-img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .media-preview-video {
-            width: 100%;
-            display: block;
-        }
-
-        .animate-pop-in {
-            animation: popIn 0.2s ease-out forwards;
-        }
-
-        @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .user-active {
-            background-color: #eff6ff;
-            border-left: 4px solid #2563eb;
-        }
-
-        .notification-dot {
-            width: 10px;
-            height: 10px;
-            background-color: #ef4444;
-            border-radius: 50%;
-            display: inline-block;
-            border: 2px solid white;
+        .chat-container {
+            height: calc(100vh - 75px - 81px); /* Header + Input */
         }
     </style>
 </head>
-<body class="text-slate-900">
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
 
-    <!-- Top Navigation -->
-    <nav class="bg-white border-b border-slate-200 h-[75px] flex items-center justify-between px-8 sticky top-0 z-50">
-        <div class="flex items-center gap-4">
-            <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-200">
-                <i class="fas fa-headset text-xl"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold text-slate-800 leading-none mb-1">Customer Support</h1>
-                <div class="flex items-center gap-2">
-                    <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span id="statusText" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Connecting...</span>
-                </div>
-            </div>
-        </div>
-        <div class="flex items-center gap-4">
-            <button class="text-slate-400 hover:text-slate-600"><i class="far fa-bell text-xl"></i></button>
-            <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-blue-600">A</div>
-        </div>
-    </nav>
-
-    <div class="flex h-[calc(100vh-75px)]">
+    <div id="app" class="flex h-screen w-full">
         <!-- Sidebar -->
-        <aside class="w-[380px] bg-white border-r border-slate-200 sidebar-height custom-scrollbar flex flex-col">
-            <div class="p-4 border-b border-slate-50">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Search chats..." class="w-full bg-slate-100 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+        <aside class="w-20 lg:w-64 bg-white border-r border-slate-200 flex flex-col z-50">
+            <div class="h-[75px] flex items-center px-6 border-b border-slate-100 shrink-0">
+                <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg">
+                    <i data-lucide="headset" class="w-6 h-6"></i>
                 </div>
+                <span class="ml-3 font-bold text-lg hidden lg:block tracking-tight text-slate-800">AdminPanel</span>
             </div>
 
-            <div id="userList" class="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
-                {% for user in users %}
-                <a href="/dashboard?user_id={{ user.user_id }}" 
-                   id="user-side-{{ user.user_id }}"
-                   class="user-item flex items-center gap-4 p-4 border-b border-slate-50 transition-all {{ 'user-active' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
-                    <div class="relative">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-200 to-slate-100 flex items-center justify-center font-bold text-slate-600 border border-slate-200">
-                            {{ user.user_name[:1] | upper }}
-                        </div>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+            <nav id="nav-items" class="flex-1 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+                <!-- Nav items generated by JS -->
+            </nav>
+
+            <div class="p-4 border-t border-slate-100">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">A</div>
+                    <div class="flex-1 overflow-hidden hidden lg:block">
+                        <p class="text-xs font-bold text-slate-800 truncate">Support Agent</p>
+                        <p class="text-[10px] text-green-600 uppercase font-bold">Online</p>
                     </div>
-                    <div class="flex-1 overflow-hidden">
-                        <div class="flex justify-between items-center mb-0.5">
-                            <span class="font-bold text-slate-800 truncate text-[15px]">{{ user.user_name }}</span>
-                            <span class="text-[11px] text-slate-400 font-medium">Active</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <p id="last-msg-{{ user.user_id }}" class="text-[13px] text-slate-500 truncate pr-2">
-                                {% if user.chats %}
-                                    {{ "You: " if user.chats[-1].from_admin else "" }}
-                                    {% if user.chats[-1].message_type == 'text' %}
-                                        {{ user.chats[-1].message }}
-                                    {% else %}
-                                        Sent a {{ user.chats[-1].message_type }}
-                                    {% endif %}
-                                {% else %}
-                                    No messages yet
-                                {% endif %}
-                            </p>
-                            <span id="unread-{{ user.user_id }}" class="hidden notification-dot"></span>
-                        </div>
-                    </div>
-                </a>
-                {% endfor %}
+                </div>
             </div>
         </aside>
 
-        <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col bg-[#f8fafc]">
-            {% if active_chat %}
-            <!-- Chat Header -->
-            <div class="h-[75px] px-8 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600">
-                        {{ active_chat.user_name[:1] | upper }}
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-slate-800">{{ active_chat.user_name }}</h2>
-                        <p class="text-[11px] text-green-500 font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active Now
-                        </p>
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Header -->
+            <header class="h-[75px] bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+                <div>
+                    <h1 id="active-tab-title" class="text-lg font-bold text-slate-800 capitalize leading-none mb-1">Telegram Chat</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Server Live</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Messages List -->
-            <div class="flex-1 chat-container p-8" id="chatWindow">
-                <div class="flex flex-col gap-4" id="messageList">
-                    {% for msg in active_chat.chats %}
-                    <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }}">
-                        
-                        <!-- Media Preview Rendering -->
-                        {% if msg.message_type in ['photo', 'sticker', 'animation'] %}
-                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'media_file')">
-                            <img src="{{ msg.message }}" alt="Media" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
-                        </div>
-                        {% elif msg.message_type == 'video' %}
-                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'video.mp4')">
-                            <video class="media-preview-video" controls>
-                                <source src="{{ msg.message }}" type="video/mp4">
-                            </video>
-                        </div>
-                        {% elif msg.message_type == 'document' %}
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('{{ msg.message }}', 'document')">
-                            <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
-                                <i class="fas fa-file-alt text-xl"></i>
-                            </div>
-                            <div class="text-sm font-bold text-slate-700">Document Received</div>
-                        </div>
-                        {% else %}
-                        <div class="msg-bubble {{ 'msg-sent' if msg.from_admin else 'msg-received' }}">
-                            {{ msg.message }}
-                        </div>
-                        {% endif %}
-
-                        <span class="text-[10px] text-slate-400 mt-1 px-1">
-                            {% if msg.timestamp %}
-                                {% if msg.timestamp is string %}
-                                    {{ msg.timestamp[11:16] }}
-                                {% else %}
-                                    {{ msg.timestamp.strftime('%I:%M %p') }}
-                                {% endif %}
-                            {% else %}
-                                Just Now
-                            {% endif %}
-                        </span>
+                <div class="flex items-center gap-6">
+                    <div class="relative group hidden md:block">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                        <input type="text" placeholder="Global Search..." class="bg-slate-100 rounded-full py-2 pl-10 pr-4 text-xs w-64 focus:ring-2 focus:ring-blue-500/20 outline-none border border-transparent focus:bg-white focus:border-slate-200">
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Message Input Area -->
-            <div class="p-4 bg-white border-t border-slate-200">
-                <form id="replyForm" class="max-w-4xl mx-auto relative flex items-center gap-3">
-                    <button type="button" class="text-slate-400 hover:text-blue-600 p-2"><i class="fas fa-plus-circle text-xl"></i></button>
-                    <div class="relative flex-1">
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." 
-                               class="w-full bg-slate-100 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none">
-                    </div>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 transition-all active:scale-95">
-                        <i class="fas fa-paper-plane"></i>
+                    <button class="text-slate-400 hover:text-slate-600 relative">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
-                </form>
-            </div>
-
-            {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
-                <div class="bg-white p-8 rounded-full shadow-sm mb-4">
-                    <i class="far fa-comments text-6xl text-slate-200"></i>
                 </div>
-                <h3 class="text-slate-800 font-bold text-lg">No Conversation Selected</h3>
-                <p class="text-sm">စကားပြောရန် ဘယ်ဘက်မှ User တစ်ယောက်ကို ရွေးချယ်ပါ</p>
+            </header>
+
+            <!-- Layout Content -->
+            <div id="main-layout" class="flex-1 flex overflow-hidden">
+                <!-- Sidebar (Chats) -->
+                <aside class="w-[350px] bg-white border-r border-slate-200 flex flex-col shrink-0">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="font-bold text-slate-800 text-sm">Active Conversations</h2>
+                            <span id="chat-count" class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">0</span>
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5"></i>
+                            <input type="text" placeholder="Filter users..." class="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-4 text-xs outline-none focus:ring-2 focus:ring-blue-500/10">
+                        </div>
+                    </div>
+                    <div id="chats-list" class="flex-1 overflow-y-auto custom-scrollbar">
+                        <!-- Chats generated by JS -->
+                    </div>
+                </aside>
+
+                <!-- Messaging Area -->
+                <main class="flex-1 flex flex-col relative bg-slate-50">
+                    <div id="chat-header" class="hidden h-14 px-6 items-center justify-between bg-white border-b border-slate-200 shadow-sm shrink-0">
+                        <div class="flex items-center gap-3">
+                            <div id="active-user-avatar" class="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center font-bold text-sky-600 text-sm">?</div>
+                            <div>
+                                <h2 id="active-user-name" class="font-bold text-slate-800 text-sm">Username</h2>
+                                <p class="text-[10px] text-green-600 font-bold uppercase tracking-tight">Online</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><i data-lucide="paperclip" class="w-4 h-4"></i></button>
+                            <button class="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><i data-lucide="more-vertical" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                        <!-- Select User Placeholder -->
+                        <div id="no-chat-selected" class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                            <i data-lucide="message-circle" class="w-16 h-16 mb-4"></i>
+                            <p class="text-sm">Select a user to view conversation</p>
+                        </div>
+                    </div>
+
+                    <div id="input-area" class="hidden p-4 bg-white border-t border-slate-200">
+                        <form id="message-form" class="max-w-4xl mx-auto flex items-center gap-3">
+                            <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                <i data-lucide="send" class="w-5 h-5 ml-1"></i>
+                            </button>
+                        </form>
+                    </div>
+                </main>
             </div>
-            {% endif %}
-        </main>
+        </div>
     </div>
 
-    <script>
-        const chatWindow = document.getElementById('chatWindow');
-        const messageList = document.getElementById('messageList');
-        const messageInput = document.getElementById('messageInput');
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentUserId = urlParams.get('user_id');
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Media Download Helper
-        function downloadMedia(url, filename) {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.target = "_blank";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        // Global State
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'support-admin-v1';
 
-        // WebSocket Connection
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+        let activeTab = 'tg-chat';
+        let activeChatId = null;
+        let currentUser = null;
+        let unsubMessages = null;
 
-        ws.onopen = () => {
-            statusText.innerText = "Online";
-            statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
-        };
+        const menuItems = [
+            { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+            { id: 'viber', label: 'Viber Chat', icon: 'message-circle', color: 'text-purple-500' },
+            { id: 'fb-page', label: 'FB Page Chat', icon: 'facebook', color: 'text-blue-600' },
+            { id: 'tg-chat', label: 'TG Chat', icon: 'send', color: 'text-sky-500' },
+            { id: 'tg-users', label: 'TG User List', icon: 'users' },
+            { id: 'tg-broadcast', label: 'TG Broadcast', icon: 'megaphone' },
+            { id: 'settings', label: 'Bot Settings', icon: 'settings' },
+        ];
 
-        ws.onclose = () => {
-            statusText.innerText = "Offline";
-            statusDot.className = "w-2 h-2 rounded-full bg-red-500";
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === "new_message") {
-                const msg = data.data;
-                const senderId = data.user_id.toString();
-
-                // Update Sidebar Last Message & Notify
-                const lastMsgEl = document.getElementById(`last-msg-${senderId}`);
-                if (lastMsgEl) {
-                    lastMsgEl.innerText = msg.message_type !== 'text' ? `Sent a ${msg.message_type}` : (msg.from_admin ? "You: " : "") + msg.message;
-                    
-                    // Show unread dot if this user is not the active one
-                    if (senderId !== currentUserId) {
-                        const unreadEl = document.getElementById(`unread-${senderId}`);
-                        if (unreadEl) unreadEl.classList.remove('hidden');
-                        
-                        // Optional: Highlight the user item in sidebar
-                        const userSide = document.getElementById(`user-side-${senderId}`);
-                        if (userSide) userSide.classList.add('bg-blue-50/30');
-                    }
-                }
-
-                // Append to chat window if currently talking to this user
-                if (senderId === currentUserId) {
-                    appendMessage(msg);
-                }
-            }
-        };
-
-        function appendMessage(msg) {
-            if (!messageList) return;
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-pop-in`;
+        // --- Initialization ---
+        async function init() {
+            lucide.createIcons();
+            renderSidebar();
             
-            let contentHtml = '';
-            // Handle Media Types in Real-time
-            if (['photo', 'sticker', 'animation'].includes(msg.message_type)) {
-                contentHtml = `
-                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'media')">
-                        <img src="${msg.message}" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
-                    </div>`;
-            } else if (msg.message_type === 'video') {
-                contentHtml = `
-                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'video.mp4')">
-                        <video class="media-preview-video" controls src="${msg.message}"></video>
-                    </div>`;
-            } else if (msg.message_type === 'document') {
-                contentHtml = `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('${msg.message}', 'document')">
-                        <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="fas fa-file-alt text-xl"></i></div>
-                        <div class="text-sm font-bold text-slate-700">Document Received</div>
-                    </div>`;
-            } else {
-                contentHtml = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
+            try {
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        listenToChats();
+                    }
+                });
+            } catch (err) {
+                console.error("Auth failed:", err);
             }
-
-            msgDiv.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>`;
-            messageList.appendChild(msgDiv);
-            scrollToBottom();
         }
 
-        function scrollToBottom() {
-            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+        function renderSidebar() {
+            const container = document.getElementById('nav-items');
+            container.innerHTML = '';
+            
+            menuItems.forEach(item => {
+                if (item.id === 'tg-users') {
+                    container.innerHTML += `<div class="px-6 py-4"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:block">Telegram Utils</span></div>`;
+                }
+                if (item.id === 'viber') {
+                    container.innerHTML += `<div class="px-6 py-4"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:block">Channels</span></div>`;
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `w-full flex items-center px-6 py-3 transition-all group ${activeTab === item.id ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`;
+                btn.innerHTML = `
+                    <i data-lucide="${item.icon}" class="w-6 h-6 shrink-0 ${activeTab === item.id ? '' : (item.color || 'text-slate-400')}"></i>
+                    <span class="ml-4 font-medium hidden lg:block whitespace-nowrap text-sm">${item.label}</span>
+                `;
+                btn.onclick = () => {
+                    activeTab = item.id;
+                    document.getElementById('active-tab-title').innerText = item.label;
+                    renderSidebar();
+                    toggleViewMode();
+                };
+                container.appendChild(btn);
+            });
+            lucide.createIcons();
         }
 
-        const replyForm = document.getElementById('replyForm');
-        if (replyForm) {
-            replyForm.onsubmit = async (e) => {
-                e.preventDefault();
-                const text = messageInput.value.trim();
-                if (!text || !currentUserId) return;
+        function toggleViewMode() {
+            const mainLayout = document.getElementById('main-layout');
+            if (activeTab === 'tg-chat') {
+                mainLayout.classList.remove('hidden');
+                mainLayout.classList.add('flex');
+            } else {
+                mainLayout.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center">
+                        <div class="bg-white p-12 rounded-3xl shadow-xl border border-slate-100 text-center">
+                             <div class="inline-flex p-5 rounded-2xl bg-blue-50 text-blue-600 mb-6">
+                                <i data-lucide="construction" class="w-12 h-12"></i>
+                             </div>
+                             <h2 class="text-2xl font-bold text-slate-800 mb-2">Coming Soon</h2>
+                             <p class="text-slate-500 max-w-xs">Module <b>${activeTab}</b> is currently being connected to API.</p>
+                             <button onclick="window.location.reload()" class="mt-6 text-blue-600 text-sm font-bold">Back to Chat</button>
+                        </div>
+                    </div>`;
+                lucide.createIcons();
+            }
+        }
+
+        // --- Data Logic ---
+        function listenToChats() {
+            const chatsRef = collection(db, 'artifacts', appId, 'public', 'data', 'conversations');
+            onSnapshot(chatsRef, (snapshot) => {
+                const list = document.getElementById('chats-list');
+                const count = document.getElementById('chat-count');
+                list.innerHTML = '';
+                count.innerText = snapshot.docs.length;
+
+                snapshot.docs.forEach(docSnap => {
+                    const chat = docSnap.data();
+                    const id = docSnap.id;
+                    const item = document.createElement('div');
+                    item.className = `flex items-center gap-3 p-4 border-b border-slate-50 cursor-pointer transition-colors ${activeChatId === id ? 'bg-blue-50/80 border-l-4 border-l-blue-600' : 'hover:bg-slate-50'}`;
+                    item.onclick = () => selectChat(id, chat);
+                    item.innerHTML = `
+                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border border-white shadow-sm">${chat.userName?.[0] || '?'}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-slate-800 text-sm truncate">${chat.userName || 'Unknown'}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">Just now</span>
+                            </div>
+                            <p class="text-xs text-slate-500 truncate">${chat.lastMessage || 'Click to message...'}</p>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function selectChat(id, chatData) {
+            activeChatId = id;
+            document.getElementById('no-chat-selected').classList.add('hidden');
+            document.getElementById('chat-header').classList.remove('hidden');
+            document.getElementById('chat-header').classList.add('flex');
+            document.getElementById('input-area').classList.remove('hidden');
+            
+            document.getElementById('active-user-name').innerText = chatData.userName;
+            document.getElementById('active-user-avatar').innerText = chatData.userName?.[0];
+
+            if (unsubMessages) unsubMessages();
+
+            const msgsRef = collection(db, 'artifacts', appId, 'public', 'data', 'conversations', id, 'messages');
+            unsubMessages = onSnapshot(msgsRef, (snapshot) => {
+                const container = document.getElementById('messages-container');
+                container.innerHTML = '';
                 
-                // Optimistic UI update: show admin message immediately
-                const adminMsg = { message: text, message_type: 'text', from_admin: true };
-                appendMessage(adminMsg);
-                
-                messageInput.value = '';
-                try {
-                    await fetch('/send_message', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: currentUserId, message: text })
-                    });
-                } catch (err) { console.error("Error sending message:", err); }
-            };
+                const sorted = snapshot.docs
+                    .map(d => d.data())
+                    .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+                sorted.forEach(msg => {
+                    const isSelf = msg.sender === 'admin';
+                    const div = document.createElement('div');
+                    div.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`;
+                    div.innerHTML = `
+                        <div class="max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${isSelf ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'}">
+                            ${msg.text}
+                        </div>
+                        <span class="text-[10px] text-slate-400 mt-1 px-1 font-medium">
+                            ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
+                        </span>
+                    `;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+
+            // Re-render sidebar to update selection highlight
+            listenToChats();
         }
 
-        window.onload = scrollToBottom;
+        // --- Event Handlers ---
+        document.getElementById('message-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text || !activeChatId || !currentUser) return;
+
+            input.value = '';
+            const msgRef = collection(db, 'artifacts', appId, 'public', 'data', 'conversations', activeChatId, 'messages');
+            const convRef = doc(db, 'artifacts', appId, 'public', 'data', 'conversations', activeChatId);
+
+            await addDoc(msgRef, {
+                text,
+                sender: 'admin',
+                timestamp: serverTimestamp()
+            });
+
+            await updateDoc(convRef, {
+                lastMessage: text,
+                lastTimestamp: serverTimestamp()
+            });
+        };
+
+        // Start
+        window.onload = init;
     </script>
 </body>
 </html>
