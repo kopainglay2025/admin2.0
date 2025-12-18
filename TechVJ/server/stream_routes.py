@@ -160,26 +160,26 @@ if not os.path.exists(UPLOAD_DIR):
 @routes.post("/upload_and_send")
 async def upload_and_send_handler(request):
     try:
-        # FormData ကို ဖတ်ခြင်း
         reader = await request.multipart()
-        
         file_field = None
         user_id = None
-        
-        # multipart data ထဲက file နဲ့ user_id ကို ခွဲထုတ်ခြင်း
+        file_path = ""
+        final_content_type = ""
+
         while True:
             part = await reader.next()
             if part is None: break
             
             if part.name == 'file':
                 file_field = part
+                # အမှားပြင်ဆင်ချက်: headers ထဲကနေ content_type ကိုယူရပါမယ်
+                final_content_type = part.headers.get('Content-Type', '')
+                
                 filename = part.filename
-                # ဖိုင်အမည် မတူအောင် timestamp ထည့်ခြင်း
-                ext = os.path.splitext(filename)[1]
+                ext = os.path.splitext(filename)[1].lower()
                 new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
                 file_path = os.path.join(UPLOAD_DIR, new_filename)
                 
-                # Server ပေါ်မှာ ဖိုင်ကို သိမ်းခြင်း
                 async with aiofiles.open(file_path, mode='wb') as f:
                     while True:
                         chunk = await part.read_chunk()
@@ -187,24 +187,27 @@ async def upload_and_send_handler(request):
                         await f.write(chunk)
             
             elif part.name == 'user_id':
-                user_id = int(await part.text())
+                user_id_text = await part.text()
+                user_id = int(user_id_text)
 
-        if not file_field or not user_id:
-            return web.json_response({"error": "ဖိုင် သို့မဟုတ် User ID မပါရှိပါ"}, status=400)
+        if not file_path or not user_id:
+            return web.json_response({"error": "Missing file or user_id"}, status=400)
 
-        # Telegram ဆီ ဖိုင်ပို့ခြင်း (ပုံလား ဗီဒီယိုလား ခွဲပို့မယ်)
+        # Telegram ပို့ရန် Client ယူခြင်း
         client = multi_clients[0]
-        file_type = "photo" if file_field.content_type.startswith('image') else "video"
         
-        if file_type == "photo":
+        # ပုံ သို့မဟုတ် ဗီဒီယို ခွဲခြားခြင်း
+        is_photo = "image" in final_content_type
+        file_type = "photo" if is_photo else "video"
+
+        if is_photo:
             await client.send_photo(chat_id=user_id, photo=file_path)
         else:
             await client.send_video(chat_id=user_id, video=file_path)
 
-        # UI မှာ ပြန်ပြဖို့ URL (ဒါက static folder ထဲက ဖိုင်လမ်းကြောင်းဖြစ်ရမယ်)
         file_url = f"/static/uploads/{os.path.basename(file_path)}"
 
-        # Database ထဲမှာ သိမ်းခြင်း
+        # Database သိမ်းခြင်း
         chat_data = {
             "message": file_url,
             "message_type": file_type,
@@ -217,7 +220,7 @@ async def upload_and_send_handler(request):
             upsert=True
         )
 
-        # WebSocket ကနေ Dashboard ဆီ Update ပို့ခြင်း
+        # WebSocket Update
         ws_payload = {
             "type": "new_message",
             "user_id": str(user_id),
