@@ -20,7 +20,7 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
         .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
-        .media-preview { max-width: 280px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; border: 2px solid #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .media-preview { max-width: 280px; height: auto; border-radius: 12px; cursor: pointer; transition: transform 0.2s; border: 2px solid #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); display: block; margin: 4px 0; }
         .media-preview:hover { transform: scale(1.02); }
     </style>
 </head>
@@ -47,10 +47,27 @@
                 <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-chart-line w-5"></i> Dashboard
                 </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+                </a>
                 <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
                 </a>
-                </nav>
+                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
+                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-users w-5"></i> TG User List
+                </a>
+                <a href="/tg-broadcast" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-bullhorn w-5"></i> TG Broadcast
+                </a>
+                <a href="/settings" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all mt-auto">
+                    <i class="fas fa-cog w-5"></i> Settings
+                </a>
+            </nav>
         </aside>
 
         <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
@@ -66,9 +83,13 @@
                             <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
                                 {{ user.user_name[:1] | upper }}
                             </div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                                {% if user.chats %} {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} {% endif %}
+                            </p>
                         </div>
                     </a>
                 </div>
@@ -119,6 +140,9 @@
                         <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600">
                             <i class="fas fa-paperclip text-lg"></i>
                         </button>
+                        <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500">
+                            <i class="far fa-smile text-lg"></i>
+                        </button>
                     </div>
                     <div class="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 ring-1 ring-slate-200 focus-within:ring-blue-400">
                         <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-4 text-sm focus:ring-0 outline-none">
@@ -140,6 +164,7 @@
     <script>
         const currentUserId = String("{{ active_chat.user_id if active_chat else '' }}");
         const userListContainer = document.getElementById('userList');
+        let unreadCounts = {};
 
         function getMyanmarTime() {
             return new Intl.DateTimeFormat('en-GB', {
@@ -150,6 +175,32 @@
             }).format(new Date());
         }
 
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+        ws.onmessage = (event) => {
+            const response = JSON.parse(event.data);
+            if (response.type === "new_message") {
+                handleIncomingMessage(response.user_id, response.data);
+            }
+        };
+
+        function handleIncomingMessage(userId, data) {
+            const card = document.getElementById(`user-card-${userId}`);
+            if (card) {
+                userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
+            }
+            if (String(userId) === currentUserId) {
+                appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { badge.innerText = unreadCounts[userId]; badge.classList.remove('hidden'); }
+            }
+        }
+
+        // ပြင်ဆင်လိုက်သော Append Message Function
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
@@ -157,9 +208,13 @@
             div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2`;
             
             let html = '';
-            if (data.message_type === 'photo') {
-                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="media-preview">`;
-            } else if (data.message_type === 'video') {
+            // data.message_type ကို အရင်စစ်မယ်၊ မပါလာခဲ့ရင် filename ကို ကြည့်ပြီး ခွဲခြားမယ်
+            const isPhoto = data.message_type === 'photo' || (typeof data.message === 'string' && (data.message.match(/\.(jpg|jpeg|png|webp)$/i)));
+            const isVideo = data.message_type === 'video' || (typeof data.message === 'string' && (data.message.match(/\.(mp4|webm|mov)$/i)));
+
+            if (isPhoto) {
+                html = `<img src="${data.message}" onclick="openLightbox('img', '${data.message}')" class="media-preview" onerror="this.src='https://via.placeholder.com/150?text=Error+Loading+Image'">`;
+            } else if (isVideo) {
                 html = `<div class="relative group max-w-[280px]">
                             <video src="${data.message}" class="media-preview bg-black"></video>
                             <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
@@ -170,7 +225,7 @@
                 html = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
             
-            const time = getMyanmarTime();
+            const time = data.timestamp && typeof data.timestamp === 'string' ? data.timestamp : getMyanmarTime();
             div.innerHTML = `${html}<span class="text-[9px] text-slate-400 mt-1">${time}</span>`;
             msgList.appendChild(div);
             
@@ -186,17 +241,9 @@
             const isVideo = file.type.startsWith('video');
             const type = isVideo ? 'video' : 'photo';
             
-            // ၁။ Client-side Preview ပြရန် Blob URL ဖန်တီးပါ
+            // Client ဘက်မှာ အရင်ပြဖို့ Temp URL ဖန်တီးပါ
             const tempUrl = URL.createObjectURL(file);
             
-            // ၂။ Chat screen ထဲမှာ ချက်ချင်း Preview ပြလိုက်ပါ
-            appendMessage({ 
-                from_admin: true, 
-                message: tempUrl, 
-                message_type: type 
-            });
-
-            // ၃။ Backend သို့ ပို့ပါ
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
@@ -206,11 +253,17 @@
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 
-                if (!res.ok) {
+                if (res.ok) {
+                    appendMessage({
+                        from_admin: true,
+                        message: result.url || tempUrl, 
+                        message_type: type,
+                        timestamp: getMyanmarTime()
+                    });
+                    fileInput.value = '';
+                } else {
                     alert("Upload failed: " + (result.error || "Unknown error"));
                 }
-                // Upload ပြီးသွားရင် input ကို reset လုပ်ပါ
-                fileInput.value = '';
             } catch (err) {
                 console.error("Upload Error:", err);
             }
@@ -233,13 +286,28 @@
             document.getElementById('lightbox-content').innerHTML = '';
         }
 
+        function toggleEmojiPicker() {
+            const container = document.getElementById('emoji-picker-container');
+            if (container.innerHTML === '') {
+                const picker = new EmojiMart.Picker({
+                    onEmojiSelect: (emoji) => { 
+                        document.getElementById('messageInput').value += emoji.native; 
+                    },
+                    theme: 'light'
+                });
+                container.appendChild(picker);
+            } else {
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
         document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
             
-            appendMessage({ from_admin: true, message: text, message_type: 'text' });
+            appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
             
             await fetch('/send_message', {
                 method: 'POST',
@@ -247,9 +315,10 @@
                 body: JSON.stringify({ user_id: currentUserId, message: text })
             });
             input.value = '';
+            document.getElementById('emoji-picker-container').style.display = 'none';
         });
 
-        // Auto Scroll to bottom
+        // Auto Scroll on Load
         const cw = document.getElementById('chatWindow');
         if (cw) cw.scrollTop = cw.scrollHeight;
     </script>
