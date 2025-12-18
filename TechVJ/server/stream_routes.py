@@ -146,7 +146,7 @@ async def send_message_handler(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
-@app.route("/upload_and_send", methods=["POST"])
+@routes.post("/upload_and_send")
 async def upload_and_send():
     file = request.files.get("file")
     user_id = request.form.get("user_id")
