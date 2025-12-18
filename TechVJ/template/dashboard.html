@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MRN Admin - Ultra Pro Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
     
     <script>
@@ -16,7 +16,7 @@
                     colors: {
                         dark: {
                             bg: '#0f172a',
-                            card: '#1e293b',
+                            surface: '#1e293b',
                             border: '#334155'
                         }
                     }
@@ -34,46 +34,47 @@
             transition: background-color 0.3s ease;
         }
 
-        /* Glassmorphism Effect */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
+        .chat-container { height: calc(100vh - 180px); }
 
-        .dark .glass-panel {
-            background: rgba(30, 41, 59, 0.8);
-        }
-
-        /* Chat Container & Scrollbar */
-        .chat-container { height: calc(100vh - 180px); overflow-y: auto; scroll-behavior: smooth; }
+        /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 20px; 
+        }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 
         /* Message Bubbles */
         .msg-bubble { 
-            max-width: 80%; 
+            max-width: 75%; 
             padding: 12px 18px; 
             font-size: 0.95rem; 
-            position: relative;
-            transition: transform 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .msg-bubble:hover { transform: translateY(-2px); }
         
         .msg-received { 
             background: white; 
             color: #1e293b; 
             border-radius: 20px 20px 20px 4px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
         }
-        .dark .msg-received { background: #334155; color: #f8fafc; }
+        .dark .msg-received { background: #1e293b; color: #f1f5f9; }
 
         .msg-sent { 
-            background: linear-gradient(135deg, #2563eb, #3b82f6); 
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             color: white; 
             border-radius: 20px 20px 4px 20px;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Glassmorphism Sidebar */
+        .sidebar-glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .dark .sidebar-glass {
+            background: rgba(15, 23, 42, 0.8);
         }
 
         /* Animations */
@@ -86,7 +87,6 @@
         .badge-pulse { 
             background: #ef4444; 
             animation: pulse-red 2s infinite; 
-            border: 2px solid white; 
         }
         @keyframes pulse-red { 
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
@@ -94,107 +94,94 @@
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
         }
 
+        .media-preview {
+            border-radius: 16px;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .media-preview:hover { transform: scale(1.03); }
+
         #lightbox { 
             display: none; 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.9); 
-            z-index: 1000; 
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
         }
-
-        .media-preview { 
-            max-width: 280px; 
-            border-radius: 16px; 
-            cursor: pointer; 
-            transition: all 0.3s; 
-            object-fit: cover;
-            border: 2px solid transparent;
-        }
-        .media-preview:hover { border-color: #3b82f6; transform: scale(1.03); }
     </style>
 </head>
-
 <body class="bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 transition-colors duration-300">
 
-    <div id="lightbox" class="flex items-center justify-center flex-col">
-        <button onclick="closeLightbox()" class="absolute top-8 right-8 text-white text-4xl hover:text-red-500 transition-all"><i class="fas fa-times"></i></button>
-        <div id="lightbox-content" class="max-w-[90%] max-h-[80vh]"></div>
-        <div class="mt-8 flex gap-4">
-            <a id="download-btn" href="#" download class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-8 py-3 rounded-2xl font-semibold transition-all flex items-center gap-2">
-                <i class="fas fa-download"></i> Download
+    <div id="lightbox" class="fixed inset-0 flex-col items-center justify-center p-4">
+        <button onclick="closeLightbox()" class="absolute top-8 right-8 text-white hover:rotate-90 transition-transform duration-300">
+            <i class="fas fa-times text-4xl"></i>
+        </button>
+        <div id="lightbox-content" class="w-full max-w-5xl h-full flex items-center justify-center"></div>
+        <div class="mt-6">
+            <a id="download-btn" href="#" download class="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-2xl backdrop-blur-md flex items-center gap-2 border border-white/20 transition-all">
+                <i class="fas fa-download"></i> Download Media
             </a>
         </div>
     </div>
 
     <div class="flex h-screen overflow-hidden">
         
-        <aside class="w-20 lg:w-64 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col shrink-0 transition-all">
-            <div class="p-6 flex items-center gap-3">
+        <aside class="w-20 lg:w-64 sidebar-glass border-r border-slate-200 dark:border-dark-border flex flex-col shrink-0 z-20">
+            <div class="p-4 lg:p-6 flex items-center gap-3">
                 <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-500/30">
                     <i class="fas fa-bolt text-xl"></i>
                 </div>
-                <span class="font-bold text-xl hidden lg:block tracking-tight">MRN Panel</span>
+                <span class="font-bold text-lg hidden lg:block tracking-tight">MRN Control</span>
             </div>
             
-            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <div class="px-6 mb-4 flex items-center justify-between">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:block">System</span>
-                    <button onclick="toggleDarkMode()" class="text-slate-400 hover:text-blue-500 transition-colors">
-                        <i id="theme-icon" class="fas fa-moon"></i>
-                    </button>
-                </div>
-
-                <a href="#" class="flex items-center gap-4 px-6 py-4 text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-r-4 border-blue-600 transition-all">
-                    <i class="fas fa-comment-dots w-5 text-lg"></i>
-                    <span class="font-semibold hidden lg:block">TG Chat</span>
+            <nav class="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+                <div class="px-3 mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase hidden lg:block">System</div>
+                <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-semibold transition-all">
+                    <i class="fas fa-chart-pie w-5"></i> <span class="hidden lg:block">Dashboard</span>
                 </a>
                 
-                <a href="#" class="flex items-center gap-4 px-6 py-4 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                    <i class="fas fa-chart-pie w-5 text-lg"></i>
-                    <span class="font-medium hidden lg:block">Analytics</span>
+                <div class="px-3 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase hidden lg:block">Messages</div>
+                <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i class="fab fa-telegram-plane text-blue-500 text-lg w-5"></i> <span class="hidden lg:block">Telegram Chat</span>
                 </a>
-
-                <div class="px-6 mt-8 mb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:block">Apps</div>
-                <a href="#" class="flex items-center gap-4 px-6 py-4 text-slate-500 hover:text-purple-500 transition-all">
-                    <i class="fab fa-viber w-5 text-lg"></i>
-                    <span class="font-medium hidden lg:block">Viber Bot</span>
+                <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i class="fab fa-viber text-purple-500 text-lg w-5"></i> <span class="hidden lg:block">Viber Bot</span>
                 </a>
             </nav>
+
+            <div class="p-4 border-t border-slate-200 dark:border-dark-border">
+                <button onclick="toggleDarkMode()" class="w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i id="theme-icon" class="fas fa-moon text-lg text-slate-500"></i>
+                    <span class="hidden lg:block font-medium">Appearance</span>
+                </button>
+            </div>
         </aside>
 
-        <aside class="w-80 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col shrink-0">
-            <div class="p-5 border-b border-slate-100 dark:border-dark-border flex items-center justify-between">
-                <h2 class="font-bold text-lg">Messages</h2>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-xs font-medium text-slate-400">Live</span>
+        <aside class="w-80 bg-white/50 dark:bg-dark-surface/50 border-r border-slate-200 dark:border-dark-border flex flex-col shrink-0">
+            <div class="p-6 border-b border-slate-200 dark:border-dark-border">
+                <h2 class="text-xl font-bold tracking-tight">Messages</h2>
+                <div class="mt-4 relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" placeholder="Search chats..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all">
                 </div>
             </div>
             
-            <div class="p-4">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Search chats..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2.5 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-            </div>
-
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
                 {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="group">
-                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-l-4 border-transparent {{ 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
+                <div id="user-card-{{ user.user_id }}" class="px-3 py-1">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-4 p-3 rounded-2xl transition-all group {{ 'bg-blue-600 text-white shadow-lg' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-white dark:hover:bg-slate-800' }}">
                         <div class="relative shrink-0">
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center font-bold text-white shadow-md">
                                 {{ user.user_name[:1] | upper }}
                             </div>
-                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-0.5">
                                 <span class="font-bold text-sm truncate">{{ user.user_name }}</span>
-                                <span class="text-[10px] text-slate-400">Now</span>
+                                <span class="text-[10px] {{ 'text-blue-100' if active_chat and active_chat.user_id == user.user_id else 'text-slate-400' }}">12:45 PM</span>
                             </div>
-                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate font-medium">
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs truncate {{ 'text-blue-50' if active_chat and active_chat.user_id == user.user_id else 'text-slate-500' }}">
                                 {% if user.chats %} 
                                     {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
                                 {% endif %}
@@ -206,36 +193,42 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-dark-bg transition-colors">
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50/50 dark:bg-dark-bg/50">
             {% if active_chat %}
-            <header class="h-[75px] px-8 flex items-center justify-between glass-panel border-b border-slate-200 dark:border-dark-border z-20 shadow-sm">
+            <header class="h-[80px] px-8 flex items-center justify-between bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-dark-border z-10 shadow-sm">
                 <div class="flex items-center gap-4">
-                    <div class="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+                    <div class="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white">
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
                     <div>
-                        <h2 class="font-bold text-slate-800 dark:text-white leading-tight">{{ active_chat.user_name }}</h2>
-                        <span class="text-[11px] text-green-500 font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
-                        </span>
+                        <h2 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-none">{{ active_chat.user_name }}</h2>
+                        <div class="flex items-center gap-1.5 mt-1.5">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span class="text-[11px] text-slate-400 font-medium">Online</span>
+                        </div>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><i class="fas fa-phone-alt"></i></button>
-                    <button class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><i class="fas fa-ellipsis-v"></i></button>
+                <div class="flex items-center gap-2">
+                    <button class="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all"><i class="fas fa-phone"></i></button>
+                    <button class="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </header>
 
-            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+            <div class="flex-1 chat-container p-6 overflow-y-auto custom-scrollbar" id="chatWindow">
                 <div class="flex flex-col gap-6 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} animate-msg">
+                        
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" onclick="openLightbox('img', this.src)" class="media-preview shadow-lg">
+                            <div class="max-w-[300px] p-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <img src="{{ chat.message }}" 
+                                     onclick="openLightbox('img', this.src)" 
+                                     class="media-preview w-full h-auto object-cover max-h-[400px]">
+                            </div>
                         {% elif chat.message_type == 'video' %}
-                            <div class="relative group max-w-[280px] shadow-lg rounded-2xl overflow-hidden">
-                                <video src="{{ chat.message }}" class="w-full bg-black"></video>
-                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all cursor-pointer">
+                            <div class="relative group max-w-[300px] p-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
+                                <video src="{{ chat.message }}" class="media-preview w-full rounded-xl"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 rounded-2xl cursor-pointer opacity-0 group-hover:opacity-100 transition-all">
                                     <i class="fas fa-play text-white text-4xl"></i>
                                 </div>
                             </div>
@@ -244,7 +237,8 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
-                        <span class="text-[10px] text-slate-400 font-medium mt-1.5 px-1">
+                        
+                        <span class="text-[10px] text-slate-400 mt-2 px-1">
                             {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
                         </span>
                     </div>
@@ -252,39 +246,36 @@
                 </div>
             </div>
 
-            <div class="p-5 glass-panel border-t border-slate-200 dark:border-dark-border">
-                <div id="emoji-picker-container" class="absolute bottom-28 left-6 z-50 shadow-2xl rounded-2xl overflow-hidden scale-90 origin-bottom-left transition-all"></div>
+            <div class="p-6 bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-dark-border">
+                <div id="emoji-picker-container" class="absolute bottom-28 left-8 z-50 shadow-2xl rounded-2xl overflow-hidden"></div>
                 
-                <form id="replyForm" class="max-w-4xl mx-auto">
-                    <div class="flex items-end gap-3 bg-white dark:bg-slate-800 rounded-3xl p-2 pr-4 shadow-sm border border-slate-200 dark:border-dark-border focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
-                        <div class="flex pb-1.5 pl-2">
-                            <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
-                                <i class="fas fa-plus text-lg"></i>
-                            </button>
-                            <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
-                        </div>
-
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Write your message..." 
-                            class="flex-1 bg-transparent border-none py-3 px-2 text-sm focus:ring-0 outline-none text-slate-700 dark:text-white">
-                        
-                        <div class="flex items-center gap-1 pb-1.5">
-                            <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-yellow-500 transition-all">
-                                <i class="far fa-smile text-xl"></i>
-                            </button>
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/40 transition-all hover:scale-105 active:scale-95">
-                                <i class="fas fa-paper-plane text-sm"></i>
-                            </button>
-                        </div>
+                <form id="replyForm" class="max-w-4xl mx-auto flex items-center gap-4">
+                    <div class="flex gap-1">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 transition-all">
+                            <i class="fas fa-plus-circle text-xl"></i>
+                        </button>
+                        <button type="button" onclick="toggleEmojiPicker()" class="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-yellow-500 transition-all">
+                            <i class="far fa-face-smile text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl px-5 py-1 ring-2 ring-transparent focus-within:ring-blue-500/50 transition-all">
+                        <input type="text" id="messageInput" autocomplete="off" placeholder="Write a message..." 
+                               class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none dark:text-slate-100">
+                        <button type="submit" class="ml-2 text-blue-600 hover:scale-110 transition-transform disabled:opacity-50">
+                            <i class="fas fa-paper-plane text-xl"></i>
+                        </button>
                     </div>
                 </form>
             </div>
             {% else %}
             <div class="flex-1 flex flex-col items-center justify-center text-slate-300 dark:text-slate-700">
-                <div class="w-32 h-32 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
-                    <i class="fas fa-comments text-5xl opacity-20"></i>
+                <div class="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+                    <i class="fas fa-comments text-4xl opacity-20"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-400">Select a Conversation</h3>
-                <p class="text-sm">Choose a chat from the left to start messaging</p>
+                <h3 class="text-xl font-bold text-slate-400">Select a conversation</h3>
+                <p class="text-sm mt-2">Choose a user from the left to start chatting</p>
             </div>
             {% endif %}
         </main>
@@ -292,19 +283,18 @@
 
     <script>
         const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
-        const userListContainer = document.getElementById('userList');
         
-        // --- Dark Mode Logic ---
+        // Dark Mode Toggle
         function toggleDarkMode() {
             const html = document.documentElement;
             const icon = document.getElementById('theme-icon');
             if (html.classList.contains('dark')) {
                 html.classList.remove('dark');
-                icon.className = 'fas fa-moon';
+                icon.className = 'fas fa-moon text-lg text-slate-500';
                 localStorage.setItem('theme', 'light');
             } else {
                 html.classList.add('dark');
-                icon.className = 'fas fa-sun';
+                icon.className = 'fas fa-sun text-lg text-yellow-400';
                 localStorage.setItem('theme', 'dark');
             }
         }
@@ -312,10 +302,61 @@
         // Load saved theme
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
-            if(document.getElementById('theme-icon')) document.getElementById('theme-icon').className = 'fas fa-sun';
+            if(document.getElementById('theme-icon')) document.getElementById('theme-icon').className = 'fas fa-sun text-lg text-yellow-400';
         }
 
-        // --- Improved Append Message with Animation ---
+        // Scroll Logic
+        function scrollChat() {
+            const chatWin = document.getElementById('chatWindow');
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+        }
+
+        // Enhanced Lightbox
+        function openLightbox(type, url) {
+            const content = document.getElementById('lightbox-content');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            content.innerHTML = type === 'video' 
+                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[85vh] shadow-2xl rounded-2xl"></video>`
+                : `<img src="${url}" class="max-w-full max-h-[85vh] shadow-2xl rounded-2xl object-contain animate-msg">`;
+            
+            downloadBtn.href = url;
+            const lb = document.getElementById('lightbox');
+            lb.style.display = 'flex';
+            lb.classList.add('animate-in', 'fade-in', 'duration-200');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.getElementById('lightbox-content').innerHTML = '';
+        }
+
+        // Reply Form Handling
+        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text || !currentUserId) return;
+            
+            // UI Feedback
+            appendMessage({ 
+                from_admin: true, 
+                message: text, 
+                message_type: 'text', 
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+            });
+            
+            input.value = '';
+            
+            try {
+                await fetch('/send_message', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
+                });
+            } catch (err) { console.error("Send failed:", err); }
+        });
+
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
@@ -325,105 +366,24 @@
             
             let contentHtml = '';
             if (data.message_type === 'photo') {
-                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview shadow-lg">`;
+                contentHtml = `<div class="max-w-[300px] p-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview w-full rounded-xl">
+                </div>`;
             } else if (data.message_type === 'video') {
-                contentHtml = `<div class="relative group max-w-[280px] shadow-lg rounded-2xl overflow-hidden">
-                                    <video src="${data.message}" class="w-full bg-black"></video>
-                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all cursor-pointer">
-                                        <i class="fas fa-play text-white text-4xl"></i>
-                                    </div>
-                                </div>`;
+                contentHtml = `<div class="relative group max-w-[300px] p-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
+                    <video src="${data.message}" class="media-preview w-full rounded-xl"></video>
+                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl cursor-pointer">
+                        <i class="fas fa-play text-white text-3xl"></i>
+                    </div>
+                </div>`;
             } else {
                 contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
             
-            const time = getMyanmarTime();
-            div.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 font-medium mt-1.5 px-1">${time}</span>`;
-            
+            div.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-2 px-1">${data.timestamp}</span>`;
             msgList.appendChild(div);
             scrollChat();
         }
-
-        function scrollChat() {
-            const chatWin = document.getElementById('chatWindow');
-            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
-        }
-
-        function getMyanmarTime() {
-            return new Intl.DateTimeFormat('en-GB', {
-                timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true
-            }).format(new Date());
-        }
-
-        // Lightbox Functions
-        function openLightbox(type, url) {
-            const content = document.getElementById('lightbox-content');
-            const downloadBtn = document.getElementById('download-btn');
-            content.innerHTML = type === 'video' 
-                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl"></video>`
-                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl object-contain">`;
-            downloadBtn.href = url;
-            document.getElementById('lightbox').style.display = 'flex';
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightbox').style.display = 'none';
-            document.getElementById('lightbox-content').innerHTML = '';
-        }
-
-        function toggleEmojiPicker() {
-            const container = document.getElementById('emoji-picker-container');
-            if (container.innerHTML === '') {
-                const picker = new EmojiMart.Picker({
-                    onEmojiSelect: (emoji) => { 
-                        document.getElementById('messageInput').value += emoji.native;
-                    },
-                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-                });
-                container.appendChild(picker);
-                container.style.display = 'block';
-            } else {
-                container.style.display = container.style.display === 'none' ? 'block' : 'none';
-            }
-        }
-
-        // Web Socket & Form Logic remains similar but with updated UI calls...
-        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-        ws.onmessage = (event) => {
-            const response = JSON.parse(event.data);
-            if (response.type === "new_message") {
-                handleIncomingMessage(response.user_id, response.data);
-            }
-        };
-
-        function handleIncomingMessage(userId, data) {
-            const card = document.getElementById(`user-card-${userId}`);
-            if (card) {
-                userListContainer.prepend(card);
-                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
-                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
-                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
-            }
-            if (String(userId) === String(currentUserId)) {
-                appendMessage(data);
-            }
-        }
-
-        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text || !currentUserId) return;
-            
-            appendMessage({ from_admin: true, message: text, message_type: 'text' });
-            input.value = '';
-            
-            await fetch('/send_message', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
-            });
-        });
 
         window.onload = scrollChat;
     </script>
