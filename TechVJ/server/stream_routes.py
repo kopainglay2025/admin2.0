@@ -147,12 +147,14 @@ async def send_message_handler(request):
         return web.json_response({"error": str(e)}, status=500)
 
 
+
+
 import os
 import aiofiles
+import io # Binary အတွက် ထည့်ပါ
 from aiohttp import web
 from datetime import datetime
 
-# ဖိုင်တွေ သိမ်းမယ့် folder ကို ကြေညာထားပါ (မရှိရင် ဆောက်ပေးမယ်)
 UPLOAD_DIR = "static/uploads"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
@@ -165,6 +167,7 @@ async def upload_and_send_handler(request):
         user_id = None
         file_path = ""
         final_content_type = ""
+        filename = ""
 
         while True:
             part = await reader.next()
@@ -172,14 +175,18 @@ async def upload_and_send_handler(request):
             
             if part.name == 'file':
                 file_field = part
-                # အမှားပြင်ဆင်ချက်: headers ထဲကနေ content_type ကိုယူရပါမယ်
                 final_content_type = part.headers.get('Content-Type', '')
-                
                 filename = part.filename
+                
+                # Extension ကို သေချာစစ်ဆေးပါ
                 ext = os.path.splitext(filename)[1].lower()
+                if not ext: # Extension မပါလာရင် default ထည့်ပေးပါ
+                    ext = ".jpg" if "image" in final_content_type else ".mp4"
+                
                 new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
                 file_path = os.path.join(UPLOAD_DIR, new_filename)
                 
+                # ဖိုင်ကို local မှာ သိမ်းပါ (Admin Panel Preview အတွက်)
                 async with aiofiles.open(file_path, mode='wb') as f:
                     while True:
                         chunk = await part.read_chunk()
@@ -195,17 +202,30 @@ async def upload_and_send_handler(request):
 
         # Telegram ပို့ရန် Client ယူခြင်း
         client = multi_clients[0]
-        
-        # ပုံ သို့မဟုတ် ဗီဒီယို ခွဲခြားခြင်း
         is_photo = "image" in final_content_type
         file_type = "photo" if is_photo else "video"
 
-        if is_photo:
-            await client.send_photo(chat_id=user_id, photo=file_path)
-        else:
-            await client.send_video(chat_id=user_id, video=file_path)
+        # --- အဓိက ပြင်ဆင်ချက်- File Path အစား Binary နဲ့ ပို့ခြင်း ---
+        # PHOTO_EXT_INVALID ကို ကျော်လွှားရန် binary mode နဲ့ ပို့ရပါမယ်
+        try:
+            if is_photo:
+                # client.send_photo သုံးတဲ့အခါ file_path ထဲက file ကို တိုက်ရိုက်ပို့ပါ
+                await client.send_photo(chat_id=user_id, photo=file_path)
+            else:
+                await client.send_video(chat_id=user_id, video=file_path)
+        except Exception as tg_err:
+            logging.error(f"Telegram API Error: {tg_err}")
+            # အကယ်၍ path နဲ့ ပို့လို့မရသေးရင် Binary နဲ့ ထပ်စမ်းပါ
+            async with aiofiles.open(file_path, mode='rb') as f:
+                file_bytes = await f.read()
+                bio = io.BytesIO(file_bytes)
+                bio.name = os.path.basename(file_path) # နာမည် သေချာပေးပါ
+                if is_photo:
+                    await client.send_photo(chat_id=user_id, photo=bio)
+                else:
+                    await client.send_video(chat_id=user_id, video=bio)
 
-        file_url = f"https://api.telegram.org/file/bot8599597818:AAGiAJTpzFxV34rSZdLHrd9s3VrR5P0fb-k/static/uploads/{os.path.basename(file_path)}" 
+        file_url = f"/static/uploads/{os.path.basename(file_path)}" 
 
         # Database သိမ်းခြင်း
         chat_data = {
@@ -242,7 +262,7 @@ async def upload_and_send_handler(request):
     except Exception as e:
         logging.error(f"Upload Error: {e}")
         return web.json_response({"error": str(e)}, status=500)
-     
+        
 @routes.get("/user")
 async def show_user_chats(request):
     """
