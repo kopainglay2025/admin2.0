@@ -1,7 +1,7 @@
 import motor.motor_asyncio
 from datetime import datetime
 from config import DB_NAME, DB_URI
-
+from zoneinfo import ZoneInfo
 class Database:
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
@@ -44,7 +44,7 @@ class Database:
         chat = dict(
             message=message,
             message_type=message_type,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         )
         # Push into single document per user
         await self.chat_col.update_one(
