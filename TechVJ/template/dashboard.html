@@ -1,472 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Live Chat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden; 
-            background-color: #f8fafc;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Live Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+            background-color: #f8fafc;
+        }
 
-        .chat-container { 
-            height: calc(100vh - 160px); 
-            scroll-behavior: smooth; 
-            overflow-y: auto; 
-        }
+        .chat-container { 
+            height: calc(100vh - 160px); 
+            scroll-behavior: smooth; 
+            overflow-y: auto; 
+        }
 
-        .sidebar-height { 
-            height: calc(100vh - 75px); 
-            overflow-y: auto; 
-        }
+        .custom-scrollbar::-webkit-scrollbar { 
+            width: 5px; 
+        }
 
-        .custom-scrollbar::-webkit-scrollbar { 
-            width: 5px; 
-        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 10px; 
+        }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #cbd5e1; 
-            border-radius: 10px; 
-        }
+        /* Message Bubbles */
+        .msg-bubble { 
+            max-width: 70%; 
+            padding: 10px 16px; 
+            border-radius: 20px; 
+            font-size: 0.95rem; 
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
 
-        /* Message Bubbles */
-        .msg-bubble { 
-            max-width: 70%; 
-            padding: 10px 16px; 
-            border-radius: 20px; 
-            font-size: 0.95rem; 
-            position: relative;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
+        .msg-received { 
+            background-color: #ffffff; 
+            color: #1e293b; 
+            border-bottom-left-radius: 4px; 
+            border: 1px solid #e2e8f0;
+        }
 
-        .msg-received { 
-            background-color: #ffffff; 
-            color: #1e293b; 
-            border-bottom-left-radius: 4px; 
-            border: 1px solid #e2e8f0;
-        }
+        .msg-sent { 
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); 
+            color: white; 
+            border-bottom-right-radius: 4px; 
+        }
 
-        .msg-sent { 
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); 
-            color: white; 
-            border-bottom-right-radius: 4px; 
-        }
+        .media-container {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            max-width: 300px;
+            background: #eee;
+            border: 1px solid #e2e8f0;
+        }
 
-        /* Media Preview Styles */
-        .media-container {
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 4px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            max-width: 300px;
-            background: #eee;
-            border: 1px solid #e2e8f0;
-        }
+        .animate-pop-in {
+            animation: popIn 0.2s ease-out forwards;
+        }
 
-        .media-container:hover {
-            opacity: 0.9;
-        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
 
-        .media-preview-img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .media-preview-video {
-            width: 100%;
-            display: block;
-        }
-
-        .animate-pop-in {
-            animation: popIn 0.2s ease-out forwards;
-        }
-
-        @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .user-active {
-            background-color: #eff6ff;
-            border-left: 4px solid #2563eb;
-        }
-
-        .notification-dot {
-            width: 10px;
-            height: 10px;
-            background-color: #ef4444;
-            border-radius: 50%;
-            display: inline-block;
-            border: 2px solid white;
-        }
-    </style>
+        .nav-item-active {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+            border-right: 3px solid #2563eb;
+        }
+    </style>
 </head>
 <body class="text-slate-900">
 
     <div class="flex h-screen overflow-hidden">
-        <aside class="w-[80px] bg-slate-900 flex flex-col items-center py-6 gap-8 z-50">
-            <div class="text-blue-500 text-2xl mb-4">
-                <i class="fas fa- robot"></i>
+        
+        <aside class="w-[260px] bg-white border-r border-slate-200 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3 text-blue-600">
+                    <i class="fas fa-robot text-2xl"></i>
+                    <span class="font-bold text-xl tracking-tight text-slate-800">Bot Admin</span>
+                </div>
             </div>
-            
-            <nav class="flex flex-col gap-6 w-full">
-                <a href="/dashboard" class="group relative flex justify-center text-slate-400 hover:text-white transition-all">
-                    <i class="fas fa-chart-pie text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Dashboard</span>
+
+            <nav class="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+                <p class="text-[10px] font-bold text-slate-400 uppercase px-3 mb-2">Main</p>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fas fa-chart-pie w-5"></i> Dashboard
+                </a>
+                
+                <p class="text-[10px] font-bold text-slate-400 uppercase px-3 mt-6 mb-2">Channels</p>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Chat
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fab fa-facebook-messenger w-5 text-blue-500"></i> FB Page Chat
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 nav-item-active rounded-lg transition-all font-medium">
+                    <i class="fab fa-telegram w-5"></i> TG Chat
                 </a>
 
-                <a href="/viber" class="group relative flex justify-center text-slate-400 hover:text-purple-400">
-                    <i class="fab fa-viber text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">Viber Chat</span>
+                <p class="text-[10px] font-bold text-slate-400 uppercase px-3 mt-6 mb-2">Management</p>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fas fa-users w-5"></i> TG User List
                 </a>
-
-                <a href="/facebook" class="group relative flex justify-center text-slate-400 hover:text-blue-500">
-                    <i class="fab fa-facebook-messenger text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">FB Page Chat</span>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fas fa-bullhorn w-5"></i> TG User Broadcast
                 </a>
-
-                <a href="/telegram" class="group relative flex justify-center text-blue-500 border-r-4 border-blue-500">
-                    <i class="fab fa-telegram text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">TG Chat</span>
-                </a>
-
-                <a href="/tg-users" class="group relative flex justify-center text-slate-400 hover:text-white">
-                    <i class="fas fa-users text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">TG User List</span>
-                </a>
-
-                <a href="/broadcast" class="group relative flex justify-center text-slate-400 hover:text-orange-400">
-                    <i class="fas fa-bullhorn text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">TG Broadcast</span>
-                </a>
-
-                <hr class="border-slate-800 mx-4">
-
-                <a href="/settings" class="group relative flex justify-center text-slate-400 hover:text-white">
-                    <i class="fas fa-cog text-xl"></i>
-                    <span class="absolute left-16 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">Bot Settings</span>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <i class="fas fa-cog w-5"></i> Bot Settings
                 </a>
             </nav>
+
+            <div class="p-4 border-t border-slate-100">
+                <div class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+                    <div class="flex-1 overflow-hidden">
+                        <p class="text-xs font-bold text-slate-700 truncate">Admin User</p>
+                        <p class="text-[10px] text-slate-500">Online</p>
+                    </div>
+                    <i class="fas fa-sign-out-alt text-slate-400 text-xs cursor-pointer hover:text-red-500"></i>
+                </div>
+            </div>
         </aside>
 
-        <div class="flex-1 flex flex-col">
-            <nav class="bg-white border-b border-slate-200 h-[75px] flex items-center justify-between px-8 z-40">
-                <div class="flex items-center gap-4">
+        <aside class="w-[350px] bg-white border-r border-slate-200 flex flex-col">
+            <div class="h-[75px] border-b border-slate-100 flex items-center px-6">
+                <div class="relative w-full">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" placeholder="Search chats..." class="w-full bg-slate-100 border-none rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-2 focus:ring-blue-500/20">
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
+                <div class="flex items-center gap-4 p-4 border-b border-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all bg-blue-50 border-l-4 border-l-blue-600">
+                    <div class="relative">
+                        <div class="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">K</div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <span class="font-bold text-slate-800 text-sm">Kyaw Kyaw</span>
+                            <span class="text-[10px] text-slate-400">12:45 PM</span>
+                        </div>
+                        <p class="text-xs text-slate-500 truncate">Hello, may I ask a question?</p>
+                    </div>
+                </div>
+                </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-[#f8fafc]">
+            <header class="h-[75px] px-8 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">K</div>
                     <div>
-                        <h1 class="text-lg font-bold text-slate-800 leading-none mb-1">Telegram Support</h1>
-                        <div class="flex items-center gap-2">
-                            <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                            <span id="statusText" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Connecting...</span>
+                        <h2 class="font-bold text-slate-800 text-sm">Kyaw Kyaw</h2>
+                        <div class="flex items-center gap-1.5">
+                            <span id="statusDot" class="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span id="statusText" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Online</span>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button class="text-slate-400 hover:text-slate-600"><i class="far fa-bell text-xl"></i></button>
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-blue-600">A</div>
+                <div class="flex items-center gap-3">
+                    <button class="p-2 text-slate-400 hover:text-slate-600"><i class="fas fa-phone-alt text-sm"></i></button>
+                    <button class="p-2 text-slate-400 hover:text-slate-600"><i class="fas fa-ellipsis-v text-sm"></i></button>
                 </div>
-            </nav>
+            </header>
 
-            <div class="flex h-[calc(100vh-75px)]">
-                <aside class="w-[350px] bg-white border-r border-slate-200 overflow-y-auto custom-scrollbar">
-                    </aside>
-
-                <main class="flex-1 flex flex-col bg-[#f8fafc]">
-                    </main>
+            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+                <div class="flex flex-col gap-4" id="messageList">
+                    <div class="flex flex-col items-start animate-pop-in">
+                        <div class="msg-bubble msg-received">Hello, I need some help with the bot.</div>
+                        <span class="text-[10px] text-slate-400 mt-1 px-1">12:40 PM</span>
+                    </div>
+                    <div class="flex flex-col items-end animate-pop-in">
+                        <div class="msg-bubble msg-sent">Sure! How can I assist you today?</div>
+                        <span class="text-[10px] text-slate-400 mt-1 px-1">12:42 PM</span>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div class="p-4 bg-white border-t border-slate-200">
+                <form id="replyForm" class="max-w-4xl mx-auto flex items-center gap-3">
+                    <button type="button" class="text-slate-400 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-paperclip text-lg"></i>
+                    </button>
+                    <input type="text" id="messageInput" autocomplete="off" placeholder="Type your message..." 
+                           class="flex-1 bg-slate-100 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95">
+                        <i class="fas fa-paper-plane text-sm"></i>
+                    </button>
+                </form>
+            </div>
+        </main>
     </div>
-    </body>
-<body class="text-slate-900">
 
-    <!-- Top Navigation -->
-    <nav class="bg-white border-b border-slate-200 h-[75px] flex items-center justify-between px-8 sticky top-0 z-50">
-        <div class="flex items-center gap-4">
-            <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-200">
-                <i class="fas fa-headset text-xl"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold text-slate-800 leading-none mb-1">Customer Support</h1>
-                <div class="flex items-center gap-2">
-                    <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span id="statusText" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Connecting...</span>
-                </div>
-            </div>
-        </div>
-        <div class="flex items-center gap-4">
-            <button class="text-slate-400 hover:text-slate-600"><i class="far fa-bell text-xl"></i></button>
-            <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-blue-600">A</div>
-        </div>
-    </nav>
+    <script>
+        const chatWindow = document.getElementById('chatWindow');
+        const messageInput = document.getElementById('messageInput');
+        const messageList = document.getElementById('messageList');
 
-    <div class="flex h-[calc(100vh-75px)]">
-        <!-- Sidebar -->
-        <aside class="w-[380px] bg-white border-r border-slate-200 sidebar-height custom-scrollbar flex flex-col">
-            <div class="p-4 border-b border-slate-50">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Search chats..." class="w-full bg-slate-100 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-                </div>
-            </div>
+        // Scroll to bottom on load
+        window.onload = () => {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
 
-            <div id="userList" class="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
-                {% for user in users %}
-                <a href="/dashboard?user_id={{ user.user_id }}" 
-                   id="user-side-{{ user.user_id }}"
-                   class="user-item flex items-center gap-4 p-4 border-b border-slate-50 transition-all {{ 'user-active' if active_chat and active_chat.user_id == user.user_id else 'hover:bg-slate-50' }}">
-                    <div class="relative">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-200 to-slate-100 flex items-center justify-center font-bold text-slate-600 border border-slate-200">
-                            {{ user.user_name[:1] | upper }}
-                        </div>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-                    </div>
-                    <div class="flex-1 overflow-hidden">
-                        <div class="flex justify-between items-center mb-0.5">
-                            <span class="font-bold text-slate-800 truncate text-[15px]">{{ user.user_name }}</span>
-                            <span class="text-[11px] text-slate-400 font-medium">Active</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <p id="last-msg-{{ user.user_id }}" class="text-[13px] text-slate-500 truncate pr-2">
-                                {% if user.chats %}
-                                    {{ "You: " if user.chats[-1].from_admin else "" }}
-                                    {% if user.chats[-1].message_type == 'text' %}
-                                        {{ user.chats[-1].message }}
-                                    {% else %}
-                                        Sent a {{ user.chats[-1].message_type }}
-                                    {% endif %}
-                                {% else %}
-                                    No messages yet
-                                {% endif %}
-                            </p>
-                            <span id="unread-{{ user.user_id }}" class="hidden notification-dot"></span>
-                        </div>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </aside>
+        // Form Submission
+        document.getElementById('replyForm').onsubmit = (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if(!text) return;
 
-        <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col bg-[#f8fafc]">
-            {% if active_chat %}
-            <!-- Chat Header -->
-            <div class="h-[75px] px-8 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600">
-                        {{ active_chat.user_name[:1] | upper }}
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-slate-800">{{ active_chat.user_name }}</h2>
-                        <p class="text-[11px] text-green-500 font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active Now
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Messages List -->
-            <div class="flex-1 chat-container p-8" id="chatWindow">
-                <div class="flex flex-col gap-4" id="messageList">
-                    {% for msg in active_chat.chats %}
-                    <div class="flex flex-col {{ 'items-end' if msg.from_admin else 'items-start' }}">
-                        
-                        <!-- Media Preview Rendering -->
-                        {% if msg.message_type in ['photo', 'sticker', 'animation'] %}
-                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'media_file')">
-                            <img src="{{ msg.message }}" alt="Media" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
-                        </div>
-                        {% elif msg.message_type == 'video' %}
-                        <div class="media-container" onclick="downloadMedia('{{ msg.message }}', 'video.mp4')">
-                            <video class="media-preview-video" controls>
-                                <source src="{{ msg.message }}" type="video/mp4">
-                            </video>
-                        </div>
-                        {% elif msg.message_type == 'document' %}
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('{{ msg.message }}', 'document')">
-                            <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
-                                <i class="fas fa-file-alt text-xl"></i>
-                            </div>
-                            <div class="text-sm font-bold text-slate-700">Document Received</div>
-                        </div>
-                        {% else %}
-                        <div class="msg-bubble {{ 'msg-sent' if msg.from_admin else 'msg-received' }}">
-                            {{ msg.message }}
-                        </div>
-                        {% endif %}
-
-                        <span class="text-[10px] text-slate-400 mt-1 px-1">
-                            {% if msg.timestamp %}
-                                {% if msg.timestamp is string %}
-                                    {{ msg.timestamp[11:16] }}
-                                {% else %}
-                                    {{ msg.timestamp.strftime('%I:%M %p') }}
-                                {% endif %}
-                            {% else %}
-                                Just Now
-                            {% endif %}
-                        </span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Message Input Area -->
-            <div class="p-4 bg-white border-t border-slate-200">
-                <form id="replyForm" class="max-w-4xl mx-auto relative flex items-center gap-3">
-                    <button type="button" class="text-slate-400 hover:text-blue-600 p-2"><i class="fas fa-plus-circle text-xl"></i></button>
-                    <div class="relative flex-1">
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." 
-                               class="w-full bg-slate-100 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none">
-                    </div>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 transition-all active:scale-95">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
-            </div>
-
-            {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
-                <div class="bg-white p-8 rounded-full shadow-sm mb-4">
-                    <i class="far fa-comments text-6xl text-slate-200"></i>
-                </div>
-                <h3 class="text-slate-800 font-bold text-lg">No Conversation Selected</h3>
-                <p class="text-sm">စကားပြောရန် ဘယ်ဘက်မှ User တစ်ယောက်ကို ရွေးချယ်ပါ</p>
-            </div>
-            {% endif %}
-        </main>
-    </div>
-
-    <script>
-        const chatWindow = document.getElementById('chatWindow');
-        const messageList = document.getElementById('messageList');
-        const messageInput = document.getElementById('messageInput');
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentUserId = urlParams.get('user_id');
-
-        // Media Download Helper
-        function downloadMedia(url, filename) {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.target = "_blank";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // WebSocket Connection
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-
-        ws.onopen = () => {
-            statusText.innerText = "Online";
-            statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
-        };
-
-        ws.onclose = () => {
-            statusText.innerText = "Offline";
-            statusDot.className = "w-2 h-2 rounded-full bg-red-500";
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === "new_message") {
-                const msg = data.data;
-                const senderId = data.user_id.toString();
-
-                // Update Sidebar Last Message & Notify
-                const lastMsgEl = document.getElementById(`last-msg-${senderId}`);
-                if (lastMsgEl) {
-                    lastMsgEl.innerText = msg.message_type !== 'text' ? `Sent a ${msg.message_type}` : (msg.from_admin ? "You: " : "") + msg.message;
-                    
-                    // Show unread dot if this user is not the active one
-                    if (senderId !== currentUserId) {
-                        const unreadEl = document.getElementById(`unread-${senderId}`);
-                        if (unreadEl) unreadEl.classList.remove('hidden');
-                        
-                        // Optional: Highlight the user item in sidebar
-                        const userSide = document.getElementById(`user-side-${senderId}`);
-                        if (userSide) userSide.classList.add('bg-blue-50/30');
-                    }
-                }
-
-                // Append to chat window if currently talking to this user
-                if (senderId === currentUserId) {
-                    appendMessage(msg);
-                }
-            }
-        };
-
-        function appendMessage(msg) {
-            if (!messageList) return;
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `flex flex-col ${msg.from_admin ? 'items-end' : 'items-start'} animate-pop-in`;
-            
-            let contentHtml = '';
-            // Handle Media Types in Real-time
-            if (['photo', 'sticker', 'animation'].includes(msg.message_type)) {
-                contentHtml = `
-                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'media')">
-                        <img src="${msg.message}" class="media-preview-img" onerror="this.src='https://via.placeholder.com/300x200?text=Media+Unavailable'">
-                    </div>`;
-            } else if (msg.message_type === 'video') {
-                contentHtml = `
-                    <div class="media-container" onclick="downloadMedia('${msg.message}', 'video.mp4')">
-                        <video class="media-preview-video" controls src="${msg.message}"></video>
-                    </div>`;
-            } else if (msg.message_type === 'document') {
-                contentHtml = `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-50 mb-1" onclick="downloadMedia('${msg.message}', 'document')">
-                        <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="fas fa-file-alt text-xl"></i></div>
-                        <div class="text-sm font-bold text-slate-700">Document Received</div>
-                    </div>`;
-            } else {
-                contentHtml = `<div class="msg-bubble ${msg.from_admin ? 'msg-sent' : 'msg-received'}">${msg.message}</div>`;
-            }
-
-            msgDiv.innerHTML = `${contentHtml}<span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>`;
-            messageList.appendChild(msgDiv);
-            scrollToBottom();
-        }
-
-        function scrollToBottom() {
-            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        const replyForm = document.getElementById('replyForm');
-        if (replyForm) {
-            replyForm.onsubmit = async (e) => {
-                e.preventDefault();
-                const text = messageInput.value.trim();
-                if (!text || !currentUserId) return;
-                
-                // Optimistic UI update: show admin message immediately
-                const adminMsg = { message: text, message_type: 'text', from_admin: true };
-                appendMessage(adminMsg);
-                
-                messageInput.value = '';
-                try {
-                    await fetch('/send_message', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: currentUserId, message: text })
-                    });
-                } catch (err) { console.error("Error sending message:", err); }
-            };
-        }
-
-        window.onload = scrollToBottom;
-    </script>
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex flex-col items-end animate-pop-in';
+            msgDiv.innerHTML = `
+                <div class="msg-bubble msg-sent">${text}</div>
+                <span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>
+            `;
+            
+            messageList.appendChild(msgDiv);
+            messageInput.value = '';
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+    </script>
 </body>
 </html>
-
