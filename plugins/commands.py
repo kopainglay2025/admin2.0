@@ -371,7 +371,7 @@ async def base_site_handler(client, m: Message):
         await m.reply("<b>Base Site updated successfully</b>")
 
 
-@Client.on_message(filters.incoming & filters.private)
+@Client.on_message(filters.incoming & filters.private, group=2)
 async def save_user_mevvssage(client, message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "Unknown"
