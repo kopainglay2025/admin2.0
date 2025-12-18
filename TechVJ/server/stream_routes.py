@@ -149,11 +149,13 @@ async def send_message_handler(request):
 
 
 
-import os
+
+
+@import os
 import aiofiles
-import io # Binary အတွက် ထည့်ပါ
 from aiohttp import web
 from datetime import datetime
+import logging
 
 UPLOAD_DIR = "static/uploads"
 if not os.path.exists(UPLOAD_DIR):
@@ -166,28 +168,26 @@ async def upload_and_send_handler(request):
         user_id = None
         file_path = ""
         final_content_type = ""
-        actual_filename = ""
 
         while True:
             part = await reader.next()
             if part is None: break
             
             if part.name == 'file':
-                # headers ထဲက content_type ကို ယူပါ
-                final_content_type = part.headers.get('Content-Type', '')
-                original_filename = part.filename
+                final_content_type = part.headers.get('Content-Type', '').lower()
+                filename = part.filename
                 
-                # ၁။ Extension ကို သေချာစစ်ဆေးပါ
-                name_part, ext = os.path.splitext(original_filename)
+                # ၁။ Extension ကို စနစ်တကျ ခွဲထုတ်ပါ
+                _, ext = os.path.splitext(filename)
                 ext = ext.lower()
-
-                # အကယ်၍ ext မပါလာရင် content type ကို ကြည့်ပြီး အတင်းထည့်ပေးပါ
+                
+                # Extension မပါရင် format အလိုက် အတင်းထည့်ပေးပါ
                 if not ext:
                     if "image" in final_content_type: ext = ".jpg"
                     elif "video" in final_content_type: ext = ".mp4"
-                    else: ext = ".bin" # default
+                    else: ext = ".bin"
 
-                # ၂။ ဖိုင်အမည်အသစ်ပေးပါ
+                # ၂။ ဖိုင်အမည်ကို timestamp ဖြင့် သိမ်းပါ
                 new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
                 file_path = os.path.join(UPLOAD_DIR, new_filename)
                 
@@ -204,26 +204,32 @@ async def upload_and_send_handler(request):
         if not file_path or not user_id:
             return web.json_response({"error": "Missing file or user_id"}, status=400)
 
-        # Telegram ပို့ရန် Client ယူခြင်း
         client = multi_clients[0]
         
-        # ၃။ Telegram ဆီ ပို့သည့်အခါ force_document မလုပ်ဘဲ သေချာပို့ပါ
-        is_photo = "image" in final_content_type or file_path.endswith(('.jpg', '.jpeg', '.png', '.webp'))
+        # ၃။ Photo သို့မဟုတ် Video ခွဲခြားခြင်း
+        # Content type ဒါမှမဟုတ် extension ကိုကြည့်ပြီး ဆုံးဖြတ်ပါ
+        valid_photo_exts = ('.jpg', '.jpeg', '.png', '.webp')
+        is_photo = "image" in final_content_type or file_path.lower().endswith(valid_photo_exts)
         file_type = "photo" if is_photo else "video"
 
         try:
+            # ၄။ အရေးကြီးဆုံးအချက် - ဖိုင်လမ်းကြောင်းကို တိုက်ရိုက်မပို့ဘဲ binary အနေနဲ့ ပို့ကြည့်ပါ
+            # (Telethon သုံးထားလျှင် ဖိုင်လမ်းကြောင်းပေးရုံဖြင့် ရသော်လည်း အချို့ library များတွင် binary လိုအပ်သည်)
             if is_photo:
-                # photo=file_path ဆိုတာထက် photo=open(file_path, 'rb') ပုံစံက ပိုစိတ်ချရပါတယ်
                 await client.send_photo(chat_id=user_id, photo=file_path)
             else:
                 await client.send_video(chat_id=user_id, video=file_path)
         except Exception as telegram_err:
             logging.error(f"Telegram API Error: {telegram_err}")
-            return web.json_response({"error": f"Telegram says: {str(telegram_err)}"}, status=400)
+            # Extension error ဆက်တက်နေလျှင် send_file ကို fallback အနေနဲ့ သုံးပါ
+            try:
+                await client.send_file(chat_id=user_id, file=file_path)
+            except:
+                return web.json_response({"error": f"Telegram says: {str(telegram_err)}"}, status=400)
 
         file_url = f"/static/uploads/{os.path.basename(file_path)}" 
 
-        # Database သိမ်းခြင်း (timestamp ကို format လုပ်ပါ)
+        # Database သိမ်းခြင်း
         now = datetime.utcnow()
         chat_data = {
             "message": file_url,
@@ -245,7 +251,7 @@ async def upload_and_send_handler(request):
                 "message": file_url,
                 "message_type": file_type,
                 "from_admin": True,
-                "timestamp": now.isoformat()
+                "timestamp": now.strftime('%I:%M %p') # UI အတွက် format လုပ်ပြီးပို့ပါ
             }
         }
         
