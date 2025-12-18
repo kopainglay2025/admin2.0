@@ -22,7 +22,7 @@ routes = web.RouteTableDef()
 
 # Websocket connections များကို သိမ်းဆည်းရန်
 active_sockets = set()
-router.add_static('/static/', path='static', name='static')
+routes.add_static('/static/', path='static', name='static')
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
     return web.json_response({
