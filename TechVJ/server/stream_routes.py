@@ -17,12 +17,12 @@ from plugins.dbusers import db
 import json
 import os
 from datetime import datetime
-
+from zoneinfo import ZoneInfo
 routes = web.RouteTableDef()
 
 # Websocket connections များကို သိမ်းဆည်းရန်
 active_sockets = set()
-routes.add_static('/static/', path='static', name='static')
+
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
     return web.json_response({
@@ -51,7 +51,7 @@ async def tgchat_dashboard(request):
             "users": users_list,
             "active_chat": active_chat,
             "active_page": "tg_chat", # Menu highlight ပြရန်
-            "now": datetime.utcnow()
+            "now": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         }
         return await render_page(request, "dashboard.html", context)
     except Exception as e:
@@ -79,7 +79,7 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat() # ISO format သည် JS အတွက် ပိုကောင်းသည်
+        "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S") # ISO format သည် JS အတွက် ပိုကောင်းသည်
     }
     
     payload = {
@@ -117,7 +117,7 @@ async def send_message_handler(request):
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         }
         await db.chat_col.update_one(
             {'user_id': user_id},
@@ -133,7 +133,7 @@ async def send_message_handler(request):
                 "message": text,
                 "message_type": "text",
                 "from_admin": True,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
             }
         }
         
@@ -230,7 +230,7 @@ async def upload_and_send_handler(request):
         file_url = f"/static/uploads/{os.path.basename(file_path)}" 
 
         # Database သိမ်းခြင်း
-        now = datetime.utcnow()
+        now = datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         chat_data = {
             "message": file_url,
             "message_type": file_type,
