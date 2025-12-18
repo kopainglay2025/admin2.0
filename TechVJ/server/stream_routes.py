@@ -31,56 +31,62 @@ async def root_route_handler(request):
         "version": __version__
     })
 
-@routes.get("/dashboard")
-async def admin_dashboard(request):
+@routes.get("/dashboard") # Dashboard Menu အတွက်
+@routes.get("/tgchat") # Telegram Chat Main Page
+async def tgchat_dashboard(request):
     try:
-        # User list ကို နောက်ဆုံး message တစ်ခုနဲ့အတူ ဆွဲထုတ်ခြင်း
         cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
         users_list = await cursor.to_list(length=100)
-
+        
         active_user_id = request.query.get('user_id')
         active_chat = None
         
         if active_user_id:
-            try:
-                active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
-            except (ValueError, TypeError):
-                active_chat = None
+            active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
         
-        # အကယ်၍ user ရွေးမထားရင် ပထမဆုံး user ကို default ပြခြင်း
         if not active_chat and users_list:
             active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
 
         context = {
             "users": users_list,
             "active_chat": active_chat,
+            "active_page": "tg_chat", # Menu highlight ပြရန်
             "now": datetime.utcnow()
         }
-        
-        # render_page သည် သင့်ရဲ့ template rendering function ဖြစ်ရပါမည်
         return await render_page(request, "dashboard.html", context)
-        
     except Exception as e:
         logging.error(f"Dashboard Error: {e}")
-        return web.Response(text=f"Internal Server Error: {str(e)}", status=500)
+        return web.Response(text=f"Error: {e}", status=500)
 
 @routes.get("/ws")
 async def websocket_handler(request):
-    """
-    Dashboard သို့ Real-time updates များ ပို့ဆောင်ရန် WebSocket
-    """
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-    
     active_sockets.add(ws)
     try:
         async for msg in ws:
-            if msg.type == web.WSMsgType.TEXT:
-                if msg.data == 'close':
-                    await ws.close()
+            pass 
     finally:
         active_sockets.remove(ws)
     return ws
+
+# Bot ဆီမှ message အသစ်ရောက်လာလျှင် Dashboard သို့လှမ်းပို့ပေးမည့် function
+async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
+    new_msg = {
+        "message": message_text,
+        "message_type": msg_type,
+        "from_admin": False,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    for ws in list(active_sockets): # list() သုံးခြင်းဖြင့် runtime error ကာကွယ်သည်
+        try:
+            await ws.send_json({
+                "type": "new_message",
+                "user_id": user_id,
+                "user_name": user_name,
+                "data": new_msg
+            })
+        except: continue
 
 @routes.post("/send_message")
 async def send_message_handler(request):
@@ -134,27 +140,8 @@ async def send_message_handler(request):
         logging.error(f"Send Message Error: {e}")
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
-async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
-    """
-    Telegram Bot ဆီမှ message အသစ်ရောက်လာတိုင်း WebSocket သို့ လှမ်းပို့ပေးသော function
-    """
-    new_msg = {
-        "message": message_text,
-        "message_type": msg_type,
-        "from_admin": False,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    
-    for ws in active_sockets:
-        try:
-            await ws.send_json({
-                "type": "new_message",
-                "user_id": user_id,
-                "user_name": user_name,
-                "data": new_msg
-            })
-        except:
-            continue
+
+            
 @routes.get("/user")
 async def show_user_chats(request):
     """
