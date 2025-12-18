@@ -345,20 +345,23 @@ async def save_user_message(client, message):
     content = ""
     msg_type = "text"
 
-    # Message Type ခွဲခြားခြင်း
     if message.text:
         content = message.text
     else:
-        media = message.photo or message.video or message.document or message.sticker or message.animation
-        if media:
-            msg_type = message.media.value # 'photo', 'video', etc.
-            # Media တွေကို direct link ပြောင်းရန်
+        # media type ကို တိတိကျကျ ယူခြင်း
+        media_obj = message.photo or message.video or message.document or message.sticker or message.animation
+        if media_obj:
+            # message.media သည် Enum ဖြစ်နေတတ်သဖြင့် .value သို့မဟုတ် string ပြောင်းသုံးပါ
+            msg_type = str(message.media.value) if message.media else "media"
+            
             if msg_type in ["photo", "video", "document", "animation"]:
-                content = await get_telegram_file_url(media.file_id) or f"Sent a {msg_type}"
+                # file_id ရယူရန် photo ဖြစ်ပါက အကြီးဆုံး size ကိုယူပါ
+                file_id = message.photo.file_id if message.photo else media_obj.file_id
+                content = await get_telegram_file_url(file_id) or f"Sent a {msg_type}"
             else:
                 content = f"Sent a {msg_type}"
 
-    # 1. Database သိမ်းခြင်း
+    # 1. Database သိမ်းခြင်း (ဒီမှာ await သေချာသုံးပါ)
     await db.add_chat(
         user_id=user_id, 
         user_name=user_name, 
@@ -366,7 +369,7 @@ async def save_user_message(client, message):
         message_type=msg_type
     )
 
-    # 2. WebSocket မှတစ်ဆင့် Dashboard ကို Update လုပ်ခြင်း
+    # 2. WebSocket Update (user_name ကိုပါ ထည့်ပေးမှ Sidebar မှာ အသစ်ဆောက်လို့ရမည်)
     await notify_admin_new_message(
         user_id=user_id, 
         user_name=user_name, 
