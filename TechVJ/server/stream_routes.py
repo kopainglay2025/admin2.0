@@ -35,8 +35,9 @@ async def root_route_handler(request):
 @routes.get("/tgchat")
 async def tgchat_dashboard(request):
     try:
-        # User list ကို ယူတဲ့အခါ unread message ဘယ်နှစ်စောင်ရှိလဲဆိုတာပါ တွက်ချက်ဖို့ query ပြောင်းပါမယ်
-        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
+        # chats array တစ်ခုလုံးကို ယူမှသာ reload လုပ်ရင် message အသစ်တွေကို စစ်နိုင်မှာပါ
+        # ဒါပေမယ့် data များမှာစိုးရင် chats ရဲ့ နောက်ဆုံး အစောင် ၂၀ လောက်ပဲ slice လုပ်ယူပါ
+        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -20}})
         users_list = await cursor.to_list(length=100)
         
         active_user_id = request.query.get('user_id')
@@ -44,13 +45,11 @@ async def tgchat_dashboard(request):
         
         if active_user_id:
             user_id_int = int(active_user_id)
-            # ၁။ အရင်ဆုံး message အားလုံးကို ဖတ်ပြီးသားအဖြစ် mark လုပ်မယ်
+            # Admin က ဝင်ကြည့်တဲ့အတွက် message အားလုံးကို ဖတ်ပြီးသားလုပ်မယ်
             await db.chat_col.update_one(
                 {'user_id': user_id_int},
                 {'$set': {'chats.$[].is_read': True}}
             )
-            
-            # ၂။ အဲ့ဒီနောက်မှ data ကို ပြန်ယူမယ်
             active_chat = await db.chat_col.find_one({'user_id': user_id_int})
 
         context = {
@@ -63,7 +62,6 @@ async def tgchat_dashboard(request):
     except Exception as e:
         logging.error(f"Dashboard Error: {e}")
         return web.Response(text=f"Error: {e}", status=500)
-
 @routes.get("/ws")
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
