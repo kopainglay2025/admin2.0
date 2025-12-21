@@ -32,23 +32,21 @@ async def root_route_handler(request):
     })
 
 @routes.get("/dashboard") # Dashboard Menu အတွက်
-@routes.get("/tgchat") # Telegram Chat Main Page
+@@routes.get("/tgchat")
 async def tgchat_dashboard(request):
     try:
-        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
+        # Chat အသစ်ဆုံးသူကို အပေါ်ဆုံးပို့ရန် chats.timestamp နဲ့ sort လုပ်ပါ
+        cursor = db.chat_col.find({}).sort("chats.timestamp", -1)
         users_list = await cursor.to_list(length=100)
         
         active_user_id = request.query.get('user_id')
         active_chat = None
         
-        # user_id ပါလာမှသာ active_chat ကို ရှာဖွေမယ်
         if active_user_id:
             try:
                 active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
-            except (ValueError, TypeError):
+            except:
                 active_chat = None
-
-        # အရင်ကရှိခဲ့တဲ့ users_list[0] ကို auto ယူတဲ့ logic ကို ဖျက်လိုက်ပါပြီ
 
         context = {
             "users": users_list,
