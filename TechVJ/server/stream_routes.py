@@ -35,18 +35,23 @@ async def root_route_handler(request):
 @routes.get("/tgchat")
 async def tgchat_dashboard(request):
     try:
-        # Chat အသစ်ဆုံးသူကို အပေါ်ဆုံးပို့ရန် chats.timestamp နဲ့ sort လုပ်ပါ
-        cursor = db.chat_col.find({}).sort("chats.timestamp", -1)
+        # User list ကို ယူတဲ့အခါ unread message ဘယ်နှစ်စောင်ရှိလဲဆိုတာပါ တွက်ချက်ဖို့ query ပြောင်းပါမယ်
+        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
         users_list = await cursor.to_list(length=100)
         
         active_user_id = request.query.get('user_id')
         active_chat = None
         
         if active_user_id:
-            try:
-                active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
-            except:
-                active_chat = None
+            user_id_int = int(active_user_id)
+            # ၁။ အရင်ဆုံး message အားလုံးကို ဖတ်ပြီးသားအဖြစ် mark လုပ်မယ်
+            await db.chat_col.update_one(
+                {'user_id': user_id_int},
+                {'$set': {'chats.$[].is_read': True}}
+            )
+            
+            # ၂။ အဲ့ဒီနောက်မှ data ကို ပြန်ယူမယ်
+            active_chat = await db.chat_col.find_one({'user_id': user_id_int})
 
         context = {
             "users": users_list,
