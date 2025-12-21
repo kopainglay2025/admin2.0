@@ -101,6 +101,8 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
             logging.error(f"WS Error: {e}")
             continue
 
+
+
 @routes.post("/send_message")
 async def send_message_handler(request):
     try:
@@ -115,20 +117,23 @@ async def send_message_handler(request):
         client = multi_clients[0]
         sent_msg = await client.send_message(chat_id=user_id, text=text)
 
-        # Database ထဲ သိမ်းခြင်း
+        # Database ထဲ သိမ်းခြင်း (timestamp ကို datetime object အနေနဲ့ သိမ်းပါ)
+        now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
+        
         chat_data = {
             "message": text,
             "message_type": "text",
             "from_admin": True,
-            "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": now_mm  # <--- ဒီနေရာမှာ .strftime မလုပ်ပါနဲ့တော့
         }
+        
         await db.chat_col.update_one(
             {'user_id': user_id},
             {'$push': {'chats': chat_data}},
             upsert=True
         )
 
-        # --- အရေးကြီးသည်- WebSocket မှတစ်ဆင့် UI ကို Update လုပ်ခိုင်းခြင်း ---
+        # WebSocket Update (Web UI အတွက်ကတော့ String ပို့ပေးရပါမယ်)
         ws_payload = {
             "type": "new_message",
             "user_id": user_id,
@@ -136,7 +141,7 @@ async def send_message_handler(request):
                 "message": text,
                 "message_type": "text",
                 "from_admin": True,
-                "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
+                "timestamp": now_mm.strftime("%I:%M %p") 
             }
         }
         
@@ -147,9 +152,8 @@ async def send_message_handler(request):
 
         return web.json_response({"status": "success"})
     except Exception as e:
+        print(f"Error: {e}") # Debugging အတွက်
         return web.json_response({"error": str(e)}, status=500)
-
-
 
 
 
