@@ -77,30 +77,43 @@ async def websocket_handler(request):
 # --- server/stream_routes.py ---
 
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
-    # WebSocket payload ကို ပိုမိုစုံလင်စွာ ပြင်ဆင်ခြင်း
+    now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
+    
     new_msg = {
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S") # ISO format သည် JS အတွက် ပိုကောင်းသည်
+        "timestamp": now_mm # Database အတွက် datetime object အနေနဲ့ သိမ်းပါ
     }
     
+    # --- အရေးကြီးဆုံးအပိုင်း: Database ထဲအရင်သိမ်းပါ ---
+    await db.chat_col.update_one(
+        {'user_id': int(user_id)},
+        {
+            '$set': {'user_name': user_name},
+            '$push': {'chats': new_msg}
+        },
+        upsert=True
+    )
+
+    # WebSocket အတွက် payload ပြင်ဆင်ခြင်း
     payload = {
         "type": "new_message",
-        "user_id": str(user_id), # user_id ကို string ပြောင်းပို့ပါ (အရေးကြီးသည်)
+        "user_id": str(user_id),
         "user_name": user_name,
-        "data": new_msg
+        "data": {
+            "message": message_text,
+            "message_type": msg_type,
+            "from_admin": False,
+            "timestamp": now_mm.strftime("%I:%M %p") # UI အတွက် string format ပြောင်းပေးပါ
+        }
     }
     
-    # Active ဖြစ်နေသော Dashboard window အားလုံးသို့ ပို့ခြင်း
     for ws in list(active_sockets):
         try:
             await ws.send_json(payload)
-            logging.info(f"Real-time update sent to dashboard for user: {user_id}")
         except Exception as e:
             logging.error(f"WS Error: {e}")
-            continue
-
 
 
 @routes.post("/send_message")
