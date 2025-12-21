@@ -155,7 +155,7 @@ async def send_message_handler(request):
                 "message": text,
                 "message_type": "text",
                 "from_admin": True,
-                "timestamp": now_mm.strftime("%I:%M %p") 
+                "timestamp": now_mm
             }
         }
         
