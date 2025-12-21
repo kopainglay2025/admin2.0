@@ -22,8 +22,6 @@ routes = web.RouteTableDef()
 
 # Websocket connections များကို သိမ်းဆည်းရန်
 active_sockets = set()
-UPLOAD_DIR = "static/uploads"
-MM_TIMEZONE = ZoneInfo("Asia/Yangon")
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
@@ -37,35 +35,33 @@ async def root_route_handler(request):
 @routes.get("/tgchat")
 async def tgchat_dashboard(request):
     try:
-        # Fetch users with latest 20 messages for list
-        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -1}})
+        # chats array တစ်ခုလုံးကို ယူမှသာ reload လုပ်ရင် message အသစ်တွေကို စစ်နိုင်မှာပါ
+        # ဒါပေမယ့် data များမှာစိုးရင် chats ရဲ့ နောက်ဆုံး အစောင် ၂၀ လောက်ပဲ slice လုပ်ယူပါ
+        cursor = db.chat_col.find({}, {"user_id": 1, "user_name": 1, "chats": {"$slice": -20}})
         users_list = await cursor.to_list(length=100)
         
         active_user_id = request.query.get('user_id')
         active_chat = None
         
         if active_user_id:
-            u_id = int(active_user_id)
-            # Set all messages to read when admin opens the chat
+            user_id_int = int(active_user_id)
+            # Admin က ဝင်ကြည့်တဲ့အတွက် message အားလုံးကို ဖတ်ပြီးသားလုပ်မယ်
             await db.chat_col.update_one(
-                {'user_id': u_id},
+                {'user_id': user_id_int},
                 {'$set': {'chats.$[].is_read': True}}
             )
-            # Fetch full chat history for active user
-            active_chat = await db.chat_col.find_one({'user_id': u_id})
+            active_chat = await db.chat_col.find_one({'user_id': user_id_int})
 
         context = {
             "users": users_list,
             "active_chat": active_chat,
+            "active_page": "tg_chat",
+            "now": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         }
-        # Assuming you have a helper to render templates
-        # return render_template("tg_chat.html", context) 
-        return web.Response(text="Template Rendering Logic Here", content_type='text/html')
+        return await render_page(request, "dashboard.html", context)
     except Exception as e:
         logging.error(f"Dashboard Error: {e}")
-        return web.Response(text=str(e), status=500)
-
-# 2. WebSocket Handler
+        return web.Response(text=f"Error: {e}", status=500)
 @routes.get("/ws")
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
@@ -73,43 +69,44 @@ async def websocket_handler(request):
     active_sockets.add(ws)
     try:
         async for msg in ws:
-            if msg.type == web.WSMsgType.TEXT:
-                pass # Client-side processing only
+            pass 
     finally:
         active_sockets.remove(ws)
     return ws
 
-# 3. Handle New Inbound Message (From Telegram Bot)
+# Bot ဆီမှ message အသစ်ရောက်လာလျှင် Dashboard သို့လှမ်းပို့ပေးမည့် function
+# --- server/stream_routes.py ---
+
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
-    now = datetime.now(MM_TIMEZONE)
+    now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
     
-    chat_entry = {
+    # ၁။ Database ထဲမှာ အရင်သိမ်းပါ
+    new_chat_entry = {
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": now,
-        "is_read": False
+        "timestamp": now_mm  # Object အနေနဲ့သိမ်းပါ
     }
     
-    # Save to MongoDB
     await db.chat_col.update_one(
         {'user_id': int(user_id)},
         {
-            '$set': {'user_name': user_name},
-            '$push': {'chats': chat_entry}
+            '$set': {'user_name': user_name}, # အမည်ပြောင်းသွားရင် update ဖြစ်အောင်
+            '$push': {'chats': new_chat_entry}
         },
         upsert=True
     )
     
-    # Broadcast via WebSocket
+    # ၂။ ပြီးမှ WebSocket ကနေ Dashboard ဆီ ပို့ပါ
     payload = {
         "type": "new_message",
         "user_id": str(user_id),
+        "user_name": user_name,
         "data": {
             "message": message_text,
             "message_type": msg_type,
             "from_admin": False,
-            "timestamp": now.strftime("%I:%M %p")
+            "timestamp": now_mm.strftime("%I:%M %p") # UI အတွက် format ပြောင်းပို့ပါ
         }
     }
     
@@ -119,100 +116,176 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
         except:
             continue
 
-# 4. Send Message (Admin to User)
+
 @routes.post("/send_message")
 async def send_message_handler(request):
-    data = await request.json()
-    user_id = int(data.get("user_id"))
-    text = data.get("message")
-    
-    # --- Telegram Sending Logic Here (Telethon/Pyrogram) ---
-    # await bot.send_message(user_id, text)
-    
-    now = datetime.now(MM_TIMEZONE)
-    chat_data = {
-        "message": text,
-        "message_type": "text",
-        "from_admin": True,
-        "timestamp": now
-    }
-    
-    await db.chat_col.update_one(
-        {'user_id': user_id},
-        {'$push': {'chats': chat_data}},
-        upsert=True
-    )
-    
-    # Notify all admin windows
-    for ws in list(active_sockets):
-        try:
-            await ws.send_json({
-                "type": "new_message",
-                "user_id": str(user_id),
-                "data": {**chat_data, "timestamp": now.strftime("%I:%M %p")}
-            })
-        except: continue
-        
-    return web.json_response({"status": "success"})
+    try:
+        data = await request.json()
+        user_id = int(data.get("user_id"))
+        text = data.get("message")
 
-# 5. Multimedia Upload & Send
+        if not text or not user_id:
+            return web.json_response({"error": "Missing info"}, status=400)
+
+        # Telegram ဆီ စာပို့ခြင်း
+        client = multi_clients[0]
+        sent_msg = await client.send_message(chat_id=user_id, text=text)
+
+        # Database ထဲ သိမ်းခြင်း (timestamp ကို datetime object အနေနဲ့ သိမ်းပါ)
+        now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
+        
+        chat_data = {
+            "message": text,
+            "message_type": "text",
+            "from_admin": True,
+            "timestamp": now_mm  # <--- ဒီနေရာမှာ .strftime မလုပ်ပါနဲ့တော့
+        }
+        
+        await db.chat_col.update_one(
+            {'user_id': user_id},
+            {'$push': {'chats': chat_data}},
+            upsert=True
+        )
+
+        # WebSocket Update (Web UI အတွက်ကတော့ String ပို့ပေးရပါမယ်)
+        ws_payload = {
+            "type": "new_message",
+            "user_id": user_id,
+            "data": {
+                "message": text,
+                "message_type": "text",
+                "from_admin": True,
+                "timestamp": now_mm.strftime("%I:%M %p") 
+            }
+        }
+        
+        for ws in list(active_sockets):
+            try:
+                await ws.send_json(ws_payload)
+            except: continue
+
+        return web.json_response({"status": "success"})
+    except Exception as e:
+        print(f"Error: {e}") # Debugging အတွက်
+        return web.json_response({"error": str(e)}, status=500)
+
+
+
+
+import os
+import aiofiles
+from aiohttp import web
+from datetime import datetime
+import logging
+
+UPLOAD_DIR = "static/uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
 @routes.post("/upload_and_send")
 async def upload_and_send_handler(request):
-    reader = await request.multipart()
-    user_id = None
-    file_path = ""
-    content_type = ""
-    
-    while True:
-        part = await reader.next()
-        if part is None: break
-        
-        if part.name == 'file':
-            content_type = part.headers.get('Content-Type', '').lower()
-            ext = ".jpg" if "image" in content_type else ".mp4"
-            filename = f"media_{int(datetime.utcnow().timestamp())}{ext}"
-            file_path = os.path.join(UPLOAD_DIR, filename)
+    try:
+        reader = await request.multipart()
+        user_id = None
+        file_path = ""
+        final_content_type = ""
+
+        while True:
+            part = await reader.next()
+            if part is None: break
             
-            async with aiofiles.open(file_path, mode='wb') as f:
-                while True:
-                    chunk = await part.read_chunk()
-                    if not chunk: break
-                    await f.write(chunk)
-                    
-        elif part.name == 'user_id':
-            user_id = int(await part.text())
+            if part.name == 'file':
+                final_content_type = part.headers.get('Content-Type', '').lower()
+                filename = part.filename
+                
+                # ၁။ Extension ကို စနစ်တကျ ခွဲထုတ်ပါ
+                _, ext = os.path.splitext(filename)
+                ext = ext.lower()
+                
+                # Extension မပါရင် format အလိုက် အတင်းထည့်ပေးပါ
+                if not ext:
+                    if "image" in final_content_type: ext = ".jpg"
+                    elif "video" in final_content_type: ext = ".mp4"
+                    else: ext = ".bin"
 
-    # --- Telegram Multimedia Send Logic ---
-    # if "image" in content_type: await bot.send_photo(user_id, file_path)
-    # else: await bot.send_video(user_id, file_path)
-    
-    msg_type = "photo" if "image" in content_type else "video"
-    public_url = f"/static/uploads/{os.path.basename(file_path)}"
-    
-    now = datetime.now(MM_TIMEZONE)
-    chat_entry = {
-        "message": public_url,
-        "message_type": msg_type,
-        "from_admin": True,
-        "timestamp": now
-    }
-    
-    await db.chat_col.update_one({'user_id': user_id}, {'$push': {'chats': chat_entry}})
-    
-    for ws in list(active_sockets):
+                # ၂။ ဖိုင်အမည်ကို timestamp ဖြင့် သိမ်းပါ
+                new_filename = f"{int(datetime.utcnow().timestamp())}{ext}"
+                file_path = os.path.join(UPLOAD_DIR, new_filename)
+                
+                async with aiofiles.open(file_path, mode='wb') as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk: break
+                        await f.write(chunk)
+            
+            elif part.name == 'user_id':
+                user_id_text = await part.text()
+                user_id = int(user_id_text)
+
+        if not file_path or not user_id:
+            return web.json_response({"error": "Missing file or user_id"}, status=400)
+
+        client = multi_clients[0]
+        
+        # ၃။ Photo သို့မဟုတ် Video ခွဲခြားခြင်း
+        # Content type ဒါမှမဟုတ် extension ကိုကြည့်ပြီး ဆုံးဖြတ်ပါ
+        valid_photo_exts = ('.jpg', '.jpeg', '.png', '.webp')
+        is_photo = "image" in final_content_type or file_path.lower().endswith(valid_photo_exts)
+        file_type = "photo" if is_photo else "video"
+
         try:
-            await ws.send_json({
-                "type": "new_message",
-                "user_id": str(user_id),
-                "data": {**chat_entry, "timestamp": now.strftime("%I:%M %p")}
-            })
-        except: continue
+            # ၄။ အရေးကြီးဆုံးအချက် - ဖိုင်လမ်းကြောင်းကို တိုက်ရိုက်မပို့ဘဲ binary အနေနဲ့ ပို့ကြည့်ပါ
+            # (Telethon သုံးထားလျှင် ဖိုင်လမ်းကြောင်းပေးရုံဖြင့် ရသော်လည်း အချို့ library များတွင် binary လိုအပ်သည်)
+            if is_photo:
+                await client.send_photo(chat_id=user_id, photo=file_path)
+            else:
+                await client.send_video(chat_id=user_id, video=file_path)
+        except Exception as telegram_err:
+            logging.error(f"Telegram API Error: {telegram_err}")
+            # Extension error ဆက်တက်နေလျှင် send_file ကို fallback အနေနဲ့ သုံးပါ
+            try:
+                await client.send_file(chat_id=user_id, file=file_path)
+            except:
+                return web.json_response({"error": f"Telegram says: {str(telegram_err)}"}, status=400)
 
-    return web.json_response({"status": "success", "url": public_url})
+        file_url = f"/static/uploads/{os.path.basename(file_path)}" 
 
+        # Database သိမ်းခြင်း
+        now = datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
+        chat_data = {
+            "message": file_url,
+            "message_type": file_type,
+            "from_admin": True,
+            "timestamp": now
+        }
+        await db.chat_col.update_one(
+            {'user_id': user_id},
+            {'$push': {'chats': chat_data}},
+            upsert=True
+        )
 
+        # WebSocket Update
+        ws_payload = {
+            "type": "new_message",
+            "user_id": str(user_id),
+            "data": {
+                "message": file_url,
+                "message_type": file_type,
+                "from_admin": True,
+                "timestamp": now # UI အတွက် format လုပ်ပြီးပို့ပါ
+            }
+        }
+        
+        for ws in list(active_sockets):
+            try:
+                await ws.send_json(ws_payload)
+            except: continue
 
+        return web.json_response({"status": "success", "url": file_url})
 
+    except Exception as e:
+        logging.error(f"Critical Upload Error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
 
 
 @routes.get("/user")
