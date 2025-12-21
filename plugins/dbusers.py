@@ -44,6 +44,7 @@ class Database:
         chat = dict(
             message=message,
             message_type=message_type,
+            is_read=False,
             timestamp=datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         )
         # Push into single document per user
