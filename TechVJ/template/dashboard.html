@@ -115,48 +115,37 @@
                     <h2 class="font-bold text-slate-700">Conversations</h2>
                 </div>
                 <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
-            </div>            
+            </div>
             
-<div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-    {% for user in users %}
-    {% set last_chat = user.chats[-1] if user.chats else None %}
-    {# unread message ရှိမရှိ စစ်ဆေးခြင်း #}
-    {% set has_unread = False %}
-    {% for c in user.chats %}
-        {% if c.is_read == False and not c.from_admin %}
-            {% set has_unread = True %}
-        {% endif %}
-    {% endfor %}
-
-    <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
-        <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
-            <div class="relative shrink-0">
-                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
-                    {{ user.user_name[:1] | upper }}
+            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
+                {% for user in users %}
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
+                        <div class="relative shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
+                                {{ user.user_name[:1] | upper }}
+                            </div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                                {% if user.chats %}
+                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') if user.chats[-1].timestamp.strftime else '' }}</span>
+                                {% endif %}
+                            </div>
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                                {% if user.chats %} 
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
+                                {% endif %}
+                            </p>
+                        </div>
+                    </a>
                 </div>
-                <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black {{ 'hidden' if not has_unread }}">
-                    !
-                </div>
+                {% endfor %}
             </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
-                    {% if last_chat %}
-                    <span class="text-[10px] text-slate-400">{{ last_chat.timestamp }}</span>
-                    {% endif %}
-                </div>
-                <p id="last-msg-{{ user.user_id }}" class="text-xs truncate {{ 'font-black text-slate-900' if has_unread else 'text-slate-400' }}">
-                    {% if last_chat %} 
-                        {{ "📷 Photo" if last_chat.message_type == 'photo' else ("🎥 Video" if last_chat.message_type == 'video' else last_chat.message) }} 
-                    {% endif %}
-                </p>
-            </div>
-        </a>
-    </div>
-    {% endfor %}
-</div>
+        </aside>
 
- 
         <main class="{{ 'flex' if active_chat else 'hidden lg:flex' }} flex-1 flex-col min-w-0 bg-slate-50 w-full fixed lg:static inset-0 z-20">
             {% if active_chat %}
             <header class="h-[70px] px-4 lg:px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
@@ -320,41 +309,26 @@
             }
         };
 
-
         function handleIncomingMessage(userId, data) {
             const card = document.getElementById(`user-card-${userId}`);
-            const lastMsgEl = document.getElementById(`last-msg-${userId}`);
-            
-            // ၁။ User Card ကို List ရဲ့ အပေါ်ဆုံးကို ပို့မယ်
             if (card) {
                 userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
             }
-
-            const lastMsgText = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
-
-            if (lastMsgEl) {
-                lastMsgEl.innerText = lastMsgText;
-
-                // ၂။ အကယ်၍ Admin က အဲ့ဒီ user ရဲ့ chat ကို ဖွင့်မထားဘူးဆိုရင် Bold လုပ်မယ်
-                if (String(userId) !== String(currentUserId)) {
-                    lastMsgEl.classList.add('font-bold', 'text-slate-900');
-                    lastMsgEl.classList.remove('text-slate-400');
-                    
-                    // Badge count တိုးမယ်
-                    unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
-                    const badge = document.getElementById(`badge-${userId}`);
-                    if (badge) { 
-                        badge.innerText = unreadCounts[userId]; 
-                        badge.classList.remove('hidden'); 
-                    }
-                }
-            }
-
-            // ၃။ အကယ်၍ အခု လက်ရှိ window ဖွင့်ထားတဲ့ user ဆိုရင် message တန်းပြမယ်
             if (String(userId) === String(currentUserId)) {
                 appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { 
+                    badge.innerText = unreadCounts[userId]; 
+                    badge.classList.remove('hidden'); 
+                }
             }
         }
+
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
