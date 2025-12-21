@@ -16,319 +16,220 @@
         .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 0.95rem; position: relative; word-wrap: break-word; }
         .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
-        .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .media-preview { 
+            max-width: 100%; width: 250px; border-radius: 12px; cursor: pointer; 
+            transition: all 0.2s; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: cover; display: block; background: #e2e8f0;
+        }
         #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
-        .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
-        .media-preview { max-width: 100%; width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); object-fit: cover; display: block; background: #e2e8f0; }
-        .media-preview:hover { transform: scale(1.02); filter: brightness(0.9); }
-        #mobileSidebar { transition: transform 0.3s ease-in-out; }
-        .sidebar-open { transform: translateX(0) !important; }
-        .sidebar-closed { transform: translateX(-100%); }
     </style>
 </head>
 <body class="text-slate-900">
 
     <!-- Lightbox for Media -->
     <div id="lightbox">
-        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors z-50"><i class="fas fa-times"></i></button>
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 z-50"><i class="fas fa-times"></i></button>
         <div id="lightbox-content" class="max-w-[95%] max-h-[80vh] flex items-center justify-center"></div>
-        <div class="flex gap-4 mt-6">
-            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-bold transition-all flex items-center gap-2 text-sm">
-                <i class="fas fa-download"></i> Download
-            </a>
-        </div>
+        <div class="mt-6"><a id="download-btn" href="#" download class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold flex items-center gap-2"><i class="fas fa-download"></i> Download</a></div>
     </div>
 
-    <!-- Mobile Sidebar Overlay -->
-    <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden opacity-0 lg:hidden"></div>
-
-    <div class="flex h-screen overflow-hidden relative">
-        <!-- Main Sidebar -->
-        <aside id="mainSidebar" class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col">
             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
                 <span class="font-bold text-lg">Admin Panel</span>
             </div>
             <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
                 <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
-                <a href="#" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
-                </a>
-                <a href="#" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
-                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+                <a href="/tgchat" class="flex items-center gap-3 px-6 py-3 bg-blue-50 text-blue-600 border-r-4 border-blue-600 font-medium">
+                    <i class="fab fa-telegram-plane w-5"></i> Telegram Chat
                 </a>
             </nav>
         </aside>
 
-        <!-- User List Area -->
-        <aside id="userListSidebar" class="flex w-full lg:w-80 bg-white border-r border-slate-200 flex-col shrink-0">
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 h-[70px]">
-                <div class="flex items-center gap-3">
-                    <button onclick="toggleSidebar()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-600">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h2 class="font-bold text-slate-700">Conversations</h2>
-                </div>
-                <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
+        <!-- Conversations List -->
+        <aside class="w-full lg:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 h-[70px] flex items-center justify-between">
+                <h2 class="font-bold text-slate-700">Conversations</h2>
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-                <!-- Users will be populated here -->
-                <div class="p-8 text-center text-slate-400 text-sm">Loading users...</div>
+                <!-- User Cards will be injected by Jinja2 or JS -->
+                {% for user in users %}
+                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+                    <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
+                        <div class="relative shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
+                                {{ user.user_name[:1] | upper }}
+                            </div>
+                            <div id="badge-{{ user.user_id }}" class="absolute -top-1 -right-1 bg-red-500 min-w-[20px] h-[20px] rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                                {% if user.chats %}
+                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') }}</span>
+                                {% endif %}
+                            </div>
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                                {% if user.chats %}
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
             </div>
         </aside>
 
         <!-- Chat Window -->
-        <main id="chatMain" class="hidden lg:flex flex-1 flex-col min-w-0 bg-slate-50 w-full fixed lg:static inset-0 z-20">
-            <div id="noChatSelected" class="flex flex-1 flex-col items-center justify-center text-slate-300 h-full">
-                <div class="bg-slate-100 p-8 rounded-full mb-6 animate-bounce">
-                    <i class="fas fa-comments text-5xl text-blue-300"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-600 mb-2">Select a Conversation</h3>
-                <p class="font-medium text-slate-400">Choose a user from the list to start messaging</p>
-            </div>
-
-            <div id="activeChat" class="hidden flex-1 flex-col h-full">
-                <header class="h-[70px] px-4 lg:px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
-                    <div class="flex items-center gap-3">
-                        <button onclick="backToUserList()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600">
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <div id="chatAvatar" class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0">U</div>
-                        <div>
-                            <h2 id="chatUserName" class="font-bold text-slate-800 text-sm line-clamp-1">User Name</h2>
-                            <span class="text-[10px] text-green-500 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active</span>
-                        </div>
+        <main class="flex-1 flex flex-col bg-slate-50">
+            {% if active_chat %}
+            <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
+                        {{ active_chat.user_name[:1] | upper }}
                     </div>
-                </header>
-
-                <div class="flex-1 chat-container p-4 lg:p-6 custom-scrollbar" id="chatWindow">
-                    <div class="flex flex-col gap-3 max-w-4xl mx-auto" id="messageList">
-                        <!-- Messages populate here -->
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
+                        <span class="text-[10px] text-green-500 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active</span>
                     </div>
                 </div>
+            </header>
 
-                <div class="p-3 lg:p-4 bg-white border-t border-slate-200">
-                    <div id="emoji-picker-container" class="absolute bottom-20 left-4 z-50 hidden"></div>
-                    <form id="replyForm" class="max-w-4xl mx-auto">
-                        <div class="flex items-center gap-2 mb-2">
-                            <input type="file" id="fileInput" class="hidden" accept="image/*,video/*">
-                            <button type="button" onclick="document.getElementById('fileInput').click()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600">
-                                <i class="fas fa-paperclip text-lg"></i>
-                            </button>
-                            <button type="button" onclick="toggleEmojiPicker()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500">
-                                <i class="far fa-smile text-lg"></i>
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-2 bg-slate-100 rounded-3xl px-4 py-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400">
-                            <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none text-slate-700">
-                            <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
-                                <i class="fas fa-paper-plane text-lg"></i>
-                            </button>
-                        </div>
-                    </form>
+            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+                <div class="flex flex-col gap-3 max-w-4xl mx-auto" id="messageList">
+                    {% for chat in active_chat.chats %}
+                    <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
+                        {% if chat.message_type == 'photo' %}
+                            <img src="{{ chat.message }}" onclick="openLightbox('img', this.src)" class="media-preview">
+                        {% elif chat.message_type == 'video' %}
+                            <div class="relative group max-w-[280px]">
+                                <video src="{{ chat.message }}" class="media-preview bg-black"></video>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                    <i class="fas fa-play-circle text-white text-5xl opacity-90"></i>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="msg-bubble {{ 'msg-sent' if chat.from_admin else 'msg-received' }}">
+                                {{ chat.message }}
+                            </div>
+                        {% endif %}
+                        <span class="text-[9px] text-slate-400 mt-1 px-1">
+                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else '' }}
+                        </span>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
+
+            <div class="p-4 bg-white border-t border-slate-200">
+                <form id="replyForm" class="max-w-4xl mx-auto flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"><i class="fas fa-paperclip"></i></button>
+                        <div class="flex-1 bg-slate-100 rounded-3xl px-4 flex items-center ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400">
+                            <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none">
+                            <button type="submit" class="text-blue-600 p-2"><i class="fas fa-paper-plane text-lg"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-300">
+                <i class="fas fa-comments text-6xl mb-4"></i>
+                <p>Select a user to start messaging</p>
+            </div>
+            {% endif %}
         </main>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, query, onSnapshot, doc, setDoc, addDoc, serverTimestamp, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    <script>
+        const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
+        const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
 
-        // Global State
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tg-admin-001';
-        
-        let selectedUserId = null;
-        let users = {};
-        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-
-        // Init App
-        async function init() {
-            await signInAnonymously(auth);
-            listenToUsers();
-            if (Notification.permission !== "granted") Notification.requestPermission();
-        }
-
-        // Listen to Users (Conversation List)
-        function listenToUsers() {
-            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
-            onSnapshot(usersRef, (snapshot) => {
-                const userListEl = document.getElementById('userList');
-                userListEl.innerHTML = '';
+        ws.onmessage = (event) => {
+            const response = JSON.parse(event.data);
+            if (response.type === "new_message") {
+                const userId = String(response.user_id);
+                // Update Sidebar
+                const card = document.getElementById(`user-card-${userId}`);
+                if (card) {
+                    document.getElementById('userList').prepend(card);
+                    const lastMsg = response.data.message_type === 'text' ? response.data.message : `📷 ${response.data.message_type}`;
+                    document.getElementById(`last-msg-${userId}`).innerText = lastMsg;
+                }
                 
-                snapshot.docs.forEach(docSnap => {
-                    const userData = docSnap.data();
-                    const userId = docSnap.id;
-                    users[userId] = userData;
-
-                    const card = document.createElement('div');
-                    card.className = `border-b border-slate-50 relative cursor-pointer hover:bg-slate-50 transition-colors ${selectedUserId === userId ? 'bg-blue-50 border-r-4 border-blue-500' : ''}`;
-                    card.innerHTML = `
-                        <div class="flex items-center gap-3 p-4">
-                            <div class="relative shrink-0">
-                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
-                                    ${userData.name ? userData.name[0].toUpperCase() : 'U'}
-                                </div>
-                                <div id="badge-${userId}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black ${userData.unread ? '' : 'hidden'}">
-                                    ${userData.unread || ''}
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="font-bold text-sm text-slate-800 truncate">${userData.name || 'Unknown'}</span>
-                                    <span class="text-[10px] text-slate-400">${formatTime(userData.lastTimestamp)}</span>
-                                </div>
-                                <p class="text-xs text-slate-400 truncate">${userData.lastMessage || 'No messages'}</p>
-                            </div>
-                        </div>
-                    `;
-                    card.onclick = () => selectUser(userId);
-                    userListEl.appendChild(card);
-                });
-            });
-        }
-
-        // Select User to Chat
-        let messageUnsubscribe = null;
-        async function selectUser(userId) {
-            selectedUserId = userId;
-            const userData = users[userId];
-            
-            // UI Updates
-            document.getElementById('noChatSelected').classList.add('hidden');
-            document.getElementById('activeChat').classList.remove('hidden');
-            document.getElementById('chatMain').classList.remove('hidden');
-            document.getElementById('chatUserName').innerText = userData.name;
-            document.getElementById('chatAvatar').innerText = userData.name[0].toUpperCase();
-            
-            if (window.innerWidth < 1024) {
-                document.getElementById('userListSidebar').classList.add('hidden');
+                // Append to chat if active
+                if (userId === currentUserId) {
+                    appendMessage(response.data);
+                } else if (!response.data.from_admin) {
+                    const badge = document.getElementById(`badge-${userId}`);
+                    if (badge) {
+                        badge.innerText = parseInt(badge.innerText) + 1;
+                        badge.classList.remove('hidden');
+                    }
+                }
             }
-
-            // Clear Unread
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId), { unread: 0 });
-
-            // Listen to messages
-            if (messageUnsubscribe) messageUnsubscribe();
-            const msgRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages', userId, 'chat');
-            const q = query(msgRef, orderBy('timestamp', 'asc'));
-            
-            messageUnsubscribe = onSnapshot(q, (snapshot) => {
-                const messageList = document.getElementById('messageList');
-                messageList.innerHTML = '';
-                snapshot.docs.forEach(d => appendMessage(d.data()));
-                scrollChat();
-            });
-        }
+        };
 
         function appendMessage(data) {
-            const list = document.getElementById('messageList');
+            const msgList = document.getElementById('messageList');
+            if (!msgList) return;
             const div = document.createElement('div');
-            div.className = `flex flex-col ${data.fromAdmin ? 'items-end' : 'items-start'} mb-2`;
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2`;
+            let content = data.message_type === 'text' 
+                ? `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`
+                : data.message_type === 'photo' 
+                    ? `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview">`
+                    : `<video src="${data.message}" class="media-preview" controls></video>`;
             
-            let content = '';
-            if (data.type === 'photo') {
-                content = `<img src="${data.text}" onclick="window.openLightbox('img', '${data.text}')" class="media-preview">`;
-            } else if (data.type === 'video') {
-                content = `
-                    <div class="relative group max-w-[250px]">
-                        <video src="${data.text}" class="media-preview bg-black"></video>
-                        <div onclick="window.openLightbox('video', '${data.text}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
-                            <i class="fas fa-play-circle text-white text-5xl"></i>
-                        </div>
-                    </div>`;
-            } else {
-                content = `<div class="msg-bubble ${data.fromAdmin ? 'msg-sent' : 'msg-received'}">${data.text}</div>`;
-            }
-
-            div.innerHTML = `${content}<span class="text-[9px] text-slate-400 mt-1 px-1">${formatTime(data.timestamp)}</span>`;
-            list.appendChild(div);
+            div.innerHTML = `${content}<span class="text-[9px] text-slate-400 mt-1">${data.timestamp}</span>`;
+            msgList.appendChild(div);
+            scrollChat();
         }
 
-        // Send Message Logic
-        document.getElementById('replyForm').onsubmit = async (e) => {
+        async function handleFileUpload() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file || !currentUserId) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('user_id', currentUserId);
+            
+            const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
+            if (res.ok) document.getElementById('fileInput').value = '';
+        }
+
+        document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (!text || !selectedUserId) return;
-
-            input.value = '';
-            const msgObj = {
-                text: text,
-                fromAdmin: true,
-                type: 'text',
-                timestamp: serverTimestamp()
-            };
-
-            // Add to messages
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages', selectedUserId, 'chat'), msgObj);
+            if (!text || !currentUserId) return;
             
-            // Update user's last message
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', selectedUserId), {
-                lastMessage: text,
-                lastTimestamp: serverTimestamp()
+            await fetch('/send_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
             });
-        };
-
-        // Utilities
-        function formatTime(ts) {
-            if (!ts) return '';
-            const date = ts.toDate ? ts.toDate() : new Date(ts);
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+            input.value = '';
+        });
 
         function scrollChat() {
             const win = document.getElementById('chatWindow');
-            win.scrollTop = win.scrollHeight;
+            if (win) win.scrollTop = win.scrollHeight;
         }
 
-        window.backToUserList = () => {
-            document.getElementById('chatMain').classList.add('hidden');
-            document.getElementById('userListSidebar').classList.remove('hidden');
-        };
-
-        window.openLightbox = (type, url) => {
+        function openLightbox(type, url) {
             const content = document.getElementById('lightbox-content');
-            const downloadBtn = document.getElementById('download-btn');
-            content.innerHTML = type === 'video' 
-                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg"></video>`
-                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain">`;
-            downloadBtn.href = url;
+            content.innerHTML = type === 'video' ? `<video src="${url}" controls autoplay class="max-h-[80vh]"></video>` : `<img src="${url}" class="max-h-[80vh]">`;
+            document.getElementById('download-btn').href = url;
             document.getElementById('lightbox').style.display = 'flex';
-        };
-
-        window.closeLightbox = () => document.getElementById('lightbox').style.display = 'none';
-
-        init();
-    </script>
-
-    <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('mobileSidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            // Basic sidebar toggle logic for mobile if needed
         }
 
-        function toggleEmojiPicker() {
-            const container = document.getElementById('emoji-picker-container');
-            if (container.innerHTML === '') {
-                const picker = new EmojiMart.Picker({
-                    onEmojiSelect: (emoji) => {
-                        document.getElementById('messageInput').value += emoji.native;
-                    },
-                    theme: 'light'
-                });
-                container.appendChild(picker);
-            }
-            container.classList.toggle('hidden');
-        }
+        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+        window.onload = scrollChat;
     </script>
 </body>
 </html>
