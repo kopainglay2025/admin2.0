@@ -78,7 +78,7 @@ async def websocket_handler(request):
 # --- server/stream_routes.py ---
 
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
-    now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
+    now_mm = datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
     
     # ၁။ Database ထဲမှာ အရင်သိမ်းပါ
     new_chat_entry = {
@@ -132,7 +132,7 @@ async def send_message_handler(request):
         sent_msg = await client.send_message(chat_id=user_id, text=text)
 
         # Database ထဲ သိမ်းခြင်း (timestamp ကို datetime object အနေနဲ့ သိမ်းပါ)
-        now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
+        datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         
         chat_data = {
             "message": text,
