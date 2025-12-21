@@ -79,24 +79,24 @@ async def websocket_handler(request):
 async def notify_admin_new_message(user_id, user_name, message_text, msg_type="text"):
     now_mm = datetime.now(ZoneInfo("Asia/Yangon"))
     
-    new_msg = {
+    # ၁။ Database ထဲမှာ အရင်သိမ်းပါ
+    new_chat_entry = {
         "message": message_text,
         "message_type": msg_type,
         "from_admin": False,
-        "timestamp": now_mm # Database အတွက် datetime object အနေနဲ့ သိမ်းပါ
+        "timestamp": now_mm  # Object အနေနဲ့သိမ်းပါ
     }
     
-    # --- အရေးကြီးဆုံးအပိုင်း: Database ထဲအရင်သိမ်းပါ ---
     await db.chat_col.update_one(
         {'user_id': int(user_id)},
         {
-            '$set': {'user_name': user_name},
-            '$push': {'chats': new_msg}
+            '$set': {'user_name': user_name}, # အမည်ပြောင်းသွားရင် update ဖြစ်အောင်
+            '$push': {'chats': new_chat_entry}
         },
         upsert=True
     )
-
-    # WebSocket အတွက် payload ပြင်ဆင်ခြင်း
+    
+    # ၂။ ပြီးမှ WebSocket ကနေ Dashboard ဆီ ပို့ပါ
     payload = {
         "type": "new_message",
         "user_id": str(user_id),
@@ -105,15 +105,15 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
             "message": message_text,
             "message_type": msg_type,
             "from_admin": False,
-            "timestamp": now_mm.strftime("%I:%M %p") # UI အတွက် string format ပြောင်းပေးပါ
+            "timestamp": now_mm.strftime("%I:%M %p") # UI အတွက် format ပြောင်းပို့ပါ
         }
     }
     
     for ws in list(active_sockets):
         try:
             await ws.send_json(payload)
-        except Exception as e:
-            logging.error(f"WS Error: {e}")
+        except:
+            continue
 
 
 @routes.post("/send_message")
