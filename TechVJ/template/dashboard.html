@@ -82,7 +82,7 @@
         <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
-                <span class="font-bold text-lg">MRN Panel</span>
+                <span class="font-bold text-lg">Admin</span>
             </div>
             <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
                 <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
@@ -182,8 +182,13 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
+
                         <span class="text-[9px] text-slate-400 mt-1 px-1">
-                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
+                            {% if chat.timestamp is string %}
+                                {{ chat.timestamp }}
+                            {% else %}
+                                {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else '' }}
+                            {% endif %}
                         </span>
                     </div>
                     {% endfor %}
@@ -215,7 +220,7 @@
                 <div class="bg-slate-100 p-8 rounded-full mb-6 animate-bounce">
                     <i class="fas fa-comments text-5xl text-blue-300"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-600 mb-2">Welcome to MRN Chat</h3>
+                <h3 class="text-xl font-bold text-slate-600 mb-2">Welcome</h3>
                 <p class="font-medium text-slate-400">Select a conversation from the left to start messaging</p>
             </div>
             {% endif %}
