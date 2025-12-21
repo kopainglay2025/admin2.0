@@ -116,49 +116,47 @@
                 </div>
                 <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
             </div>            
-            <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-                {% for user in users %}
-                <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
-                <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-                    {% for user in users %}
-                    {% set last_chat = user.chats[-1] if user.chats else None %}
-                    {# unread message ရှိမရှိ စစ်ဆေးခြင်း #}
-                    {% set has_unread = False %}
-                    {% for c in user.chats %}
-                        {% if c.is_read == False and not c.from_admin %}
-                            {% set has_unread = True %}
-                        {% endif %}
-                    {% endfor %}
+            
+<div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
+    {% for user in users %}
+    {% set last_chat = user.chats[-1] if user.chats else None %}
+    {# unread message ရှိမရှိ စစ်ဆေးခြင်း #}
+    {% set has_unread = False %}
+    {% for c in user.chats %}
+        {% if c.is_read == False and not c.from_admin %}
+            {% set has_unread = True %}
+        {% endif %}
+    {% endfor %}
 
-                    <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
-                        <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
-                            <div class="relative shrink-0">
-                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
-                                    {{ user.user_name[:1] | upper }}
-                                </div>
-                                <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black {{ 'hidden' if not has_unread }}">
-                                    !
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
-                                    {% if last_chat %}
-                                    <span class="text-[10px] text-slate-400">{{ last_chat.timestamp }}</span>
-                                    {% endif %}
-                                </div>
-                                <p id="last-msg-{{ user.user_id }}" class="text-xs truncate {{ 'font-black text-slate-900' if has_unread else 'text-slate-400' }}">
-                                    {% if last_chat %} 
-                                        {{ "📷 Photo" if last_chat.message_type == 'photo' else ("🎥 Video" if last_chat.message_type == 'video' else last_chat.message) }} 
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </a>
-                    </div>
-                    {% endfor %}
+    <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
+        <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
+            <div class="relative shrink-0">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
+                    {{ user.user_name[:1] | upper }}
                 </div>
-        </aside>
+                <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black {{ 'hidden' if not has_unread }}">
+                    !
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
+                    {% if last_chat %}
+                    <span class="text-[10px] text-slate-400">{{ last_chat.timestamp }}</span>
+                    {% endif %}
+                </div>
+                <p id="last-msg-{{ user.user_id }}" class="text-xs truncate {{ 'font-black text-slate-900' if has_unread else 'text-slate-400' }}">
+                    {% if last_chat %} 
+                        {{ "📷 Photo" if last_chat.message_type == 'photo' else ("🎥 Video" if last_chat.message_type == 'video' else last_chat.message) }} 
+                    {% endif %}
+                </p>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
 
+ 
         <main class="{{ 'flex' if active_chat else 'hidden lg:flex' }} flex-1 flex-col min-w-0 bg-slate-50 w-full fixed lg:static inset-0 z-20">
             {% if active_chat %}
             <header class="h-[70px] px-4 lg:px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
