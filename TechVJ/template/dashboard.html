@@ -21,23 +21,13 @@
         #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
         .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
         
-        /* Image Preview Style */
         .media-preview { 
-            max-width: 100%; 
-            width: 250px; 
-            max-height: 300px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            border: 2px solid #fff; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            object-fit: cover;
-            display: block;
-            background: #e2e8f0;
+            max-width: 100%; width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; 
+            transition: all 0.2s; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: cover; display: block; background: #e2e8f0;
         }
         .media-preview:hover { transform: scale(1.02); filter: brightness(0.9); }
 
-        /* Mobile Sidebar Transition */
         #mobileSidebar { transition: transform 0.3s ease-in-out; }
         .sidebar-open { transform: translateX(0) !important; }
         .sidebar-closed { transform: translateX(-100%); }
@@ -89,7 +79,6 @@
     </aside>
 
     <div class="flex h-screen overflow-hidden relative">
-        
         <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
@@ -164,7 +153,6 @@
                     <a href="/tgchat" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 mr-1">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    
                     <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0">
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
@@ -180,12 +168,8 @@
                 <div class="flex flex-col gap-3 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
-                        
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" 
-                                 onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'"
-                                 onclick="openLightbox('img', this.src)" 
-                                 class="media-preview">
+                            <img src="{{ chat.message }}" onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'" onclick="openLightbox('img', this.src)" class="media-preview">
                         {% elif chat.message_type == 'video' %}
                             <div class="relative group max-w-[250px] lg:max-w-[280px]">
                                 <video src="{{ chat.message }}" class="media-preview bg-black"></video>
@@ -198,7 +182,6 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
-                        
                         <span class="text-[9px] text-slate-400 mt-1 px-1">
                             {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp.strftime else chat.timestamp }}
                         </span>
@@ -221,7 +204,7 @@
                     </div>
                     <div class="flex items-center gap-2 bg-slate-100 rounded-3xl px-4 py-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400 transition-all">
                         <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none placeholder:text-slate-400 text-slate-700">
-                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform disabled:opacity-50">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
                             <i class="fas fa-paper-plane text-lg"></i>
                         </button>
                     </div>
@@ -243,6 +226,13 @@
         const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
+        let originalTitle = document.title;
+        let titleInterval = null;
+
+        // Notification Permission
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('mobileSidebar');
@@ -266,11 +256,51 @@
             }).format(new Date());
         }
 
+        // Notification Sound
+        function playNotificationSound() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+            audio.play().catch(e => console.log("Audio play failed"));
+        }
+
+        // Desktop Notification
+        function showDesktopNotification(sender, message) {
+            if (Notification.permission === "granted") {
+                const n = new Notification(`New message from ${sender}`, {
+                    body: message,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png'
+                });
+                n.onclick = () => { window.focus(); n.close(); };
+            }
+        }
+
+        // Tab Title Flash
+        function flashTitle(name) {
+            if (titleInterval) return;
+            titleInterval = setInterval(() => {
+                document.title = document.title === originalTitle ? `📩 New Message: ${name}` : originalTitle;
+            }, 1000);
+        }
+
+        window.onfocus = () => {
+            clearInterval(titleInterval);
+            titleInterval = null;
+            document.title = originalTitle;
+        };
+
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
             if (response.type === "new_message") {
                 handleIncomingMessage(response.user_id, response.data);
+                
+                // --- Notification Logic ---
+                if (String(response.user_id) !== String(currentUserId) || document.hidden) {
+                    if (!response.data.from_admin) {
+                        playNotificationSound();
+                        showDesktopNotification(response.data.user_name, response.data.message);
+                        flashTitle(response.data.user_name);
+                    }
+                }
             }
         };
 
@@ -287,7 +317,10 @@
             } else if (!data.from_admin) {
                 unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
                 const badge = document.getElementById(`badge-${userId}`);
-                if (badge) { badge.innerText = unreadCounts[userId]; badge.classList.remove('hidden'); }
+                if (badge) { 
+                    badge.innerText = unreadCounts[userId]; 
+                    badge.classList.remove('hidden'); 
+                }
             }
         }
 
@@ -298,8 +331,7 @@
             div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
             let contentHtml = '';
             if (data.message_type === 'photo') {
-                const imgSrc = data.message.startsWith('http') ? data.message : data.message;
-                contentHtml = `<img src="${imgSrc}" onerror="this.src='https://placehold.co/200x200?text=Image+Loading'" onclick="openLightbox('img', this.src)" class="media-preview">`;
+                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview">`;
             } else if (data.message_type === 'video') {
                 contentHtml = `<div class="relative group max-w-[250px] lg:max-w-[280px]">
                                     <video src="${data.message}" class="media-preview bg-black"></video>
@@ -320,8 +352,6 @@
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file || !currentUserId) return;
-            const isVideo = file.type.startsWith('video');
-            const type = isVideo ? 'video' : 'photo';
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
@@ -329,19 +359,10 @@
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 if (res.ok) {
-                    appendMessage({
-                        from_admin: true,
-                        message: result.url,
-                        message_type: type,
-                        timestamp: getMyanmarTime()
-                    });
+                    appendMessage({ from_admin: true, message: result.url, message_type: file.type.startsWith('video') ? 'video' : 'photo', timestamp: getMyanmarTime() });
                     fileInput.value = '';
-                } else {
-                    alert("Upload Error: " + result.error);
                 }
-            } catch (err) {
-                console.error("Upload Error:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function scrollChat() {
@@ -361,7 +382,6 @@
 
         function closeLightbox() {
             document.getElementById('lightbox').style.display = 'none';
-            document.getElementById('lightbox-content').innerHTML = '';
         }
 
         function toggleEmojiPicker() {
@@ -369,30 +389,14 @@
             if (container.innerHTML === '') {
                 const picker = new EmojiMart.Picker({
                     onEmojiSelect: (emoji) => { 
-                        const input = document.getElementById('messageInput');
-                        input.value += emoji.native;
-                        input.focus();
+                        document.getElementById('messageInput').value += emoji.native;
                     },
-                    theme: 'light',
-                    previewPosition: 'none',
-                    skinTonePosition: 'none'
+                    theme: 'light'
                 });
                 container.appendChild(picker);
             } 
-            if(container.style.display === 'none' || container.style.display === '') {
-                container.style.display = 'block';
-            } else {
-                container.style.display = 'none';
-            }
+            container.classList.toggle('hidden');
         }
-
-        document.addEventListener('click', function(event) {
-            const container = document.getElementById('emoji-picker-container');
-            const button = document.querySelector('button[onclick="toggleEmojiPicker()"]');
-            if (container.style.display === 'block' && !container.contains(event.target) && !button.contains(event.target)) {
-                container.style.display = 'none';
-            }
-        });
 
         document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -406,8 +410,6 @@
                 body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
             });
             input.value = '';
-            document.getElementById('emoji-picker-container').style.display = 'none';
-            input.focus();
         });
 
         window.onload = scrollChat;
