@@ -32,7 +32,7 @@ async def root_route_handler(request):
     })
 
 @routes.get("/dashboard") # Dashboard Menu အတွက်
-@@routes.get("/tgchat")
+@routes.get("/tgchat")
 async def tgchat_dashboard(request):
     try:
         # Chat အသစ်ဆုံးသူကို အပေါ်ဆုံးပို့ရန် chats.timestamp နဲ့ sort လုပ်ပါ
