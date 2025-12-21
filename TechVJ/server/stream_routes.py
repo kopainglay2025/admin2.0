@@ -106,7 +106,7 @@ async def notify_admin_new_message(user_id, user_name, message_text, msg_type="t
             "message": message_text,
             "message_type": msg_type,
             "from_admin": False,
-            "timestamp": now_mm.strftime("%I:%M %p") # UI အတွက် format ပြောင်းပို့ပါ
+            "timestamp": now_mm # UI အတွက် format ပြောင်းပို့ပါ
         }
     }
     
