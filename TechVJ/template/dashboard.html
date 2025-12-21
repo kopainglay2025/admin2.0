@@ -228,11 +228,12 @@
                 </form>
             </div>
             {% else %}
-            <div class="hidden lg:flex flex-1 flex-col items-center justify-center text-slate-300">
-                <div class="bg-slate-100 p-6 rounded-full mb-4">
-                    <i class="fas fa-comments text-4xl text-slate-300"></i>
+            <div class="hidden lg:flex flex-1 flex-col items-center justify-center text-slate-300 h-full">
+                <div class="bg-slate-100 p-8 rounded-full mb-6 animate-bounce">
+                    <i class="fas fa-comments text-5xl text-blue-300"></i>
                 </div>
-                <p class="font-medium text-slate-400">Select a chat to start messaging</p>
+                <h3 class="text-xl font-bold text-slate-600 mb-2">Welcome to MRN Chat</h3>
+                <p class="font-medium text-slate-400">Select a conversation from the left to start messaging</p>
             </div>
             {% endif %}
         </main>
@@ -243,16 +244,13 @@
         const userListContainer = document.getElementById('userList');
         let unreadCounts = {};
 
-        // Mobile Sidebar Toggle Logic
         function toggleSidebar() {
             const sidebar = document.getElementById('mobileSidebar');
             const overlay = document.getElementById('mobileOverlay');
-            
             if (sidebar.classList.contains('sidebar-closed')) {
                 sidebar.classList.remove('sidebar-closed');
                 sidebar.classList.add('sidebar-open');
                 overlay.classList.remove('hidden');
-                // Small delay to allow display:block to apply before opacity transition
                 setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             } else {
                 sidebar.classList.remove('sidebar-open');
@@ -262,14 +260,12 @@
             }
         }
 
-        // Helper: Format Time
         function getMyanmarTime() {
             return new Intl.DateTimeFormat('en-GB', {
                 timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true
             }).format(new Date());
         }
 
-        // WebSocket Setup
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
@@ -295,14 +291,11 @@
             }
         }
 
-        // Append Message with Preview Support
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
-            
             const div = document.createElement('div');
             div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
-            
             let contentHtml = '';
             if (data.message_type === 'photo') {
                 const imgSrc = data.message.startsWith('http') ? data.message : data.message;
@@ -317,10 +310,8 @@
             } else {
                 contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
-            
             const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
             div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1 px-1">${time}</span>`;
-            
             msgList.appendChild(div);
             scrollChat();
         }
@@ -329,22 +320,14 @@
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file || !currentUserId) return;
-
             const isVideo = file.type.startsWith('video');
             const type = isVideo ? 'video' : 'photo';
-
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
-
-            // Create temporary loading message
-            const tempId = 'temp-' + Date.now();
-            // Optional: You can append a "Uploading..." bubble here if desired
-
             try {
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
-                
                 if (res.ok) {
                     appendMessage({
                         from_admin: true,
@@ -396,7 +379,6 @@
                 });
                 container.appendChild(picker);
             } 
-            
             if(container.style.display === 'none' || container.style.display === '') {
                 container.style.display = 'block';
             } else {
@@ -404,7 +386,6 @@
             }
         }
 
-        // Close Emoji Picker when clicking outside
         document.addEventListener('click', function(event) {
             const container = document.getElementById('emoji-picker-container');
             const button = document.querySelector('button[onclick="toggleEmojiPicker()"]');
@@ -418,9 +399,7 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
-            
             appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
-            
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -431,7 +410,6 @@
             input.focus();
         });
 
-        // Initial scroll
         window.onload = scrollChat;
     </script>
 </body>
