@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRN Admin - Real-time Control</title>
+    <title>MRN Admin - Ultimate Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
@@ -16,46 +16,108 @@
         .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 0.95rem; position: relative; word-wrap: break-word; }
         .msg-received { background: white; color: #1e293b; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .msg-sent { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+        .badge-pulse { background: #ef4444; animation: pulse-red 2s infinite; border: 2px solid white; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
+        .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        
         .media-preview { 
-            max-width: 100%; width: 250px; border-radius: 12px; cursor: pointer; 
+            max-width: 100%; width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; 
             transition: all 0.2s; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             object-fit: cover; display: block; background: #e2e8f0;
         }
-        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
+        .media-preview:hover { transform: scale(1.02); filter: brightness(0.9); }
+
+        #mobileSidebar { transition: transform 0.3s ease-in-out; }
+        .sidebar-open { transform: translateX(0) !important; }
+        .sidebar-closed { transform: translateX(-100%); }
+        #mobileOverlay { transition: opacity 0.3s ease-in-out; }
     </style>
 </head>
 <body class="text-slate-900">
 
-    <!-- Lightbox for Media -->
     <div id="lightbox">
-        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 z-50"><i class="fas fa-times"></i></button>
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors z-50"><i class="fas fa-times"></i></button>
         <div id="lightbox-content" class="max-w-[95%] max-h-[80vh] flex items-center justify-center"></div>
-        <div class="mt-6"><a id="download-btn" href="#" download class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold flex items-center gap-2"><i class="fas fa-download"></i> Download</a></div>
+        <div class="flex gap-4 mt-6">
+            <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-bold transition-all flex items-center gap-2 text-sm">
+                <i class="fas fa-download"></i> Download
+            </a>
+        </div>
     </div>
 
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar Navigation (Desktop) -->
-        <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col">
+    <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden opacity-0 lg:hidden"></div>
+
+    <aside id="mobileSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl sidebar-closed lg:hidden flex flex-col">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
+                <span class="font-bold text-lg">MRN Panel</span>
+            </div>
+            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
+            <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fas fa-chart-line w-5"></i> Dashboard
+            </a>
+            <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+            <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+            </a>
+            <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
+            </a>
+            <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+            </a>
+            <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
+            <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fas fa-users w-5"></i> TG User List
+            </a>
+        </nav>
+    </aside>
+
+    <div class="flex h-screen overflow-hidden relative">
+        <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
             <div class="p-6 border-b border-slate-100 flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
-                <span class="font-bold text-lg">Admin Panel</span>
+                <span class="font-bold text-lg">Admin</span>
             </div>
             <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
-                <a href="/tgchat" class="flex items-center gap-3 px-6 py-3 bg-blue-50 text-blue-600 border-r-4 border-blue-600 font-medium">
-                    <i class="fab fa-telegram-plane w-5"></i> Telegram Chat
+                <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
+                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-chart-line w-5"></i> Dashboard
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+                </a>
+                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
+                </a>
+                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+                </a>
+                <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
+                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fas fa-users w-5"></i> TG User List
                 </a>
             </nav>
         </aside>
 
-        <!-- Conversations List -->
-        <aside class="w-full lg:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
-            <div class="p-4 border-b border-slate-100 bg-slate-50/50 h-[70px] flex items-center justify-between">
-                <h2 class="font-bold text-slate-700">Conversations</h2>
-                <div class="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
+        <aside class="{{ 'hidden lg:flex' if active_chat else 'flex' }} w-full lg:w-80 bg-white border-r border-slate-200 flex-col shrink-0">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 h-[70px]">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-600">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="font-bold text-slate-700">Conversations</h2>
+                </div>
+                <span class="bg-green-500 w-2 h-2 rounded-full animate-ping"></span>
             </div>
+            
             <div class="flex-1 overflow-y-auto custom-scrollbar" id="userList">
-                <!-- User Cards will be injected by Jinja2 or JS -->
                 {% for user in users %}
                 <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
                     <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
@@ -63,18 +125,18 @@
                             <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
                                 {{ user.user_name[:1] | upper }}
                             </div>
-                            <div id="badge-{{ user.user_id }}" class="absolute -top-1 -right-1 bg-red-500 min-w-[20px] h-[20px] rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
+                            <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
                                 {% if user.chats %}
-                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') }}</span>
+                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') if user.chats[-1].timestamp.strftime else '' }}</span>
                                 {% endif %}
                             </div>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
-                                {% if user.chats %}
-                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }}
+                                {% if user.chats %} 
+                                    {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
                                 {% endif %}
                             </p>
                         </div>
@@ -84,32 +146,35 @@
             </div>
         </aside>
 
-        <!-- Chat Window -->
-        <main class="flex-1 flex flex-col bg-slate-50">
+        <main class="{{ 'flex' if active_chat else 'hidden lg:flex' }} flex-1 flex-col min-w-0 bg-slate-50 w-full fixed lg:static inset-0 z-20">
             {% if active_chat %}
-            <header class="h-[70px] px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
+            <header class="h-[70px] px-4 lg:px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
+                    <a href="/tgchat" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 mr-1">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0">
                         {{ active_chat.user_name[:1] | upper }}
                     </div>
                     <div>
-                        <h2 class="font-bold text-slate-800 text-sm">{{ active_chat.user_name }}</h2>
-                        <span class="text-[10px] text-green-500 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active</span>
+                        <h2 class="font-bold text-slate-800 text-sm line-clamp-1">{{ active_chat.user_name }}</h2>
+                        <span class="text-[10px] text-green-500 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Online</span>
                     </div>
                 </div>
+                <button class="text-slate-400 hover:text-blue-600"><i class="fas fa-ellipsis-v"></i></button>
             </header>
 
-            <div class="flex-1 chat-container p-6 custom-scrollbar" id="chatWindow">
+            <div class="flex-1 chat-container p-4 lg:p-6 custom-scrollbar" id="chatWindow">
                 <div class="flex flex-col gap-3 max-w-4xl mx-auto" id="messageList">
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" onclick="openLightbox('img', this.src)" class="media-preview">
+                            <img src="{{ chat.message }}" onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'" onclick="openLightbox('img', this.src)" class="media-preview">
                         {% elif chat.message_type == 'video' %}
-                            <div class="relative group max-w-[280px]">
+                            <div class="relative group max-w-[250px] lg:max-w-[280px]">
                                 <video src="{{ chat.message }}" class="media-preview bg-black"></video>
-                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
-                                    <i class="fas fa-play-circle text-white text-5xl opacity-90"></i>
+                                <div onclick="openLightbox('video', '{{ chat.message }}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer transition-colors">
+                                    <i class="fas fa-play-circle text-white text-4xl lg:text-5xl opacity-90 group-hover:opacity-100"></i>
                                 </div>
                             </div>
                         {% else %}
@@ -117,30 +182,46 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
+
                         <span class="text-[9px] text-slate-400 mt-1 px-1">
-                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else '' }}
+                            {% if chat.timestamp is string %}
+                                {{ chat.timestamp }}
+                            {% else %}
+                                {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else '' }}
+                            {% endif %}
                         </span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-slate-200">
-                <form id="replyForm" class="max-w-4xl mx-auto flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
+            <div class="p-3 lg:p-4 bg-white border-t border-slate-200">
+                <div id="emoji-picker-container" class="absolute bottom-20 left-4 z-50 hidden"></div>
+                <form id="replyForm" class="max-w-4xl mx-auto">
+                    <div class="flex items-center gap-2 mb-2">
                         <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" onchange="handleFileUpload()">
-                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"><i class="fas fa-paperclip"></i></button>
-                        <div class="flex-1 bg-slate-100 rounded-3xl px-4 flex items-center ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400">
-                            <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none">
-                            <button type="submit" class="text-blue-600 p-2"><i class="fas fa-paper-plane text-lg"></i></button>
-                        </div>
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors">
+                            <i class="fas fa-paperclip text-lg"></i>
+                        </button>
+                        <button type="button" onclick="toggleEmojiPicker()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-yellow-500 transition-colors">
+                            <i class="far fa-smile text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-100 rounded-3xl px-4 py-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400 transition-all">
+                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none placeholder:text-slate-400 text-slate-700">
+                        <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
+                            <i class="fas fa-paper-plane text-lg"></i>
+                        </button>
                     </div>
                 </form>
             </div>
             {% else %}
-            <div class="flex-1 flex flex-col items-center justify-center text-slate-300">
-                <i class="fas fa-comments text-6xl mb-4"></i>
-                <p>Select a user to start messaging</p>
+            <div class="hidden lg:flex flex-1 flex-col items-center justify-center text-slate-300 h-full">
+                <div class="bg-slate-100 p-8 rounded-full mb-6 animate-bounce">
+                    <i class="fas fa-comments text-5xl text-blue-300"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-600 mb-2">Welcome</h3>
+                <p class="font-medium text-slate-400">Select a conversation from the left to start messaging</p>
             </div>
             {% endif %}
         </main>
@@ -148,58 +229,178 @@
 
     <script>
         const currentUserId = "{{ active_chat.user_id if active_chat else '' }}";
-        const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
+        const userListContainer = document.getElementById('userList');
+        let unreadCounts = {};
+        let originalTitle = document.title;
+        let titleInterval = null;
 
+        // Notification Permission
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mobileSidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if (sidebar.classList.contains('sidebar-closed')) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.remove('sidebar-open');
+                sidebar.classList.add('sidebar-closed');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function getMyanmarTime() {
+            return new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Yangon', hour: '2-digit', minute: '2-digit', hour12: true
+            }).format(new Date());
+        }
+
+        // Notification Sound
+        function playNotificationSound() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+            audio.play().catch(e => console.log("Audio play failed"));
+        }
+
+        // Desktop Notification
+        function showDesktopNotification(sender, message) {
+            if (Notification.permission === "granted") {
+                const n = new Notification(`New message from ${sender}`, {
+                    body: message,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png'
+                });
+                n.onclick = () => { window.focus(); n.close(); };
+            }
+        }
+
+        // Tab Title Flash
+        function flashTitle(name) {
+            if (titleInterval) return;
+            titleInterval = setInterval(() => {
+                document.title = document.title === originalTitle ? `📩 New Message: ${name}` : originalTitle;
+            }, 1000);
+        }
+
+        window.onfocus = () => {
+            clearInterval(titleInterval);
+            titleInterval = null;
+            document.title = originalTitle;
+        };
+
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
             if (response.type === "new_message") {
-                const userId = String(response.user_id);
-                // Update Sidebar
-                const card = document.getElementById(`user-card-${userId}`);
-                if (card) {
-                    document.getElementById('userList').prepend(card);
-                    const lastMsg = response.data.message_type === 'text' ? response.data.message : `📷 ${response.data.message_type}`;
-                    document.getElementById(`last-msg-${userId}`).innerText = lastMsg;
-                }
+                handleIncomingMessage(response.user_id, response.data);
                 
-                // Append to chat if active
-                if (userId === currentUserId) {
-                    appendMessage(response.data);
-                } else if (!response.data.from_admin) {
-                    const badge = document.getElementById(`badge-${userId}`);
-                    if (badge) {
-                        badge.innerText = parseInt(badge.innerText) + 1;
-                        badge.classList.remove('hidden');
+                // --- Notification Logic ---
+                if (String(response.user_id) !== String(currentUserId) || document.hidden) {
+                    if (!response.data.from_admin) {
+                        playNotificationSound();
+                        showDesktopNotification(response.data.user_name, response.data.message);
+                        flashTitle(response.data.user_name);
                     }
                 }
             }
         };
 
+        function handleIncomingMessage(userId, data) {
+            const card = document.getElementById(`user-card-${userId}`);
+            if (card) {
+                userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
+            }
+            if (String(userId) === String(currentUserId)) {
+                appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { 
+                    badge.innerText = unreadCounts[userId]; 
+                    badge.classList.remove('hidden'); 
+                }
+            }
+        }
+
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
             const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2`;
-            let content = data.message_type === 'text' 
-                ? `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`
-                : data.message_type === 'photo' 
-                    ? `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview">`
-                    : `<video src="${data.message}" class="media-preview" controls></video>`;
-            
-            div.innerHTML = `${content}<span class="text-[9px] text-slate-400 mt-1">${data.timestamp}</span>`;
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
+            let contentHtml = '';
+            if (data.message_type === 'photo') {
+                contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview">`;
+            } else if (data.message_type === 'video') {
+                contentHtml = `<div class="relative group max-w-[250px] lg:max-w-[280px]">
+                                    <video src="${data.message}" class="media-preview bg-black"></video>
+                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                        <i class="fas fa-play-circle text-white text-5xl"></i>
+                                    </div>
+                                </div>`;
+            } else {
+                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
+            }
+            const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
+            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1 px-1">${time}</span>`;
             msgList.appendChild(div);
             scrollChat();
         }
 
         async function handleFileUpload() {
-            const file = document.getElementById('fileInput').files[0];
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
             if (!file || !currentUserId) return;
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
-            
-            const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
-            if (res.ok) document.getElementById('fileInput').value = '';
+            try {
+                const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) {
+                    appendMessage({ from_admin: true, message: result.url, message_type: file.type.startsWith('video') ? 'video' : 'photo', timestamp: getMyanmarTime() });
+                    fileInput.value = '';
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function scrollChat() {
+            const chatWin = document.getElementById('chatWindow');
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+        }
+
+        function openLightbox(type, url) {
+            const content = document.getElementById('lightbox-content');
+            const downloadBtn = document.getElementById('download-btn');
+            content.innerHTML = type === 'video' 
+                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg shadow-2xl"></video>`
+                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl">`;
+            downloadBtn.href = url;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+        }
+
+        function toggleEmojiPicker() {
+            const container = document.getElementById('emoji-picker-container');
+            if (container.innerHTML === '') {
+                const picker = new EmojiMart.Picker({
+                    onEmojiSelect: (emoji) => { 
+                        document.getElementById('messageInput').value += emoji.native;
+                    },
+                    theme: 'light'
+                });
+                container.appendChild(picker);
+            } 
+            container.classList.toggle('hidden');
         }
 
         document.getElementById('replyForm')?.addEventListener('submit', async (e) => {
@@ -207,7 +408,7 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
-            
+            appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -216,19 +417,6 @@
             input.value = '';
         });
 
-        function scrollChat() {
-            const win = document.getElementById('chatWindow');
-            if (win) win.scrollTop = win.scrollHeight;
-        }
-
-        function openLightbox(type, url) {
-            const content = document.getElementById('lightbox-content');
-            content.innerHTML = type === 'video' ? `<video src="${url}" controls autoplay class="max-h-[80vh]"></video>` : `<img src="${url}" class="max-h-[80vh]">`;
-            document.getElementById('download-btn').href = url;
-            document.getElementById('lightbox').style.display = 'flex';
-        }
-
-        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
         window.onload = scrollChat;
     </script>
 </body>
