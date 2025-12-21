@@ -41,16 +41,19 @@ async def tgchat_dashboard(request):
         active_user_id = request.query.get('user_id')
         active_chat = None
         
+        # user_id ပါလာမှသာ active_chat ကို ရှာဖွေမယ်
         if active_user_id:
-            active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
-        
-        if not active_chat and users_list:
-            active_chat = await db.chat_col.find_one({'user_id': users_list[0]['user_id']})
+            try:
+                active_chat = await db.chat_col.find_one({'user_id': int(active_user_id)})
+            except (ValueError, TypeError):
+                active_chat = None
+
+        # အရင်ကရှိခဲ့တဲ့ users_list[0] ကို auto ယူတဲ့ logic ကို ဖျက်လိုက်ပါပြီ
 
         context = {
             "users": users_list,
             "active_chat": active_chat,
-            "active_page": "tg_chat", # Menu highlight ပြရန်
+            "active_page": "tg_chat",
             "now": datetime.now(ZoneInfo("Asia/Yangon")).strftime("%Y-%m-%d %H:%M:%S")
         }
         return await render_page(request, "dashboard.html", context)
