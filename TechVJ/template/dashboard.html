@@ -134,7 +134,7 @@
                                 <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') if user.chats[-1].timestamp.strftime else '' }}</span>
                                 {% endif %}
                             </div>
-                            <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
+                            <p id="last-msg-{{ user.user_id }}" class="text-xs truncate {{ 'font-bold text-slate-900' if user.chats and user.chats[-1].is_read == False else 'text-slate-400' }}">
                                 {% if user.chats %} 
                                     {{ "📷 Photo" if user.chats[-1].message_type == 'photo' else ("🎥 Video" if user.chats[-1].message_type == 'video' else user.chats[-1].message) }} 
                                 {% endif %}
@@ -309,26 +309,41 @@
             }
         };
 
+
         function handleIncomingMessage(userId, data) {
             const card = document.getElementById(`user-card-${userId}`);
+            const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+            
+            // ၁။ User Card ကို List ရဲ့ အပေါ်ဆုံးကို ပို့မယ်
             if (card) {
                 userListContainer.prepend(card);
-                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
-                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
-                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
             }
-            if (String(userId) === String(currentUserId)) {
-                appendMessage(data);
-            } else if (!data.from_admin) {
-                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
-                const badge = document.getElementById(`badge-${userId}`);
-                if (badge) { 
-                    badge.innerText = unreadCounts[userId]; 
-                    badge.classList.remove('hidden'); 
+
+            const lastMsgText = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+
+            if (lastMsgEl) {
+                lastMsgEl.innerText = lastMsgText;
+
+                // ၂။ အကယ်၍ Admin က အဲ့ဒီ user ရဲ့ chat ကို ဖွင့်မထားဘူးဆိုရင် Bold လုပ်မယ်
+                if (String(userId) !== String(currentUserId)) {
+                    lastMsgEl.classList.add('font-bold', 'text-slate-900');
+                    lastMsgEl.classList.remove('text-slate-400');
+                    
+                    // Badge count တိုးမယ်
+                    unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                    const badge = document.getElementById(`badge-${userId}`);
+                    if (badge) { 
+                        badge.innerText = unreadCounts[userId]; 
+                        badge.classList.remove('hidden'); 
+                    }
                 }
             }
-        }
 
+            // ၃။ အကယ်၍ အခု လက်ရှိ window ဖွင့်ထားတဲ့ user ဆိုရင် message တန်းပြမယ်
+            if (String(userId) === String(currentUserId)) {
+                appendMessage(data);
+            }
+        }
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
