@@ -22,7 +22,7 @@
         .nav-link.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
         
         .media-preview { 
-            max-width: 100%; width: 250px; height: 180px; border-radius: 12px; cursor: pointer; 
+            max-width: 100%; width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; 
             transition: all 0.2s; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             object-fit: cover; display: block; background: #e2e8f0;
         }
@@ -31,13 +31,14 @@
         #mobileSidebar { transition: transform 0.3s ease-in-out; }
         .sidebar-open { transform: translateX(0) !important; }
         .sidebar-closed { transform: translateX(-100%); }
+        #mobileOverlay { transition: opacity 0.3s ease-in-out; }
     </style>
 </head>
 <body class="text-slate-900">
 
-    <div id="lightbox" onclick="closeLightbox()">
-        <button class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors z-50"><i class="fas fa-times"></i></button>
-        <div id="lightbox-content" class="max-w-[95%] max-h-[80vh] flex items-center justify-center" onclick="event.stopPropagation()"></div>
+    <div id="lightbox">
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-3xl hover:text-red-500 transition-colors z-50"><i class="fas fa-times"></i></button>
+        <div id="lightbox-content" class="max-w-[95%] max-h-[80vh] flex items-center justify-center"></div>
         <div class="flex gap-4 mt-6">
             <a id="download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-bold transition-all flex items-center gap-2 text-sm">
                 <i class="fas fa-download"></i> Download
@@ -45,35 +46,61 @@
         </div>
     </div>
 
-    <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden opacity-0 lg:hidden transition-opacity duration-300"></div>
+    <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden opacity-0 lg:hidden"></div>
+
+    <aside id="mobileSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl sidebar-closed lg:hidden flex flex-col">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
+                <span class="font-bold text-lg">MRN Panel</span>
+            </div>
+            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
+            <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fas fa-chart-line w-5"></i> Dashboard
+            </a>
+            <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
+            <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
+            </a>
+            <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
+            </a>
+            <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
+            </a>
+            <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
+            <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fas fa-users w-5"></i> TG User List
+            </a>
+        </nav>
+    </aside>
 
     <div class="flex h-screen overflow-hidden relative">
-        
-        <aside id="mobileSidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col sidebar-closed lg:translate-x-0 shrink-0">
-            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
-                    <span class="font-bold text-lg">MRN Panel</span>
-                </div>
-                <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+        <aside class="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
+            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white"><i class="fas fa-th-large text-xl"></i></div>
+                <span class="font-bold text-lg">Admin</span>
             </div>
             <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
                 <div class="px-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
-                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50">
+                <a href="/dashboard" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-chart-line w-5"></i> Dashboard
                 </a>
                 <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</div>
-                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50">
+                <a href="/viber" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-viber w-5 text-purple-500"></i> Viber Bot
                 </a>
-                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50">
+                <a href="/tgchat" class="nav-link active flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-telegram-plane w-5 text-blue-500"></i> TG Chat
                 </a>
-                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50">
+                <a href="/fbpage" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fab fa-facebook w-5 text-blue-700"></i> FB Page
                 </a>
                 <div class="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
-                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50">
+                <a href="/tg-users" class="nav-link flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-users w-5"></i> TG User List
                 </a>
             </nav>
@@ -95,8 +122,8 @@
                 <div id="user-card-{{ user.user_id }}" class="border-b border-slate-50 relative">
                     <a href="?user_id={{ user.user_id }}" class="flex items-center gap-3 p-4 hover:bg-slate-50 {{ 'bg-blue-50 border-r-4 border-blue-500' if active_chat and active_chat.user_id == user.user_id }}">
                         <div class="relative shrink-0">
-                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200 uppercase">
-                                {{ user.user_name[:1] }}
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border border-blue-200">
+                                {{ user.user_name[:1] | upper }}
                             </div>
                             <div id="badge-{{ user.user_id }}" class="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-white text-[10px] flex items-center justify-center font-black hidden">0</div>
                         </div>
@@ -104,7 +131,7 @@
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-slate-800 truncate">{{ user.user_name }}</span>
                                 {% if user.chats %}
-                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') }}</span>
+                                <span class="text-[10px] text-slate-400">{{ user.chats[-1].timestamp.strftime('%I:%M %p') if user.chats[-1].timestamp.strftime else '' }}</span>
                                 {% endif %}
                             </div>
                             <p id="last-msg-{{ user.user_id }}" class="text-xs text-slate-400 truncate">
@@ -126,8 +153,8 @@
                     <a href="/tgchat" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 mr-1">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0 uppercase">
-                        {{ active_chat.user_name[:1] }}
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0">
+                        {{ active_chat.user_name[:1] | upper }}
                     </div>
                     <div>
                         <h2 class="font-bold text-slate-800 text-sm line-clamp-1">{{ active_chat.user_name }}</h2>
@@ -142,7 +169,7 @@
                     {% for chat in active_chat.chats %}
                     <div class="flex flex-col {{ 'items-end' if chat.from_admin else 'items-start' }} mb-2">
                         {% if chat.message_type == 'photo' %}
-                            <img src="{{ chat.message }}" loading="lazy" onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'" onclick="openLightbox('img', this.src)" class="media-preview">
+                            <img src="{{ chat.message }}" onerror="this.src='https://placehold.co/200x200?text=Image+Not+Found'" onclick="openLightbox('img', this.src)" class="media-preview">
                         {% elif chat.message_type == 'video' %}
                             <div class="relative group max-w-[250px] lg:max-w-[280px]">
                                 <video src="{{ chat.message }}" class="media-preview bg-black"></video>
@@ -155,8 +182,13 @@
                                 {{ chat.message }}
                             </div>
                         {% endif %}
+
                         <span class="text-[9px] text-slate-400 mt-1 px-1">
-                            {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp is not string else chat.timestamp }}
+                            {% if chat.timestamp is string %}
+                                {{ chat.timestamp }}
+                            {% else %}
+                                {{ chat.timestamp.strftime('%I:%M %p') if chat.timestamp else '' }}
+                            {% endif %}
                         </span>
                     </div>
                     {% endfor %}
@@ -176,7 +208,7 @@
                         </button>
                     </div>
                     <div class="flex items-center gap-2 bg-slate-100 rounded-3xl px-4 py-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-400 transition-all">
-                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none text-slate-700">
+                        <input type="text" id="messageInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-transparent border-none py-3 text-sm focus:ring-0 outline-none placeholder:text-slate-400 text-slate-700">
                         <button type="submit" class="text-blue-600 p-2 hover:scale-110 transition-transform">
                             <i class="fas fa-paper-plane text-lg"></i>
                         </button>
@@ -189,7 +221,7 @@
                     <i class="fas fa-comments text-5xl text-blue-300"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-600 mb-2">Welcome</h3>
-                <p class="font-medium text-slate-400">Select a conversation to start messaging</p>
+                <p class="font-medium text-slate-400">Select a conversation from the left to start messaging</p>
             </div>
             {% endif %}
         </main>
@@ -202,20 +234,23 @@
         let originalTitle = document.title;
         let titleInterval = null;
 
-        // --- Core Functions ---
+        // Notification Permission
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('mobileSidebar');
             const overlay = document.getElementById('mobileOverlay');
-            const isOpen = sidebar.classList.contains('sidebar-open');
-
-            if (!isOpen) {
-                sidebar.classList.replace('sidebar-closed', 'sidebar-open');
+            if (sidebar.classList.contains('sidebar-closed')) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
                 overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.replace('opacity-0', 'opacity-100'), 10);
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             } else {
-                sidebar.classList.replace('sidebar-open', 'sidebar-closed');
-                overlay.classList.replace('opacity-100', 'opacity-0');
+                sidebar.classList.remove('sidebar-open');
+                sidebar.classList.add('sidebar-closed');
+                overlay.classList.add('opacity-0');
                 setTimeout(() => overlay.classList.add('hidden'), 300);
             }
         }
@@ -226,23 +261,28 @@
             }).format(new Date());
         }
 
-        // --- Notifications ---
+        // Notification Sound
+        function playNotificationSound() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+            audio.play().catch(e => console.log("Audio play failed"));
+        }
 
-        function notify(sender, message) {
-            if (document.hidden) {
-                new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3').play().catch(() => {});
-                if (Notification.permission === "granted") {
-                    const n = new Notification(`New message from ${sender}`, { body: message });
-                    n.onclick = () => { window.focus(); n.close(); };
-                }
-                flashTitle(sender);
+        // Desktop Notification
+        function showDesktopNotification(sender, message) {
+            if (Notification.permission === "granted") {
+                const n = new Notification(`New message from ${sender}`, {
+                    body: message,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png'
+                });
+                n.onclick = () => { window.focus(); n.close(); };
             }
         }
 
+        // Tab Title Flash
         function flashTitle(name) {
             if (titleInterval) return;
             titleInterval = setInterval(() => {
-                document.title = document.title === originalTitle ? `📩 New: ${name}` : originalTitle;
+                document.title = document.title === originalTitle ? `📩 New Message: ${name}` : originalTitle;
             }, 1000);
         }
 
@@ -252,97 +292,102 @@
             document.title = originalTitle;
         };
 
-        // --- WebSocket & Messaging ---
-
         const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
         ws.onmessage = (event) => {
             const response = JSON.parse(event.data);
             if (response.type === "new_message") {
-                const isCurrent = String(response.user_id) === String(currentUserId);
+                handleIncomingMessage(response.user_id, response.data);
                 
-                // Update User List Sidebar
-                const card = document.getElementById(`user-card-${response.user_id}`);
-                if (card) {
-                    userListContainer.prepend(card);
-                    const lastMsg = response.data.message_type === 'text' ? response.data.message : `📷 ${response.data.message_type}`;
-                    document.getElementById(`last-msg-${response.user_id}`).innerText = lastMsg;
+                // --- Notification Logic ---
+                if (String(response.user_id) !== String(currentUserId) || document.hidden) {
+                    if (!response.data.from_admin) {
+                        playNotificationSound();
+                        showDesktopNotification(response.data.user_name, response.data.message);
+                        flashTitle(response.data.user_name);
+                    }
                 }
-
-                if (isCurrent) {
-                    appendMessage(response.data);
-                } else if (!response.data.from_admin) {
-                    // Update Badge
-                    unreadCounts[response.user_id] = (unreadCounts[response.user_id] || 0) + 1;
-                    const badge = document.getElementById(`badge-${response.user_id}`);
-                    if (badge) { badge.innerText = unreadCounts[response.user_id]; badge.classList.remove('hidden'); }
-                }
-
-                if (!response.data.from_admin) notify(response.data.user_name, response.data.message);
             }
         };
+
+        function handleIncomingMessage(userId, data) {
+            const card = document.getElementById(`user-card-${userId}`);
+            if (card) {
+                userListContainer.prepend(card);
+                const lastMsg = data.message_type === 'text' ? data.message : (data.message_type === 'photo' ? '📷 Photo' : '🎥 Video');
+                const lastMsgEl = document.getElementById(`last-msg-${userId}`);
+                if (lastMsgEl) lastMsgEl.innerText = lastMsg;
+            }
+            if (String(userId) === String(currentUserId)) {
+                appendMessage(data);
+            } else if (!data.from_admin) {
+                unreadCounts[userId] = (unreadCounts[userId] || 0) + 1;
+                const badge = document.getElementById(`badge-${userId}`);
+                if (badge) { 
+                    badge.innerText = unreadCounts[userId]; 
+                    badge.classList.remove('hidden'); 
+                }
+            }
+        }
 
         function appendMessage(data) {
             const msgList = document.getElementById('messageList');
             if (!msgList) return;
-            
             const div = document.createElement('div');
-            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 transition-all duration-300`;
-            
+            div.className = `flex flex-col ${data.from_admin ? 'items-end' : 'items-start'} mb-2 animate-in fade-in duration-300`;
             let contentHtml = '';
             if (data.message_type === 'photo') {
                 contentHtml = `<img src="${data.message}" onclick="openLightbox('img', this.src)" class="media-preview">`;
             } else if (data.message_type === 'video') {
-                contentHtml = `<div class="relative group max-w-[250px]"><video src="${data.message}" class="media-preview bg-black"></video><div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl cursor-pointer"><i class="fas fa-play-circle text-white text-5xl"></i></div></div>`;
+                contentHtml = `<div class="relative group max-w-[250px] lg:max-w-[280px]">
+                                    <video src="${data.message}" class="media-preview bg-black"></video>
+                                    <div onclick="openLightbox('video', '${data.message}')" class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 rounded-xl cursor-pointer">
+                                        <i class="fas fa-play-circle text-white text-5xl"></i>
+                                    </div>
+                                </div>`;
             } else {
-                // Basic XSS Protection
-                const cleanMsg = data.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${cleanMsg}</div>`;
+                contentHtml = `<div class="msg-bubble ${data.from_admin ? 'msg-sent' : 'msg-received'}">${data.message}</div>`;
             }
-
-            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1 px-1">${getMyanmarTime()}</span>`;
+            const time = data.timestamp ? (data.timestamp.includes('T') ? getMyanmarTime() : data.timestamp) : getMyanmarTime();
+            div.innerHTML = `${contentHtml}<span class="text-[9px] text-slate-400 mt-1 px-1">${time}</span>`;
             msgList.appendChild(div);
             scrollChat();
         }
-
-        // --- File Uploads ---
 
         async function handleFileUpload() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file || !currentUserId) return;
-
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', currentUserId);
-
-            // Optimistically show uploading... (optional)
             try {
                 const res = await fetch('/upload_and_send', { method: 'POST', body: formData });
                 const result = await res.json();
                 if (res.ok) {
-                    appendMessage({ from_admin: true, message: result.url, message_type: file.type.startsWith('video') ? 'video' : 'photo' });
+                    appendMessage({ from_admin: true, message: result.url, message_type: file.type.startsWith('video') ? 'video' : 'photo', timestamp: getMyanmarTime() });
+                    fileInput.value = '';
                 }
-            } catch (err) { alert("Upload failed"); }
-            fileInput.value = '';
+            } catch (err) { console.error(err); }
         }
-
-        // --- UI Utils ---
 
         function scrollChat() {
             const chatWin = document.getElementById('chatWindow');
-            if (chatWin) chatWin.scrollTop = chatWin.scrollHeight;
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
         }
 
         function openLightbox(type, url) {
             const content = document.getElementById('lightbox-content');
+            const downloadBtn = document.getElementById('download-btn');
             content.innerHTML = type === 'video' 
-                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh]"></video>` 
-                : `<img src="${url}" class="max-w-full max-h-[80vh] object-contain">`;
-            document.getElementById('download-btn').href = url;
+                ? `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] rounded-lg shadow-2xl"></video>`
+                : `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl">`;
+            downloadBtn.href = url;
             document.getElementById('lightbox').style.display = 'flex';
         }
 
-        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+        }
 
         function toggleEmojiPicker() {
             const container = document.getElementById('emoji-picker-container');
@@ -350,7 +395,6 @@
                 const picker = new EmojiMart.Picker({
                     onEmojiSelect: (emoji) => { 
                         document.getElementById('messageInput').value += emoji.native;
-                        container.classList.add('hidden'); // Close after selection
                     },
                     theme: 'light'
                 });
@@ -364,22 +408,16 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (!text || !currentUserId) return;
-            
-            appendMessage({ from_admin: true, message: text, message_type: 'text' });
-            input.value = '';
-            
+            appendMessage({ from_admin: true, message: text, message_type: 'text', timestamp: getMyanmarTime() });
             await fetch('/send_message', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ user_id: parseInt(currentUserId), message: text })
             });
+            input.value = '';
         });
 
-        // Init
-        window.onload = () => {
-            scrollChat();
-            if (Notification.permission !== "granted") Notification.requestPermission();
-        };
+        window.onload = scrollChat;
     </script>
 </body>
 </html>
